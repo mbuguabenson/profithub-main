@@ -4,6 +4,7 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { pluginBasicSsl } from '@rsbuild/plugin-basic-ssl';
 
 const path = require('path');
+require('dotenv').config();
 
 export default defineConfig({
     plugins: [
