@@ -16,15 +16,12 @@ export const STAGING_DOMAINS = {
     COM: brandConfig.platform.hostname.staging.com,
 } as const;
 
-// Helper to safely convert http/https URLs to ws/wss for WebSocket connections
-const getWsUrl = (baseUrl: string) => {
-    return baseUrl.replace(/^http/, 'ws');
-};
-
-// WebSocket server URLs
+// WebSocket server URLs for public, unauthenticated connections
+// We use the V3 WebSocket endpoint because the new V1 trading API endpoints require
+// specific application whitelisting or authenticated OTP flows to connect.
 export const WS_SERVERS = {
-    STAGING: `${getWsUrl(brandConfig.platform.derivws.url.staging)}options/ws/public`,
-    PRODUCTION: `${getWsUrl(brandConfig.platform.derivws.url.production)}options/ws/public`,
+    STAGING: 'wss://ws.derivws.com/websockets/v3?app_id=1069',
+    PRODUCTION: 'wss://ws.derivws.com/websockets/v3?app_id=1069',
 } as const;
 
 // =============================================================================
