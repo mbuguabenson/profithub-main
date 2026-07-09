@@ -154,7 +154,6 @@ const ChangeSpeedHeader = () => {
             onClick={toggleSpeedMode}
             style={{
                 background: isSpeedMode ? 'rgba(255, 68, 79, 0.15)' : 'transparent',
-                border: 'none',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -435,7 +434,7 @@ const AppHeader = observer(() => {
                 </Wrapper>
                 <Wrapper variant='right'>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CurrencyConverter activeAccount={activeAccount} />
+                        {activeLoginid && <CurrencyConverter activeAccount={activeAccount} />}
                         <ChangeSpeedHeader />
                         <ChangeThemeHeader />
                         {renderAccountSection('right')}

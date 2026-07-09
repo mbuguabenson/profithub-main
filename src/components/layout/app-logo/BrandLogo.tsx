@@ -6,7 +6,7 @@ type TBrandLogoProps = {
 };
 
 export const BrandLogo = ({
-    width = 120,
+    width,
     height = 32,
     className = ''
 }: TBrandLogoProps) => {
@@ -14,7 +14,7 @@ export const BrandLogo = ({
         <img
             src="/logo.png"
             alt="Ultimate Protool Logo"
-            style={{ width: 'auto', height: `${height}px`, display: 'block' }}
+            style={{ width: width ? `${width}px` : 'auto', height: `${height}px`, display: 'block' }}
             className={className}
         />
     );
