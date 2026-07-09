@@ -12,8 +12,8 @@ type TQSToggleSwitch = {
     label: string;
     description?: string;
     attached?: boolean;
-    isEnabledToggleSwitch: boolean;
-    setIsEnabledToggleSwitch: () => void;
+    isEnabledToggleSwitch?: boolean;
+    setIsEnabledToggleSwitch?: () => void;
 };
 
 const QSToggleSwitch: React.FC<TQSToggleSwitch> = ({
@@ -25,11 +25,16 @@ const QSToggleSwitch: React.FC<TQSToggleSwitch> = ({
     setIsEnabledToggleSwitch,
 }) => {
     const { values, setFieldValue } = useFormikContext<TFormData>();
+    const is_checked = Boolean(values?.[name]);
 
     const handleChange = async () => {
-        setIsEnabledToggleSwitch();
-        await setFieldValue(name, !values?.[name], true);
-        await setFieldValue('max_stake', values?.max_stake, true);
+        if (setIsEnabledToggleSwitch) {
+            setIsEnabledToggleSwitch();
+        }
+        await setFieldValue(name, !is_checked, true);
+        if (name === 'boolean_max_stake') {
+            await setFieldValue('max_stake', values?.max_stake, true);
+        }
     };
 
     return (
@@ -61,7 +66,7 @@ const QSToggleSwitch: React.FC<TQSToggleSwitch> = ({
                                 <ToggleSwitch
                                     id='dt_mobile_drawer_theme_toggler'
                                     handleToggle={handleChange}
-                                    is_enabled={isEnabledToggleSwitch}
+                                    is_enabled={isEnabledToggleSwitch ?? is_checked}
                                     data-testid='qs-toggle-switch'
                                 />
                             </div>

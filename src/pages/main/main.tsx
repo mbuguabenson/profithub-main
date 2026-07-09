@@ -8,43 +8,46 @@ import DesktopWrapper from '@/components/shared_ui/desktop-wrapper';
 import Dialog from '@/components/shared_ui/dialog';
 import MobileWrapper from '@/components/shared_ui/mobile-wrapper';
 import Tabs from '@/components/shared_ui/tabs/tabs';
-import TradeTypeConfirmationModal from '@/components/trade-type-confirmation-modal';
 import TradingViewModal from '@/components/trading-view-chart/trading-view-modal';
+import ProfihubModal from '@/components/profihub-analysis/profihub-modal';
 import { DBOT_TABS, TAB_IDS } from '@/constants/bot-contents';
+import Matches from '@/pages/matches';
 import { api_base, updateWorkspaceName } from '@/external/bot-skeleton';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { isDbotRTL } from '@/external/bot-skeleton/utils/workspace';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
-import {
-    disableUrlParameterApplication,
-    enableUrlParameterApplication,
-    setupTradeTypeChangeListener,
-} from '@/utils/blockly-url-param-handler';
-import {
-    checkAndShowTradeTypeModal,
-    getModalState,
-    handleTradeTypeCancel,
-    handleTradeTypeConfirm,
-    resetUrlParamProcessing,
-    setModalStateChangeCallback,
-} from '@/utils/trade-type-modal-handler';
+import { disableUrlParameterApplication, enableUrlParameterApplication, setupTradeTypeChangeListener } from '@/utils/blockly-url-param-handler';
+import { checkAndShowTradeTypeModal, getModalState, handleTradeTypeCancel, handleTradeTypeConfirm, resetUrlParamProcessing, setModalStateChangeCallback } from '@/utils/trade-type-modal-handler';
+import TradeTypeConfirmationModal from '@/components/trade-type-confirmation-modal';
 import {
     LabelPairedChartLineCaptionRegularIcon,
     LabelPairedObjectsColumnCaptionRegularIcon,
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
-import { LegacyGuide1pxIcon } from '@deriv/quill-icons/Legacy';
+import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@deriv/quill-icons/Legacy';
 import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import RunPanel from '../../components/run-panel';
+import SpeedBotFloatingStop from '../../components/speedbot-floating-stop';
 import ChartModal from '../chart/chart-modal';
 import Dashboard from '../dashboard';
 import RunStrategy from '../dashboard/run-strategy';
+import Scanner from '../bot-builder/scanner/scanner';
+import Tutorials from '../tutorials';
 import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
-const Tutorial = lazy(() => import('../tutorials'));
+
+const TradingView = lazy(() => import('../tradingview'));
+const ProfihubAnalysis = lazy(() => import('../profihub-analysis'));
+const AnalysisTools = lazy(() => import('../analysis-tool'));
+const CopyTrading = lazy(() => import('../copy-trading'));
+const Strategies = lazy(() => import('../free-bots/strategies'));
+const ProTool = lazy(() => import('../pro-tool'));
+const Dtrader = lazy(() => import('../dtrader'));
+const Speedbot = lazy(() => import('../speedbot'));
+import TradingBots from '../free-bots/trading-bots';
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -75,44 +78,41 @@ const AppWrapper = observer(() => {
         [key: string]: string;
     };
     const { clear } = summary_card;
-    const { DASHBOARD, BOT_BUILDER } = DBOT_TABS;
+    const { DASHBOARD, BOT_BUILDER, STRATEGIES, TRADING_BOTS } = DBOT_TABS;
     const init_render = React.useRef(true);
-    const hash = ['dashboard', 'bot_builder', 'chart', 'tutorial'];
+    const pollTimeoutId = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hash = [
+        'dashboard',
+        'matches',
+        'bot_builder',
+        'chart',
+        'trading_bots',
+        'analysis_tool',
+        'strategies',
+        'copy_trading',
+        'dtrader',
+        'tradingview',
+        'profihub',
+        'speedbot',
+    ];
     const { isDesktop } = useDevice();
     const location = useLocation();
     const navigate = useNavigate();
-    const [left_tab_shadow, setLeftTabShadow] = useState<boolean>(false);
-    const [right_tab_shadow, setRightTabShadow] = useState<boolean>(false);
 
-    // Trade type modal state
+
+
     const [tradeTypeModalState, setTradeTypeModalState] = useState(getModalState());
 
-    /**
-     * Helper function to get modal props with enhanced type safety and clear documentation
-     *
-     * Props serve distinct purposes:
-     * - current_trade_type: Technical identifier for API/internal use (format: "category/type")
-     * - current_trade_type_display_name: Human-readable name for UI display
-     *
-     * This separation ensures proper data flow between technical systems and user interface
-     */
     const getTradeTypeModalProps = () => {
         const { tradeTypeData } = tradeTypeModalState;
 
         return {
             is_visible: tradeTypeModalState.isVisible,
             trade_type_display_name: tradeTypeData?.displayName || '',
-
-            // Technical identifier for internal/API use (e.g., "callput/callput")
-            // Used by backend systems and technical integrations
             current_trade_type: tradeTypeData?.currentTradeType
                 ? `${tradeTypeData.currentTradeType.tradeTypeCategory}/${tradeTypeData.currentTradeType.tradeType}`
                 : 'N/A',
-
-            // Human-readable display name for UI (e.g., "Rise/Fall")
-            // Used for user-facing text and modal content
             current_trade_type_display_name: tradeTypeData?.currentTradeTypeDisplayName || 'N/A',
-
             onConfirm: handleTradeTypeConfirm,
             onCancel: handleTradeTypeCancel,
         };
@@ -126,52 +126,15 @@ const AppWrapper = observer(() => {
     };
     const active_hash_tab = GetHashedValue(active_tab);
 
-    // Set up modal state change listener
     React.useEffect(() => {
         setModalStateChangeCallback(new_state => {
             setTradeTypeModalState(new_state);
         });
     }, [is_loading]);
 
-    // Reset URL parameter processing when location changes
     React.useEffect(() => {
         resetUrlParamProcessing();
     }, [location.search]);
-
-    React.useEffect(() => {
-        const el_dashboard = document.getElementById('id-dbot-dashboard');
-        const el_tutorial = document.getElementById('id-tutorials');
-
-        const observer_dashboard = new window.IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setLeftTabShadow(false);
-                    return;
-                }
-                setLeftTabShadow(true);
-            },
-            {
-                root: null,
-                threshold: 0.5, // set offset 0.1 means trigger if atleast 10% of element in viewport
-            }
-        );
-
-        const observer_tutorial = new window.IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setRightTabShadow(false);
-                    return;
-                }
-                setRightTabShadow(true);
-            },
-            {
-                root: null,
-                threshold: 0.5, // set offset 0.1 means trigger if atleast 10% of element in viewport
-            }
-        );
-        observer_dashboard.observe(el_dashboard);
-        observer_tutorial.observe(el_tutorial);
-    });
 
     React.useEffect(() => {
         if (connectionStatus !== CONNECTION_STATUS.OPENED) {
@@ -185,71 +148,38 @@ const AppWrapper = observer(() => {
         }
     }, [clear, connectionStatus, setWebSocketState, stopBot]);
 
-    // Update tab shadows height to match bot builder height
-    const updateTabShadowsHeight = () => {
-        const botBuilderEl = document.getElementById('id-bot-builder');
-        const leftShadow = document.querySelector('.tabs-shadow--left') as HTMLElement;
-        const rightShadow = document.querySelector('.tabs-shadow--right') as HTMLElement;
-
-        if (botBuilderEl && leftShadow && rightShadow) {
-            const height = botBuilderEl.offsetHeight;
-            leftShadow.style.height = `${height}px`;
-            rightShadow.style.height = `${height}px`;
-        }
-    };
-
     React.useEffect(() => {
-        let pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-        // Handle URL trade type parameters when switching to Bot Builder tab
         if (active_tab === BOT_BUILDER) {
-            // Use requestAnimationFrame to ensure Blockly workspace is fully initialized
             requestAnimationFrame(() => {
-                // Disable automatic URL parameter application to prevent changes before modal
                 disableUrlParameterApplication();
-
-                // Set up listener for manual trade type changes (only once)
                 setupTradeTypeChangeListener();
 
-                // Create unified handler for both immediate and delayed execution
                 const handleTradeTypeModal = () => {
                     checkAndShowTradeTypeModal(
-                        // onConfirm: Changes are now handled by the modal component
                         () => {
-                            // Re-enable URL parameter application for future parameters
                             enableUrlParameterApplication();
                         },
-                        // onCancel: URL parameter removal is now handled by the modal component
                         () => {}
                     );
                 };
 
-                // Wait for Blockly to finish loading before checking for URL parameters
                 if (!blockly_store.is_loading) {
-                    // Blockly is loaded, but add longer delay to ensure workspace is fully initialized
-                    // and trade type fields are populated
                     setTimeout(() => {
                         handleTradeTypeModal();
                     }, 500);
                 } else {
-                    // Blockly is still loading, wait for it to finish with optimized polling
                     let pollAttempts = 0;
-                    const maxPollAttempts = 10; // Maximum 5 seconds (10 * 500ms) - optimized performance
+                    const maxPollAttempts = 10;
 
                     const checkBlocklyLoaded = () => {
                         if (!blockly_store.is_loading) {
                             handleTradeTypeModal();
-                            return; // Exit polling once loaded
+                            return;
                         }
 
                         if (pollAttempts < maxPollAttempts) {
                             pollAttempts++;
-                            // Use 500ms intervals for better performance (5x improvement from 100ms)
-                            pollTimeoutId = setTimeout(checkBlocklyLoaded, 500);
-                        } else {
-                            console.warn(
-                                'Blockly loading timeout after 5 seconds - proceeding without URL parameter check'
-                            );
+                            pollTimeoutId.current = setTimeout(checkBlocklyLoaded, 500);
                         }
                     };
 
@@ -258,19 +188,15 @@ const AppWrapper = observer(() => {
             });
         }
 
-        // Cleanup function to prevent memory leaks
         return () => {
-            if (pollTimeoutId) {
-                clearTimeout(pollTimeoutId);
-                pollTimeoutId = null;
+            if (pollTimeoutId.current) {
+                clearTimeout(pollTimeoutId.current);
+                pollTimeoutId.current = null;
             }
         };
-    }, [active_tab, is_loading]);
+    }, [active_tab, is_loading, blockly_store.is_loading]);
 
     React.useEffect(() => {
-        // Run on mount and when active tab changes
-        updateTabShadowsHeight();
-
         if (is_open) {
             setTourDialogVisibility(false);
         }
@@ -279,7 +205,6 @@ const AppWrapper = observer(() => {
             if (!isDesktop) handleTabChange(Number(active_hash_tab));
             init_render.current = false;
         } else {
-            // Preserve URL parameters when navigating
             const currentSearch = window.location.search;
             navigate(`${currentSearch}#${hash[active_tab] || hash[0]}`);
         }
@@ -287,9 +212,8 @@ const AppWrapper = observer(() => {
             setActiveTour('');
         }
 
-        // Prevent scrolling when tutorial tab is active (only on mobile)
         const mainElement = document.querySelector('.main__container');
-        if (active_tab === DBOT_TABS.TUTORIAL && !isDesktop) {
+        if ((active_tab === DBOT_TABS.TUTORIAL || run_panel.is_drawer_open) && !isDesktop) {
             document.body.style.overflow = 'hidden';
             if (mainElement instanceof HTMLElement) {
                 mainElement.classList.add('no-scroll');
@@ -300,8 +224,7 @@ const AppWrapper = observer(() => {
                 mainElement.classList.remove('no-scroll');
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [active_tab]);
+    }, [active_tab, run_panel.is_drawer_open]);
 
     React.useEffect(() => {
         const trashcan_init_id = setTimeout(() => {
@@ -318,16 +241,13 @@ const AppWrapper = observer(() => {
         }, 100);
 
         return () => {
-            clearTimeout(trashcan_init_id); // Clear the timeout on unmount
+            clearTimeout(trashcan_init_id);
         };
-        //eslint-disable-next-line react-hooks/exhaustive-deps
     }, [active_tab, is_drawer_open]);
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
         if (dashboard_strategies.length > 0) {
-            // Needed to pass this to the Callback Queue as on tab changes
-            // document title getting override by 'Bot | Deriv' only
             timer = setTimeout(() => {
                 updateWorkspaceName();
             });
@@ -348,11 +268,9 @@ const AppWrapper = observer(() => {
                 }, 10);
             }
         },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [active_tab]
     );
 
-    // [AI]
     const handleLoginGeneration = async () => {
         const oauthUrl = await generateOAuthURL();
         if (oauthUrl) {
@@ -361,7 +279,7 @@ const AppWrapper = observer(() => {
             console.error('Failed to generate OAuth URL');
         }
     };
-    // [/AI]
+
     return (
         <React.Fragment>
             <div className='main'>
@@ -371,15 +289,14 @@ const AppWrapper = observer(() => {
                     })}
                 >
                     <div>
-                        {!isDesktop && left_tab_shadow && <span className='tabs-shadow tabs-shadow--left' />}{' '}
                         <Tabs active_index={active_tab} className='main__tabs' onTabItemClick={handleTabChange} top>
                             <div
                                 label={
                                     <>
                                         <LabelPairedObjectsColumnCaptionRegularIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
                                         />
                                         <Localize i18n_default_text='Dashboard' />
                                     </>
@@ -392,9 +309,24 @@ const AppWrapper = observer(() => {
                                 label={
                                     <>
                                         <LabelPairedPuzzlePieceTwoCaptionBoldIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Matches Tool' />
+                                    </>
+                                }
+                                id='id-matches'
+                            >
+                                <Matches />
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
                                         />
                                         <Localize i18n_default_text='Bot Builder' />
                                     </>
@@ -405,9 +337,9 @@ const AppWrapper = observer(() => {
                                 label={
                                     <>
                                         <LabelPairedChartLineCaptionRegularIcon
-                                            height='24px'
-                                            width='24px'
-                                            fill='var(--text-general)'
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
                                         />
                                         <Localize i18n_default_text='Charts' />
                                     </>
@@ -427,41 +359,185 @@ const AppWrapper = observer(() => {
                             <div
                                 label={
                                     <>
-                                        <LegacyGuide1pxIcon
-                                            height='16px'
-                                            width='16px'
-                                            fill='var(--text-general)'
-                                            className='icon-general-fill-g-path'
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Trading Bots' />
+                                    </>
+                                }
+                                id='id-trading-bots'
+                            >
+                                <TradingBots />
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LegacyIndicatorsIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Analysis Tool' />
+                                    </>
+                                }
+                                id='id-analysis-tool'
+                            >
+                                <Suspense
+                                    fallback={
+                                        <ChunkLoader message={localize('Please wait, loading Analysis Tool...')} />
+                                    }
+                                >
+                                    <AnalysisTools />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Strategies' />
+                                    </>
+                                }
+                                id='id-strategies'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Strategies...')} />}
+                                >
+                                    <Strategies />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedObjectsColumnCaptionRegularIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Copy Trading' />
+                                    </>
+                                }
+                                id='id-copy-trading'
+                            >
+                                <Suspense
+                                    fallback={
+                                        <ChunkLoader message={localize('Please wait, loading Copy Trading...')} />
+                                    }
+                                >
+                                    <CopyTrading />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedChartLineCaptionRegularIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='DTrader' />
+                                    </>
+                                }
+                                id='id-dtrader'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading DTrader...')} />}
+                                >
+                                    <Dtrader />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LegacyChartsIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='TradingView' />
+                                    </>
+                                }
+                                id='id-tradingview'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading TradingView...')} />}
+                                >
+                                    <TradingView />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Profihub Analysis' />
+                                    </>
+                                }
+                                id='id-profihub'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Profihub Analysis...')} />}
+                                >
+                                    <ProfihubAnalysis />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
+                                        />
+                                        <Localize i18n_default_text='Speedbot' />
+                                    </>
+                                }
+                                id='id-speedbot'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Speedbot...')} />}
+                                >
+                                    <Speedbot />
+                                </Suspense>
+                            </div>
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
+                                            height='28px'
+                                            width='28px'
+                                            fill='#f5c542'
                                         />
                                         <Localize i18n_default_text='Tutorials' />
                                     </>
                                 }
                                 id='id-tutorials'
                             >
-                                <div className='tutorials-wrapper'>
-                                    <Suspense
-                                        fallback={
-                                            <ChunkLoader message={localize('Please wait, loading tutorials...')} />
-                                        }
-                                    >
-                                        <Tutorial handleTabChange={handleTabChange} />
-                                    </Suspense>
-                                </div>
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Tutorials...')} />}
+                                >
+                                    <Tutorials />
+                                </Suspense>
                             </div>
                         </Tabs>
-                        {!isDesktop && right_tab_shadow && <span className='tabs-shadow tabs-shadow--right' />}{' '}
                     </div>
                 </div>
             </div>
             <DesktopWrapper>
-                <div className='main__run-strategy-wrapper'>
-                    <RunStrategy />
-                    <RunPanel />
-                </div>
+                {active_tab !== DBOT_TABS.DTRADER && (
+                    <div className='main__run-strategy-wrapper'>
+                        {active_tab !== DBOT_TABS.TRADING_BOTS && <RunStrategy />}
+                        <RunPanel />
+                    </div>
+                )}
                 <ChartModal />
                 <TradingViewModal />
+                <ProfihubModal />
             </DesktopWrapper>
-            <MobileWrapper>{!is_open && <RunPanel />}</MobileWrapper>
+            <MobileWrapper>
+                {!is_open && active_tab !== DBOT_TABS.STRATEGIES && active_tab !== DBOT_TABS.DTRADER && <RunPanel />}
+            </MobileWrapper>
+            <SpeedBotFloatingStop />
             <Dialog
                 cancel_button_text={cancel_button_text || localize('Cancel')}
                 className='dc-dialog__wrapper--fixed'
@@ -475,26 +551,20 @@ const AppWrapper = observer(() => {
                 portal_element_id='modal_root'
                 title={title}
                 login={handleLoginGeneration}
-                dismissable={dismissable} // Prevents closing on outside clicks
+                dismissable={dismissable}
                 is_closed_on_cancel={is_closed_on_cancel}
             >
                 {message}
             </Dialog>
-
-            {/* Trade Type Confirmation Modal */}
-            {(() => {
-                const modalProps = getTradeTypeModalProps();
-                return (
-                    <TradeTypeConfirmationModal
-                        is_visible={modalProps.is_visible}
-                        trade_type_display_name={modalProps.trade_type_display_name}
-                        current_trade_type={modalProps.current_trade_type}
-                        current_trade_type_display_name={modalProps.current_trade_type_display_name}
-                        onConfirm={modalProps.onConfirm}
-                        onCancel={modalProps.onCancel}
-                    />
-                );
-            })()}
+            <TradeTypeConfirmationModal
+                is_visible={getTradeTypeModalProps().is_visible}
+                trade_type_display_name={getTradeTypeModalProps().trade_type_display_name}
+                current_trade_type={getTradeTypeModalProps().current_trade_type}
+                current_trade_type_display_name={getTradeTypeModalProps().current_trade_type_display_name}
+                onConfirm={getTradeTypeModalProps().onConfirm}
+                onCancel={getTradeTypeModalProps().onCancel}
+            />
+            <Scanner />
         </React.Fragment>
     );
 });

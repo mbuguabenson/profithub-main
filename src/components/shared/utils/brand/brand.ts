@@ -2,7 +2,11 @@ import config_data from '../../../../../brand.config.json';
 
 type TPlatform = {
     name: string;
-    logo: string;
+    logo: any;
+    footer?: any;
+    hostname?: any;
+    auth2_url?: any;
+    derivws?: any;
 };
 
 const isDomainAllowed = (domain_name: string) => {
@@ -13,6 +17,14 @@ const isDomainAllowed = (domain_name: string) => {
 
 export const getBrandWebsiteName = () => {
     return config_data.domain_name;
+};
+
+export const getBrandLabel = () => {
+    return config_data.brand_name;
+};
+
+export const getBrandTitle = () => {
+    return config_data.brand_name;
 };
 
 export const getPlatformConfig = (): TPlatform => {

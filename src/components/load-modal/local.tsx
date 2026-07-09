@@ -12,6 +12,7 @@ import { notification_message } from '../bot-notification/bot-notification-utils
 import LocalFooter from './local-footer';
 import SectionMessage from './section-message';
 import WorkspaceControl from './workspace-control';
+import { DBOT_TABS } from '@/constants/bot-contents';
 
 const LocalComponent = observer(() => {
     const { dashboard, load_modal, blockly_store } = useStore();
@@ -39,7 +40,7 @@ const LocalComponent = observer(() => {
             <div className='load-strategy__container load-strategy__container--has-footer'>
                 <div
                     className={classNames('load-strategy__local-preview', {
-                        'load-strategy__local-preview--active': active_tab === 1 && active_tour,
+                        'load-strategy__local-preview--active': active_tab === DBOT_TABS.BOT_BUILDER && active_tour,
                     })}
                 >
                     <div className='load-strategy__title'>

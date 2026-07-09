@@ -1,6 +1,9 @@
 import { getSocketURL } from '@/components/shared';
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
 import APIMiddleware from './api-middleware';
+import { getDemoAccountIdForSpecialCR, isSpecialCRAccount } from '@/utils/special-accounts-config';
+import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
+import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 
 /**
  * Singleton instance management for DerivAPI
@@ -138,4 +141,83 @@ export const getToken = () => {
         token: active_account ?? undefined,
         account_id: active_loginid ?? undefined,
     };
+};
+
+export const V2GetActiveToken = () => {
+    const showAsCR = typeof window !== 'undefined' ? localStorage.getItem('show_as_cr') : null;
+    if (showAsCR) {
+        const accountsList =
+            typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('accountsList') || '{}') : {};
+        const demoAccountId = isSpecialCRAccount(showAsCR) ? getDemoAccountIdForSpecialCR(showAsCR) : 'VRTC10109979';
+        const demoToken = demoAccountId ? accountsList[demoAccountId] : undefined;
+        if (demoToken) {
+            console.log('[V2GetActiveToken] 🎯 Using demo token for special account', showAsCR, '->', demoAccountId);
+            return demoToken;
+        }
+        console.warn('[V2GetActiveToken] ⚠️ No demo token found for special account', showAsCR, 'using fallback');
+    }
+
+    try {
+        const oauthToken = OAuthTokenExchangeService.getAccessToken();
+        if (oauthToken) {
+            return oauthToken;
+        }
+    } catch (e) {
+        // Ignore
+    }
+
+    const oidcToken = typeof window !== 'undefined' ? localStorage.getItem('oidc_access_token') : null;
+    if (oidcToken && oidcToken !== 'null') {
+        return oidcToken;
+    }
+
+    const authToken = localStorage.getItem('authToken');
+    if (authToken && authToken !== 'null') {
+        return authToken;
+    }
+
+    const legacyToken = localStorage.getItem('deriv_api_token');
+    if (legacyToken && legacyToken !== 'null') {
+        return legacyToken;
+    }
+
+    return null;
+};
+
+export const V2GetActiveClientId = () => {
+    const showAsCR = typeof window !== 'undefined' ? localStorage.getItem('show_as_cr') : null;
+    if (showAsCR) {
+        const demoAccountId = isSpecialCRAccount(showAsCR) ? getDemoAccountIdForSpecialCR(showAsCR) : 'VRTC10109979';
+        if (demoAccountId) {
+            return demoAccountId;
+        }
+    }
+
+    const active_loginid = getLoginId();
+    if (active_loginid) {
+        return active_loginid;
+    }
+
+    const token = V2GetActiveToken();
+    if (!token) return null;
+
+    try {
+        const storedAccounts = DerivWSAccountsService.getStoredAccounts();
+        const account_list_map = JSON.parse(localStorage.getItem('accountsList') || '{}');
+        if (storedAccounts && Object.keys(account_list_map).length) {
+            for (const acc of storedAccounts) {
+                if (acc?.account_id && account_list_map[acc.account_id] === token) {
+                    return acc.account_id;
+                }
+            }
+        }
+    } catch (e) {
+        // Ignore
+    }
+
+    const account_list = JSON.parse(localStorage.getItem('accountsList') || '{}');
+    if (account_list && account_list !== 'null') {
+        return Object.keys(account_list).find(key => account_list[key] === token) ?? null;
+    }
+    return null;
 };

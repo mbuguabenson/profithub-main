@@ -31,7 +31,12 @@
     }
 
     &__btn {
-        background-color: var(--button-primary-default) !important;
+        background: var(--button-quick-strategy-gradient) !important;
+        color: var(--button-quick-strategy-text) !important;
+
+        &:hover {
+            background: var(--button-quick-strategy-gradient) !important;
+        }
 
         &--icon {
             display: flex;

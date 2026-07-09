@@ -39,6 +39,10 @@ export const isProduction = () => {
 
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
 
+export const getAppId = () => {
+    return localStorage.getItem('APP_ID') || process.env.CLIENT_ID || '1069';
+};
+
 const getDefaultServerURL = () => {
     const isProductionEnv = isProduction();
 

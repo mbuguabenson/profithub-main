@@ -19,6 +19,7 @@ import {
 import { localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import IconRadio from './icon-radio';
+import { DBOT_TABS } from '@/constants/bot-contents';
 import './save-modal.scss';
 
 type TSaveModalForm = {
@@ -56,8 +57,8 @@ const SaveModalForm: React.FC<TSaveModalForm> = ({
             save_as_collection: false,
             bot_name: bot_name === config().default_file_name ? '' : bot_name,
         }}
-        validate={validateBotName}
-        onSubmit={onConfirmSave}
+        validate={(values: any) => validateBotName(values.bot_name)}
+        onSubmit={onConfirmSave as any}
     >
         {({ values: { is_local }, setFieldValue, touched, errors }) => {
             const content_height = !is_mobile ? '500px' : `calc(100%)`;
@@ -73,12 +74,12 @@ const SaveModalForm: React.FC<TSaveModalForm> = ({
                             </Text>
                             <div className='modal__content-row'>
                                 <Field name='bot_name'>
-                                    {({ field }) => (
+                                    {({ field }: any) => (
                                         <Input
                                             className='save-type__input'
                                             type='text'
                                             placeholder={localize('Untitled Strategy')}
-                                            error={touched[field.name] && errors[field.name]}
+                                            error={(touched as any)[field.name] && (errors as any)[field.name]}
                                             label={localize('Bot name')}
                                             onFocus={e => setCurrentFocus(e.currentTarget.value)}
                                             onBlur={() => setCurrentFocus('')}
@@ -92,26 +93,23 @@ const SaveModalForm: React.FC<TSaveModalForm> = ({
                                 <RadioGroup
                                     className='radio-group__save-type'
                                     name='is_local'
-                                    selected={() => {
-                                        if (is_authorised && !is_local) return save_types.GOOGLE_DRIVE;
-                                        return save_types.LOCAL;
-                                    }}
+                                    selected={is_authorised && !is_local ? save_types.GOOGLE_DRIVE : save_types.LOCAL}
                                     onToggle={() => setFieldValue('is_local', !is_local)}
                                 >
                                     <RadioGroup.Item
                                         id='local'
-                                        label={
-                                            <IconRadio
-                                                text={localize('Local')}
-                                                icon={
-                                                    is_mobile ? (
-                                                        <DerivLightLocalDeviceIcon height='48px' width='48px' />
-                                                    ) : (
-                                                        <DerivLightMyComputerIcon height='48px' width='48px' />
-                                                    )
-                                                }
-                                            />
-                                        }
+                                    label={
+                                        <IconRadio
+                                            text={localize('Local')}
+                                            icon={
+                                                is_mobile ? (
+                                                    <DerivLightLocalDeviceIcon height='48px' width='48px' />
+                                                ) : (
+                                                    <DerivLightMyComputerIcon height='48px' width='48px' />
+                                                )
+                                            }
+                                        /> as any
+                                    }
                                         value={save_types.LOCAL}
                                     />
                                     <RadioGroup.Item
@@ -122,7 +120,7 @@ const SaveModalForm: React.FC<TSaveModalForm> = ({
                                                 icon={<DerivLightGoogleDriveIcon height='48px' width='48px' />}
                                                 google_drive_connected={is_authorised}
                                                 onDriveConnect={onDriveConnect}
-                                            />
+                                            /> as any
                                         }
                                         value={save_types.GOOGLE_DRIVE}
                                         disabled={!is_authorised}
@@ -178,19 +176,21 @@ const SaveModal = observer(() => {
     const { active_tab } = dashboard;
 
     useEffect(() => {
-        if (active_tab === 1) {
+        if (active_tab === DBOT_TABS.BOT_BUILDER) {
             updateBotName(dashboard_strategies?.[0]?.name ?? '');
         }
     }, [active_tab, dashboard_strategies, updateBotName]);
 
     return isMobile ? (
         <MobileFullPageModal
-            is_modal_open={is_save_modal_open}
-            className='save-modal__wrapper'
-            header={localize('Save strategy')}
-            onClickClose={toggleSaveModal}
-            height_offset='80px'
-            page_overlay
+            {...({
+                is_modal_open: is_save_modal_open,
+                className: 'save-modal__wrapper',
+                header: localize('Save strategy'),
+                onClickClose: toggleSaveModal,
+                height_offset: '80px',
+                page_overlay: true,
+            } as any)}
         >
             <SaveModalForm
                 bot_name={bot_name}

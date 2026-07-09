@@ -17,6 +17,7 @@ import { TStrategy } from 'Types';
 /* [/AI] */
 import { tabs_title } from '../constants/load-modal';
 import { waitForDomElement } from '../utils/dom-observer';
+import { DBOT_TABS } from '@/constants/bot-contents';
 import RootStore from './root-store';
 
 export default class LoadModalStore {
@@ -190,7 +191,7 @@ export default class LoadModalStore {
         });
 
         const { active_tab } = this.root_store.dashboard;
-        if (active_tab === 1) this.toggleLoadModal();
+        if (active_tab === DBOT_TABS.BOT_BUILDER) this.toggleLoadModal();
 
         this.root_store.dashboard.is_dialog_open = false;
     };

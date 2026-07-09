@@ -109,7 +109,7 @@ export const useSmartChartAdaptor = (): UseSmartChartAdaptorReturn => {
 
         let cancelled = false;
 
-        const loadChartData = async (retryCount = 0, maxRetries = 10, delayMs = 200) => {
+        const loadChartData = async (retryCount = 0, maxRetries = 200, delayMs = 200) => {
             try {
                 setIsLoading(true);
                 const data = await adapter.getChartData();

@@ -284,6 +284,14 @@ const CHECKBOX_MAX_STAKE = (): TConfigItem => ({
     attached: true,
 });
 
+export const CHECKBOX_RUN_WITH_AUTOMATION = (): TConfigItem => ({
+    type: 'checkbox',
+    name: 'boolean_automation',
+    label: localize('Run with Automation'),
+    description: localize('Send this quick strategy to Deriv Automation and start it automatically.'),
+    attached: true,
+});
+
 const MAX_STAKE = (): TConfigItem => ({
     type: 'number',
     name: 'max_stake',

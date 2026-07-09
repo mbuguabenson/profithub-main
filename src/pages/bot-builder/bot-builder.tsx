@@ -6,15 +6,15 @@ import { notification_message } from '@/components/bot-notification/bot-notifica
 import { useStore } from '@/hooks/useStore';
 import { localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
-import { TBlocklyEvents } from 'Types';
 import LoadModal from '../../components/load-modal';
 import SaveModal from '../dashboard/bot-list/save-modal';
 import BotBuilderTourHandler from '../tutorials/dbot-tours/bot-builder-tour';
 import QuickStrategy1 from './quick-strategy';
 import WorkspaceWrapper from './workspace-wrapper';
+import { DBOT_TABS } from '@/constants/bot-contents';
 
 const BotBuilder = observer(() => {
-    const { dashboard, app, run_panel, toolbar, quick_strategy, blockly_store } = useStore();
+    const { dashboard, app, run_panel, toolbar, quick_strategy, blockly_store, load_modal } = useStore();
     const { active_tab, active_tour, is_preview_on_popup } = dashboard;
     const { is_open } = quick_strategy;
     const { is_running } = run_panel;
@@ -39,7 +39,7 @@ const BotBuilder = observer(() => {
         const workspace = window.Blockly?.derivWorkspace;
         if (workspace && is_running && !is_blockly_listener_registered.current) {
             is_blockly_listener_registered.current = true;
-            workspace.addChangeListener(handleBlockChangeOnBotRun);
+            workspace.addChangeListener(handleBlockChangeOnBotRun as any);
         } else {
             removeBlockChangeListener();
         }
@@ -64,19 +64,19 @@ const BotBuilder = observer(() => {
 
     const removeBlockChangeListener = () => {
         is_blockly_listener_registered.current = false;
-        window.Blockly?.derivWorkspace?.removeChangeListener(handleBlockChangeOnBotRun);
+        window.Blockly?.derivWorkspace?.removeChangeListener(handleBlockChangeOnBotRun as any);
     };
     React.useEffect(() => {
         const workspace = window.Blockly?.derivWorkspace;
         if (workspace && !is_blockly_delete_listener_registered.current) {
             is_blockly_delete_listener_registered.current = true;
-            workspace.addChangeListener(handleBlockDelete);
+            workspace.addChangeListener(handleBlockDelete as any);
         }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [is_loading]);
 
-    const handleBlockDelete = (e: TBlocklyEvents) => {
+    const handleBlockDelete = (e: any) => {
         const { is_reset_button_clicked, setResetButtonState } = toolbar;
         if (e.type === 'undo') {
             deleted_block_id = null;
@@ -103,17 +103,31 @@ const BotBuilder = observer(() => {
         botNotification(notification_message().block_delete, {
             label: localize('Undo'),
             onClick: closeToast => {
-                window.Blockly.derivWorkspace.undo();
+                (window.Blockly?.derivWorkspace as any)?.undo();
                 closeToast?.();
             },
         });
     };
 
+    React.useEffect(() => {
+        const workspace = window.Blockly?.derivWorkspace;
+        if (workspace && dashboard.pending_free_bot) {
+            const { name, xml } = dashboard.pending_free_bot;
+            dashboard.setPendingFreeBot(null);
+            load_modal.loadStrategyToBuilder({
+                id: name,
+                name,
+                xml,
+                save_type: 'local',
+            } as any);
+        }
+    }, [active_tab, is_loading, dashboard.pending_free_bot, load_modal]);
+
     return (
         <>
             <div
                 className={classNames('bot-builder', {
-                    'bot-builder--active': active_tab === 1 && !is_preview_on_popup,
+                    'bot-builder--active': active_tab === DBOT_TABS.BOT_BUILDER && !is_preview_on_popup,
                     'bot-builder--inactive': is_preview_on_popup,
                     'bot-builder--tour-active': active_tour,
                 })}
@@ -122,7 +136,7 @@ const BotBuilder = observer(() => {
                     <WorkspaceWrapper />
                 </div>
             </div>
-            {active_tab === 1 && <BotBuilderTourHandler is_mobile={!isDesktop} />}
+            {active_tab === DBOT_TABS.BOT_BUILDER && <BotBuilderTourHandler is_mobile={!isDesktop} />}
             {/* removed this outside from toolbar becuase it needs to loaded seperately without dependency */}
             <LoadModal />
             <SaveModal />

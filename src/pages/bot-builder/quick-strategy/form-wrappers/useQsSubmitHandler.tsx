@@ -40,8 +40,15 @@ const useQsSubmitHandler = () => {
         } else {
             await setFieldValue('action', 'RUN');
             validateForm();
-            submitForm().then((form_data: TFormData | void) => {
+            submitForm().then(async (form_data: TFormData | void) => {
                 if (isValid && form_data) {
+                    if (form_data.boolean_automation) {
+                        try {
+                            await quick_strategy.startAutomationRun(form_data);
+                        } catch (error) {
+                            console.error('Quick strategy automation run failed', error);
+                        }
+                    }
                     onSubmit(form_data);
                 }
             });

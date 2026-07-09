@@ -61,6 +61,8 @@ export interface IDashboardStore {
     is_chart_modal_visible: boolean;
     is_trading_view_modal_visible: boolean;
     setPreviewOnPopup: (is_preview_on_popup: boolean) => void;
+    pending_free_bot: { name: string; xml: string } | null;
+    setPendingFreeBot: (bot: { name: string; xml: string } | null) => void;
 }
 
 export default class DashboardStore implements IDashboardStore {
@@ -121,6 +123,8 @@ export default class DashboardStore implements IDashboardStore {
             is_chart_modal_visible: observable,
             is_trading_view_modal_visible: observable,
             bot_builder_symbol: observable,
+            pending_free_bot: observable,
+            setPendingFreeBot: action.bound,
         });
         this.root_store = root_store;
         this.core = core;
@@ -206,6 +210,11 @@ export default class DashboardStore implements IDashboardStore {
     is_chart_modal_visible = false;
     is_trading_view_modal_visible = false;
     faq_title = '';
+    pending_free_bot: { name: string; xml: string } | null = null;
+
+    setPendingFreeBot = (bot: { name: string; xml: string } | null): void => {
+        this.pending_free_bot = bot;
+    };
 
     setFaqTitle = (faq_title: string) => {
         this.faq_title = faq_title;

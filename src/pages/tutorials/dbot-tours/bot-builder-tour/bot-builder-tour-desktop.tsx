@@ -7,6 +7,7 @@ import TourEndDialog from '../common/tour-end-dialog';
 import TourStartDialog from '../common/tour-start-dialog';
 import { BOT_BUILDER_TOUR } from '../tour-content';
 import { useTourHandler } from '../useTourHandler';
+import { DBOT_TABS } from '@/constants/bot-contents';
 
 const BotBuilderTourDesktop = observer(() => {
     const { is_close_tour, is_finished, handleJoyrideCallback, setIsCloseTour } = useTourHandler();
@@ -15,7 +16,7 @@ const BotBuilderTourDesktop = observer(() => {
     const { is_load_modal_open } = load_modal;
     // Check if tour should be shown with setTimeout to prevent showing on every reload
     React.useEffect(() => {
-        if (active_tab === 1) {
+        if (active_tab === DBOT_TABS.BOT_BUILDER) {
             const timeoutId = setTimeout(() => {
                 const token = getSetting('bot_builder_token');
                 if (!token && !is_tour_dialog_visible) {
@@ -42,19 +43,21 @@ const BotBuilderTourDesktop = observer(() => {
             {is_finished ? <TourEndDialog /> : !is_load_modal_open ? <TourStartDialog /> : null}
             {active_tour && (
                 <ReactJoyrideWrapper
-                    handleCallback={handleJoyrideCallback}
-                    steps={BOT_BUILDER_TOUR}
-                    disableCloseOnEsc
-                    disableOverlay={false}
-                    disableOverlayClose={true}
-                    styles={{
-                        options: {
-                            arrowColor: 'transparent',
-                            backgroundColor: 'var(--general-main-2)',
-                            primaryColor: 'var(--brand-red-coral)',
-                            textColor: 'var(--text-general)',
+                    {...({
+                        handleCallback: handleJoyrideCallback,
+                        steps: BOT_BUILDER_TOUR as any,
+                        disableCloseOnEsc: true,
+                        disableOverlay: false,
+                        disableOverlayClose: true,
+                        styles: {
+                            options: {
+                                arrowColor: 'transparent',
+                                backgroundColor: 'var(--general-main-2)',
+                                primaryColor: 'var(--brand-red-coral)',
+                                textColor: 'var(--text-general)',
+                            },
                         },
-                    }}
+                    } as any)}
                 />
             )}
         </>

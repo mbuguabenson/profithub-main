@@ -11,7 +11,7 @@ import DurationTypeSelect from './selects/duration-type';
 import QSInput from './inputs/qs-input';
 import QSCheckbox from './inputs/qs-toggle-switch';
 import QSInputLabel from './inputs/qs-input-label';
-import { STRATEGIES } from './config';
+import { STRATEGIES, CHECKBOX_RUN_WITH_AUTOMATION } from './config';
 import { TConfigItem, TFormData, TShouldHave } from './types';
 import { useFormikContext } from 'formik';
 import { useDevice } from '@deriv-com/ui';
@@ -21,7 +21,12 @@ import SellConditions from './selects/sell-conditions';
 const QuickStrategyForm = observer(() => {
     const { quick_strategy } = useStore();
     const { selected_strategy, setValue, form_data } = quick_strategy;
-    const config: TConfigItem[][] = STRATEGIES()[selected_strategy]?.fields;
+    const strategy_config: TConfigItem[][] = STRATEGIES()[selected_strategy]?.fields;
+    const config: TConfigItem[][] = strategy_config?.length
+        ? strategy_config.map((group, group_index) =>
+              group_index === strategy_config.length - 1 ? [...group, CHECKBOX_RUN_WITH_AUTOMATION()] : group
+          )
+        : strategy_config || [];
     const { isDesktop } = useDevice();
     const { values, setFieldTouched, setFieldValue } = useFormikContext<TFormData>();
     const { current_duration_min_max, additional_data } = quick_strategy;
@@ -221,8 +226,8 @@ const QuickStrategyForm = observer(() => {
                                         name={field.name as string}
                                         label={field.label as string}
                                         description={field.description ? String(field.description) : undefined}
-                                        isEnabledToggleSwitch={!!isEnabledToggleSwitch}
-                                        setIsEnabledToggleSwitch={toggleSwitch}
+                                        isEnabledToggleSwitch={field.name === 'boolean_max_stake' ? !!isEnabledToggleSwitch : undefined}
+                                        setIsEnabledToggleSwitch={field.name === 'boolean_max_stake' ? toggleSwitch : undefined}
                                     />
                                 );
                             // Dedicated components only for Quick-Strategy

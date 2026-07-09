@@ -18,6 +18,7 @@ import ToolbarStore from './toolbar-store';
 import ToolboxStore from './toolbox-store';
 import TransactionsStore from './transactions-store';
 import UiStore from './ui-store';
+import ScannerStore from './scanner-store';
 
 // TODO: need to write types for the individual classes and convert them to ts
 export default class RootStore {
@@ -35,6 +36,7 @@ export default class RootStore {
     public toolbar: ToolbarStore;
     public toolbox: ToolboxStore;
     public quick_strategy: QuickStrategyStore;
+    public scanner: ScannerStore;
 
     public dashboard: DashboardStore;
 
@@ -76,6 +78,7 @@ export default class RootStore {
         this.toolbar = new ToolbarStore(this);
         this.toolbox = new ToolboxStore(this, this.core);
         this.quick_strategy = new QuickStrategyStore(this);
+        this.scanner = new ScannerStore(this);
 
         this.dashboard = new DashboardStore(this, this.core);
 

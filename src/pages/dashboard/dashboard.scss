@@ -1,4 +1,5 @@
 @use 'components/shared/styles/mixins' as *;
+@use 'risk-disclaimer.scss';
 
 .bot-dashboard {
     --translate-panel-rtl: -367px;
@@ -134,6 +135,21 @@
                 padding: 0.8rem;
             }
 
+            .welcome-section {
+                text-align: center;
+                margin-bottom: 2rem;
+
+                .welcome-title {
+                    margin: 0 0 0.5rem 0;
+                }
+
+                .get-started-text {
+                    margin: 0;
+                    color: var(--button-primary-default);
+                    font-weight: bold;
+                }
+            }
+
             .title {
                 text-align: center;
                 height: 7.2rem;
@@ -175,10 +191,6 @@
             overflow: hidden;
             position: relative;
 
-            @include mobile-or-tablet-screen {
-                display: unset;
-            }
-
             @include desktop-screen {
                 padding: 80px 216px 0;
             }
@@ -187,6 +199,9 @@
                 height: calc(100vh - 19rem);
                 align-items: flex-start;
                 padding: 1.6rem;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
             }
 
             .quick-panel {
@@ -395,16 +410,52 @@
             }
 
             &__images {
-                background-color: var(--general-section-1);
+                background: linear-gradient(145deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border-radius: 2rem;
+                padding: 1.8rem;
                 margin-bottom: 0.8rem;
-                border-radius: 0.8rem;
-                padding: 1.6rem;
+                box-shadow: 
+                    10px 10px 20px rgba(0, 0, 0, 0.12),
+                    -10px -10px 20px rgba(255, 255, 255, 0.08);
+                transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                position: relative;
+                overflow: hidden;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                    transition: left 0.6s;
+                }
+
+                &:hover {
+                    transform: translateY(-6px) scale(1.03);
+                    box-shadow: 
+                        15px 15px 30px rgba(0, 0, 0, 0.18),
+                        -15px -15px 30px rgba(255, 255, 255, 0.12);
+                    border-color: rgba(255, 255, 255, 0.5);
+                    
+                    &::before {
+                        left: 100%;
+                    }
+                }
 
                 &--minimized {
                     @include mobile-or-tablet-screen {
-                        width: 6.4rem;
-                        height: 6.4rem;
-                        padding: 0.8rem;
+                        width: 6.8rem;
+                        height: 6.8rem;
+                        padding: 1rem;
+                        border-radius: 1.6rem;
+                        box-shadow: 
+                            6px 6px 12px rgba(0, 0, 0, 0.1),
+                            -6px -6px 12px rgba(255, 255, 255, 0.08);
                     }
                 }
             }

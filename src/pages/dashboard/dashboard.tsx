@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import Text from '@/components/shared_ui/text';
@@ -9,6 +9,9 @@ import OnboardTourHandler from '../tutorials/dbot-tours/onboarding-tour';
 import Announcements from './announcements';
 import Cards from './cards';
 import InfoPanel from './info-panel';
+import RiskDisclaimer from './risk-disclaimer';
+
+const RISK_DISCLAIMER_ACKNOWLEDGED_KEY = 'risk_disclaimer_acknowledged';
 
 type TMobileIconGuide = {
     handleTabChange: (active_number: number) => void;
@@ -20,6 +23,14 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
     const { active_tab, active_tour } = dashboard;
     const has_dashboard_strategies = !!dashboard_strategies?.length;
     const { isDesktop, isTablet } = useDevice();
+    const [showDisclaimer, setShowDisclaimer] = useState(false);
+
+    useEffect(() => {
+        if (client.is_logged_in) {
+            const isAcknowledged = localStorage.getItem(RISK_DISCLAIMER_ACKNOWLEDGED_KEY) === 'true';
+            setShowDisclaimer(!isAcknowledged);
+        }
+    }, [client.is_logged_in]);
 
     return (
         <React.Fragment>
@@ -38,6 +49,27 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
                                 'tab__dashboard__header--listed': isDesktop && has_dashboard_strategies,
                             })}
                         >
+                            <div className='welcome-section'>
+                                <Text
+                                    className='welcome-title'
+                                    as='h1'
+                                    color='prominent'
+                                    size={isDesktop ? 'lg' : 'md'}
+                                    lineHeight='xxl'
+                                    weight='bold'
+                                >
+                                    {localize('Hello Trader, Welcome to Ultimate traders site')}
+                                </Text>
+                                <Text
+                                    className='get-started-text'
+                                    as='p'
+                                    color='prominent'
+                                    lineHeight='m'
+                                    size={isDesktop ? 'md' : 'sm'}
+                                >
+                                    {localize('Get started')}
+                                </Text>
+                            </div>
                             {!has_dashboard_strategies && (
                                 <Text
                                     className='title'
@@ -67,6 +99,7 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
                 </div>
             </div>
             <InfoPanel />
+            {client.is_logged_in && showDisclaimer && <RiskDisclaimer is_mobile={!isDesktop} />}
             {active_tab === 0 && <OnboardTourHandler is_mobile={!isDesktop} />}
         </React.Fragment>
     );
