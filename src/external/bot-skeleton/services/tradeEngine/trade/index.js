@@ -153,7 +153,8 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
 
     makeDirectPurchaseDecision() {
         const { has_payout_block, is_basis_payout } = checkBlocksForProposalRequest();
-        this.is_proposal_subscription_required = has_payout_block || is_basis_payout;
+        const isSpeedMode = localStorage.getItem('is_speed_mode_on') === 'true';
+        this.is_proposal_subscription_required = !isSpeedMode && (has_payout_block || is_basis_payout);
 
         if (this.is_proposal_subscription_required) {
             this.makeProposals({ ...this.options, ...this.tradeOptions });

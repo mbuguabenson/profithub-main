@@ -18,6 +18,152 @@ import useThemeSwitcher from '@/hooks/useThemeSwitcher';
 import { LegacyThemeDarkIcon, LegacyThemeLightIcon } from '@deriv/quill-icons/Legacy';
 import './header.scss';
 
+const CurrencyConverter = () => {
+    const [rate, setRate] = useState<number>(129.5);
+    const [usdVal, setUsdVal] = useState<string>('1');
+    const [kesVal, setKesVal] = useState<string>('129.5');
+    const [isOpen, setIsOpen] = useState(false);
+    const popoverRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        fetch('https://open.er-api.com/v6/latest/USD')
+            .then(res => res.json())
+            .then(data => {
+                if (data?.rates?.KES) {
+                    const newRate = data.rates.KES;
+                    setRate(newRate);
+                    setKesVal(newRate.toFixed(2));
+                }
+            })
+            .catch(err => console.warn('Failed to fetch real-time KES exchange rate:', err));
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleUsdChange = (val: string) => {
+        setUsdVal(val);
+        const parsed = parseFloat(val);
+        if (!isNaN(parsed)) {
+            setKesVal((parsed * rate).toFixed(2));
+        } else {
+            setKesVal('');
+        }
+    };
+
+    const handleKesChange = (val: string) => {
+        setKesVal(val);
+        const parsed = parseFloat(val);
+        if (!isNaN(parsed)) {
+            setUsdVal((parsed / rate).toFixed(2));
+        } else {
+            setUsdVal('');
+        }
+    };
+
+    return (
+        <div style={{ position: 'relative' }} ref={popoverRef}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    background: 'var(--general-section-1)',
+                    border: '1px solid var(--border-normal)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    color: 'var(--text-general)',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    transition: 'all 0.2s',
+                    height: '32px',
+                }}
+                onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = 'var(--general-hover)';
+                }}
+                onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = 'var(--general-section-1)';
+                }}
+                type='button'
+            >
+                <span style={{ fontSize: '14px' }}>💵</span>
+                <span>1 USD = {rate.toFixed(2)} KES</span>
+            </button>
+
+            {isOpen && (
+                <div
+                    className='currency-converter-popover'
+                    style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: '8px',
+                        width: '240px',
+                        background: 'var(--general-main-1)',
+                        border: '1px solid var(--border-normal)',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                        zIndex: 9999,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
+                    }}
+                >
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-general)' }}>
+                        Currency Converter
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>USD</label>
+                        <input
+                            type='number'
+                            value={usdVal}
+                            onChange={e => handleUsdChange(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-normal)',
+                                background: 'var(--general-section-1)',
+                                color: 'var(--text-general)',
+                                outline: 'none',
+                                fontSize: '13px',
+                            }}
+                        />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>KES</label>
+                        <input
+                            type='number'
+                            value={kesVal}
+                            onChange={e => handleKesChange(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-normal)',
+                                background: 'var(--general-section-1)',
+                                color: 'var(--text-general)',
+                                outline: 'none',
+                                fontSize: '13px',
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ChangeThemeHeader = observer(() => {
     const { is_dark_mode_on, toggleTheme } = useThemeSwitcher();
 
@@ -278,6 +424,7 @@ const AppHeader = observer(() => {
                 </Wrapper>
                 <Wrapper variant='right'>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CurrencyConverter />
                         <ChangeThemeHeader />
                         {renderAccountSection('right')}
                     </div>

@@ -2,7 +2,7 @@ import { LogTypes } from '../../../constants/messages';
 import { api_base } from '../../api/api-base';
 import { contractStatus, info, log } from '../utils/broadcast';
 import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../utils/helpers';
-import { purchaseSuccessful } from './state/actions';
+import { purchaseSuccessful, sell } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
 
 let delayIndex = 0;
@@ -12,7 +12,8 @@ export default Engine =>
     class Purchase extends Engine {
         purchase(contract_type) {
             // Prevent calling purchase twice
-            if (this.store.getState().scope !== BEFORE_PURCHASE) {
+            const isSpeedMode = localStorage.getItem('is_speed_mode_on') === 'true';
+            if (!isSpeedMode && this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
 
@@ -31,6 +32,16 @@ export default Engine =>
 
                 if (this.is_proposal_subscription_required) {
                     this.renewProposalsOnPurchase();
+                }
+
+                if (isSpeedMode) {
+                    setTimeout(() => {
+                        this.contractId = '';
+                        if (this.afterPromise) {
+                            this.afterPromise();
+                        }
+                        this.store.dispatch(sell());
+                    }, 50);
                 }
 
                 delayIndex = 0;

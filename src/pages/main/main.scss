@@ -96,6 +96,8 @@
                 box-sizing: border-box !important;
                 position: relative !important;
                 overflow: hidden !important;
+                flex-shrink: 0 !important;
+                white-space: nowrap !important;
 
                 &::before {
                     content: '';
