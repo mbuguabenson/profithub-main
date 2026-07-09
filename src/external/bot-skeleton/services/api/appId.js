@@ -86,6 +86,26 @@ export const generateDerivApiInstance = async (forceNew = false) => {
             // Store the instance immediately (don't wait for connection)
             derivApiInstance = deriv_api;
 
+            // Intercept and cache authorize calls to prevent redundant round-trip latencies
+            const originalAuthorize = deriv_api.authorize;
+            if (typeof originalAuthorize === 'function') {
+                deriv_api.authorize = async function (token) {
+                    if (deriv_api.authorized_token === token) {
+                        return {
+                            authorize: {
+                                loginid: localStorage.getItem('active_loginid'),
+                                currency: localStorage.getItem('active_currency') || 'USD',
+                            },
+                        };
+                    }
+                    const result = await originalAuthorize.call(this, token);
+                    if (result && !result.error) {
+                        deriv_api.authorized_token = token;
+                    }
+                    return result;
+                };
+            }
+
             // Set up close handler to clear instance
             deriv_socket.addEventListener('close', () => {
                 console.log('[DerivAPI] WebSocket connection closed');
