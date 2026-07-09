@@ -118,7 +118,8 @@ const BotBuilder = observer(() => {
 
         const checkAndLoad = () => {
             const workspace = window.Blockly?.derivWorkspace;
-            if (workspace && !is_loading) {
+            const blocksLoaded = window.Blockly?.Blocks?.trade_definition;
+            if (workspace && !is_loading && blocksLoaded) {
                 if (is_mounted && dashboard.pending_free_bot) {
                     const { name, xml } = dashboard.pending_free_bot;
                     dashboard.setPendingFreeBot(null);
