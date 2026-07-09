@@ -77,9 +77,9 @@ export default class GoogleDriveStore {
 
     setKey = () => {
         const { SCOPE, DISCOVERY_DOCS } = config().GOOGLE_DRIVE;
-        this.client_id = process.env.GD_CLIENT_ID;
-        this.app_id = process.env.GD_APP_ID;
-        this.api_key = process.env.GD_API_KEY;
+        this.client_id = process.env.GD_CLIENT_ID || '';
+        this.app_id = process.env.GD_APP_ID || '';
+        this.api_key = process.env.GD_API_KEY || '';
         this.scope = SCOPE;
         this.discovery_docs = DISCOVERY_DOCS;
     };
@@ -95,6 +95,11 @@ export default class GoogleDriveStore {
     };
 
     initialiseClient = () => {
+        if (!this.client_id) {
+            console.warn('Google Drive client_id is missing, skipping initialization');
+            return;
+        }
+
         this.client = google.accounts.oauth2.initTokenClient({
             client_id: this.client_id,
             scope: this.scope,

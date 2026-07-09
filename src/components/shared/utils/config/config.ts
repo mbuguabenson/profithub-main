@@ -16,10 +16,15 @@ export const STAGING_DOMAINS = {
     COM: brandConfig.platform.hostname.staging.com,
 } as const;
 
+// Helper to safely convert http/https URLs to ws/wss for WebSocket connections
+const getWsUrl = (baseUrl: string) => {
+    return baseUrl.replace(/^http/, 'ws');
+};
+
 // WebSocket server URLs
 export const WS_SERVERS = {
-    STAGING: `${brandConfig.platform.derivws.url.staging}options/ws/public`,
-    PRODUCTION: `${brandConfig.platform.derivws.url.production}options/ws/public`,
+    STAGING: `${getWsUrl(brandConfig.platform.derivws.url.staging)}options/ws/public`,
+    PRODUCTION: `${getWsUrl(brandConfig.platform.derivws.url.production)}options/ws/public`,
 } as const;
 
 // =============================================================================
