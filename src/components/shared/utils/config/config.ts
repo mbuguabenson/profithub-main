@@ -28,11 +28,13 @@ export const WS_SERVERS = {
 // Helper Functions
 // =============================================================================
 
-// Helper to check if we're on production domains (or localhost for third-party development against prod)
+// Helper to check if we're on production domains (or any non-staging domain for third-party development against prod)
 export const isProduction = () => {
     const hostname = window.location.hostname;
-    const productionDomains = Object.values(PRODUCTION_DOMAINS) as string[];
-    return productionDomains.includes(hostname) || /localhost(:\d+)?$/i.test(hostname);
+    const stagingDomains = Object.values(STAGING_DOMAINS) as string[];
+    // For third-party developers, any domain (localhost, vercel, etc.) should use the Production Deriv API.
+    // We only use staging Deriv API if explicitly on the staging brand domain.
+    return !stagingDomains.includes(hostname);
 };
 
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
