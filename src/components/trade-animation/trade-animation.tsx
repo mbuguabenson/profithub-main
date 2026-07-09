@@ -254,7 +254,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                     'animation--disabled': is_disabled,
                 })}
             >
-                {show_overlay && <ContractResultOverlay profit={profit} />}
+                {show_overlay && <ContractResultOverlay profit={profit as number} />}
                 <span className='animation__text'>
                     <ContractStageText contract_stage={contract_stage as number} />
                 </span>
