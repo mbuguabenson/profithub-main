@@ -21,6 +21,9 @@ import './header.scss';
 const CurrencyConverter = ({ activeAccount }: { activeAccount: any }) => {
     const [rate, setRate] = useState<number>(129.5);
     const [isOpen, setIsOpen] = useState(false);
+    const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'KES'>(() => {
+        return (localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'KES';
+    });
     const popoverRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
@@ -80,7 +83,7 @@ const CurrencyConverter = ({ activeAccount }: { activeAccount: any }) => {
                 type='button'
             >
                 <span style={{ fontSize: '14px' }}>💵</span>
-                <span>KES {formattedKes}</span>
+                <span>{displayCurrency} {displayCurrency === 'KES' ? formattedKes : formattedUsd}</span>
             </button>
 
             {isOpen && (
@@ -118,6 +121,32 @@ const CurrencyConverter = ({ activeAccount }: { activeAccount: any }) => {
                         <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#4caf50' }}>
                             {formattedKes} KES
                         </div>
+                    </div>
+                    <div style={{ height: '1px', background: 'var(--border-normal)' }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>Display Currency</div>
+                        <select
+                            value={displayCurrency}
+                            onChange={e => {
+                                const val = e.target.value as 'USD' | 'KES';
+                                setDisplayCurrency(val);
+                                localStorage.setItem('converter_display_currency', val);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-normal)',
+                                background: 'var(--general-section-1)',
+                                color: 'var(--text-general)',
+                                outline: 'none',
+                                fontSize: '13px',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <option value="KES">KES (Kenyan Shilling)</option>
+                            <option value="USD">USD (US Dollar)</option>
+                        </select>
                     </div>
                     <div style={{ height: '1px', background: 'var(--border-normal)' }} />
                     <div style={{ fontSize: '10px', color: 'var(--text-less-prominent)', textAlign: 'right' }}>
