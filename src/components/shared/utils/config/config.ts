@@ -256,11 +256,7 @@ export const generateOAuthURL = async (prompt?: string) => {
                 oauthUrl += `&prompt=${encodeURIComponent(prompt)}`;
             }
 
-            // Optional: legacy app_id for routing users on the Legacy Deriv API platform
-            const appId = process.env.APP_ID;
-            if (appId) {
-                oauthUrl += `&app_id=${encodeURIComponent(appId)}`;
-            }
+
 
             return oauthUrl;
         }
