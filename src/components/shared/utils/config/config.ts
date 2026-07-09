@@ -241,10 +241,8 @@ export const generateOAuthURL = async (prompt?: string) => {
             // Store code verifier for token exchange
             storeCodeVerifier(codeVerifier);
 
-            // Build redirect URL
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const redirectUrl = `${protocol}//${host}`;
+            // Build redirect URL - hardcoded to match the registered URL on Deriv
+            const redirectUrl = 'https://www.profithub.co.ke';
             const scopes = 'trade';
 
             // Build OAuth URL with PKCE parameters

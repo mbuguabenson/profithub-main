@@ -142,9 +142,8 @@ export class OAuthTokenExchangeService {
                 };
             }
 
-            const protocol = window.location.protocol;
-            const host = window.location.host;
-            const redirectUrl = `${protocol}//${host}`;
+            // Build redirect URL - hardcoded to match the registered URL on Deriv
+            const redirectUrl = 'https://www.profithub.co.ke';
 
             const requestBody = new URLSearchParams({
                 grant_type: 'authorization_code',
