@@ -300,6 +300,7 @@ $exit-duration: 0.8s;
     padding: 1px;
     background: linear-gradient(135deg, rgba(0, 245, 160, 0.25) 0%, transparent 40%, rgba(0, 217, 255, 0.25) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
@@ -590,4 +591,92 @@ $exit-duration: 0.8s;
 @keyframes logoBounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-4px); }
+}
+
+.preloader-forex-ticker {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 0.15;
+    background: rgba(255, 255, 255, 0.01);
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 8px 0;
+    pointer-events: none;
+
+    &--top {
+        top: 60px;
+    }
+
+    &--bottom {
+        bottom: 80px;
+    }
+}
+
+.ticker-track {
+    display: inline-flex;
+    width: max-content;
+}
+
+.ticker-group {
+    display: inline-flex;
+    animation: scrollTicker 45s linear infinite;
+}
+
+.preloader-forex-ticker--bottom .ticker-group {
+    animation-direction: reverse;
+}
+
+@keyframes scrollTicker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-25%); }
+}
+
+.ticker-item {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-right: 48px;
+    color: rgba(255, 255, 255, 0.5);
+
+    .val-up { color: #00f5a0; }
+    .val-down { color: #ef4444; }
+}
+
+.binary-center-glow {
+    background: radial-gradient(circle, rgba(0, 245, 160, 0.2) 0%, rgba(239, 68, 68, 0.1) 70%) !important;
+}
+
+.binary-arrows-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1;
+
+    .arrow-rise {
+        color: #00f5a0;
+        animation: riseArrowPulse 1.5s infinite alternate;
+    }
+
+    .arrow-fall {
+        color: #ef4444;
+        animation: fallArrowPulse 1.5s infinite alternate-reverse;
+    }
+}
+
+@keyframes riseArrowPulse {
+    from { transform: translateY(2px) scale(0.9); opacity: 0.7; }
+    to { transform: translateY(-2px) scale(1.1); opacity: 1; }
+}
+
+@keyframes fallArrowPulse {
+    from { transform: translateY(-2px) scale(0.9); opacity: 0.7; }
+    to { transform: translateY(2px) scale(1.1); opacity: 1; }
 }

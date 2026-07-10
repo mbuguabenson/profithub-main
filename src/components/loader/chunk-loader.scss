@@ -1,72 +1,133 @@
-@keyframes spinRing {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
+// ==========================================
+// Premium Redesigned Chunk Loader Styles
+// ==========================================
 
-@keyframes pulseIcon {
-    0%, 100% {
-        transform: scale(0.9);
-        opacity: 0.8;
-    }
-    50% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-}
-
-.chunk-loader-container {
+.chunk-loader-overlay {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 200px;
+    min-height: 280px;
+    width: 100%;
     padding: 24px;
     box-sizing: border-box;
 }
 
-.modern-loader {
+.chunk-loader-card {
+    background: rgba(10, 15, 26, 0.45);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 20px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.chunk-loader-spinner-wrapper {
     position: relative;
-    width: 60px;
-    height: 60px;
+    width: 72px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 
-.loader-ring {
+.spinner-outer-ring {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    border: 3px solid transparent;
+    border: 2px solid transparent;
+    border-top-color: #00f5a0;
+    border-bottom-color: #00d9ff;
+    animation: spinClockwise 1.5s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
 }
 
-.loader-ring-1 {
-    border-top-color: #f5c542;
-    animation: spinRing 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+.spinner-inner-ring {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    border-left-color: rgba(59, 130, 246, 0.4);
+    border-right-color: rgba(20, 241, 149, 0.4);
+    animation: spinCounterClockwise 1s linear infinite;
 }
 
-.loader-ring-2 {
-    border-bottom-color: rgba(245, 197, 66, 0.3);
-    animation: spinRing 1.8s linear infinite reverse;
-}
-
-.loader-icon-container {
-    color: #f5c542;
+.spinner-core-icon {
+    color: #00f5a0;
     display: flex;
     align-items: center;
     justify-content: center;
-    animation: pulseIcon 1.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 4px rgba(0, 245, 160, 0.5));
+    animation: pulseCore 1.5s ease-in-out infinite alternate;
 }
 
-.chunk-loader-message {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.85rem;
-    font-weight: 500;
-    text-align: center;
-    max-width: 250px;
+@keyframes pulseCore {
+    from {
+        transform: scale(0.92);
+        opacity: 0.8;
+    }
+    to {
+        transform: scale(1.08);
+        opacity: 1;
+    }
+}
+
+.chunk-loader-text {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.5;
+    margin-bottom: 16px;
+    max-width: 220px;
+}
+
+.chunk-loader-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 245, 160, 0.06);
+    border: 1px solid rgba(0, 245, 160, 0.15);
+    padding: 4px 10px;
+    border-radius: 100px;
+    
+    .indicator-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #22c55e;
+        box-shadow: 0 0 6px #22c55e;
+        animation: activeDot 1.2s infinite alternate;
+    }
+
+    .indicator-label {
+        color: #00f5a0;
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+    }
+}
+
+@keyframes activeDot {
+    from { opacity: 0.4; }
+    to { opacity: 1; }
+}
+
+@keyframes spinClockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes spinCounterClockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
 }

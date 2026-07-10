@@ -63,6 +63,9 @@ export interface IDashboardStore {
     setPreviewOnPopup: (is_preview_on_popup: boolean) => void;
     pending_free_bot: { name: string; xml: string } | null;
     setPendingFreeBot: (bot: { name: string; xml: string } | null) => void;
+    trading_stop_handlers: { [key: string]: () => void };
+    registerTradingStopHandler: (module: string, handler: () => void) => void;
+    unregisterTradingStopHandler: (module: string) => void;
 }
 
 export default class DashboardStore implements IDashboardStore {
@@ -71,6 +74,7 @@ export default class DashboardStore implements IDashboardStore {
     tutorials_combined_content: (TFaqContent | TGuideContent | TUserGuideContent | TQuickStrategyContent)[] = [];
     combined_search: string[] = [];
     bot_builder_symbol: string | null = null;
+    trading_stop_handlers: { [key: string]: () => void } = {};
 
     constructor(root_store: RootStore, core: TStores) {
         makeObservable(this, {
@@ -125,6 +129,9 @@ export default class DashboardStore implements IDashboardStore {
             bot_builder_symbol: observable,
             pending_free_bot: observable,
             setPendingFreeBot: action.bound,
+            trading_stop_handlers: observable,
+            registerTradingStopHandler: action.bound,
+            unregisterTradingStopHandler: action.bound,
         });
         this.root_store = root_store;
         this.core = core;
@@ -418,5 +425,13 @@ export default class DashboardStore implements IDashboardStore {
             this.setTourEnd(tour_type);
             this.setActiveTour('');
         }
+    };
+
+    registerTradingStopHandler = (module: string, handler: () => void): void => {
+        this.trading_stop_handlers[module] = handler;
+    };
+
+    unregisterTradingStopHandler = (module: string): void => {
+        delete this.trading_stop_handlers[module];
     };
 }

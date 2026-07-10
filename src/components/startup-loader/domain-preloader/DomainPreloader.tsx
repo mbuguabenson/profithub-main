@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { useDomainLoaderConfig } from '../useDomainLoaderConfig';
 import { useLoaderProgress } from '../useLoaderProgress';
 import './DomainPreloader.scss';
 
@@ -13,12 +12,10 @@ interface DomainPreloaderProps {
 
 export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
     appReady = false,
-    disableSessionReduction = false,
     minimumDuration = 6000,
     maximumDuration = 15000,
     onComplete,
 }) => {
-    const config = useDomainLoaderConfig();
     const [isExiting, setIsExiting] = useState(false);
     const [isComplete, setIsComplete] = useState(false);
     const [statusIndex, setStatusIndex] = useState(0);
@@ -35,12 +32,12 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
         }));
     }, []);
 
-    // Side floating panels data
+    // Side floating panels specific to Binary Options (Rise/Fall, Call/Put, Payouts)
     const floatingPanels = [
-        { id: 1, label: 'EURUSD', value: '76% BUY', type: 'success', class: 'panel-top-left' },
-        { id: 2, label: 'Volatility 75', value: 'WAIT', type: 'warning', class: 'panel-mid-right' },
-        { id: 3, label: 'Crash 1000', value: 'STRONG BUY', type: 'success', class: 'panel-bottom-left' },
-        { id: 4, label: 'Boom 500', value: 'AI SCANNING', type: 'info', class: 'panel-top-right' },
+        { id: 1, label: 'EURUSD PAYOUT', value: '95% RISE', type: 'success', class: 'panel-top-left' },
+        { id: 2, label: 'Volatility 75', value: 'CALL SIGNAL', type: 'success', class: 'panel-mid-right' },
+        { id: 3, label: 'Volatility 100', value: 'PUT SIGNAL', type: 'danger', class: 'panel-bottom-left' },
+        { id: 4, label: 'Boom 500 PAYOUT', value: '90% FALL', type: 'danger', class: 'panel-top-right' },
     ];
 
     const { progress } = useLoaderProgress({
@@ -49,7 +46,7 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
         maximumDuration: maximumDuration,
     });
 
-    // Update status text based on progress thresholds
+    // Update status text based on progress thresholds specific to binary options
     useEffect(() => {
         if (progress < 20) setStatusIndex(0);
         else if (progress < 40) setStatusIndex(1);
@@ -95,7 +92,7 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
             className={`domain-preloader ${isExiting ? 'domain-preloader--exiting' : ''} ${isComplete ? 'domain-preloader--complete' : ''}`}
             role="dialog"
             aria-modal="true"
-            aria-label="Initializing AI Trading Interface"
+            aria-label="Initializing AI Binary Trading Interface"
         >
             {/* World-Class Background Neural Network & Glows */}
             <div className='preloader-bg-ambient'>
@@ -105,6 +102,37 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
             </div>
             
             <div className='preloader-grid' />
+
+            {/* Subtle Scrolling Forex Background Tickers with Binary Options payouts */}
+            <div className='preloader-forex-ticker preloader-forex-ticker--top'>
+                <div className='ticker-track'>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={`top-ticker-${i}`} className='ticker-group'>
+                            <span className='ticker-item'>EURUSD <span className='val-up'>95% PAYOUT</span></span>
+                            <span className='ticker-item'>GBPUSD <span className='val-down'>90% PAYOUT</span></span>
+                            <span className='ticker-item'>USDJPY <span className='val-up'>92% PAYOUT</span></span>
+                            <span className='ticker-item'>Volatility 75 <span className='val-up'>95% PAYOUT</span></span>
+                            <span className='ticker-item'>Volatility 100 <span className='val-down'>95% PAYOUT</span></span>
+                            <span className='ticker-item'>AUDUSD <span className='val-up'>88% PAYOUT</span></span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className='preloader-forex-ticker preloader-forex-ticker--bottom'>
+                <div className='ticker-track'>
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={`bottom-ticker-${i}`} className='ticker-group'>
+                            <span className='ticker-item'>NZDUSD <span className='val-up'>90% PAYOUT</span></span>
+                            <span className='ticker-item'>Volatility 50 <span className='val-down'>95% PAYOUT</span></span>
+                            <span className='ticker-item'>Volatility 25 <span className='val-up'>95% PAYOUT</span></span>
+                            <span className='ticker-item'>EURJPY <span className='val-up'>91% PAYOUT</span></span>
+                            <span className='ticker-item'>GBPJPY <span className='val-up'>93% PAYOUT</span></span>
+                            <span className='ticker-item'>Gold <span className='val-up'>85% PAYOUT</span></span>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* Neural Connections */}
             <svg className='preloader-neural-net' viewBox='0 0 100 100' preserveAspectRatio='none'>
@@ -157,26 +185,27 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
                     </div>
                 </div>
 
-                {/* AI Core Holographic Animation */}
-                <div className='ai-core-processor'>
+                {/* Classic Binary Options Rise/Fall Arrow Core */}
+                <div className='ai-core-processor binary-core'>
                     <div className='core-orbit core-orbit--outer' />
                     <div className='core-orbit core-orbit--mid' />
                     <div className='core-orbit core-orbit--inner' />
-                    <div className='core-glow-center'>
-                        <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='core-ai-symbol'>
-                            <path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' />
-                        </svg>
+                    <div className='core-glow-center binary-center-glow'>
+                        <div className='binary-arrows-container'>
+                            <span className='arrow-rise'>▲</span>
+                            <span className='arrow-fall'>▼</span>
+                        </div>
                     </div>
                     <div className='core-pulse-wave' />
                 </div>
 
                 {/* Status text fades */}
                 <div className='preloader-status-text'>
-                    {statusIndex === 0 && <span className='status-msg'>Initializing AI Engine...</span>}
-                    {statusIndex === 1 && <span className='status-msg'>Connecting to Deriv Markets...</span>}
-                    {statusIndex === 2 && <span className='status-msg'>Loading Trading Models...</span>}
-                    {statusIndex === 3 && <span className='status-msg'>Analyzing Market Data...</span>}
-                    {statusIndex === 4 && <span className='status-msg'>Preparing Dashboard...</span>}
+                    {statusIndex === 0 && <span className='status-msg'>Initializing Rise/Fall Engines...</span>}
+                    {statusIndex === 1 && <span className='status-msg'>Connecting to Deriv WS Server...</span>}
+                    {statusIndex === 2 && <span className='status-msg'>Loading Binary Options Models...</span>}
+                    {statusIndex === 3 && <span className='status-msg'>Scanning Tick Stream Data...</span>}
+                    {statusIndex === 4 && <span className='status-msg'>Preparing Classic Trading Terminal...</span>}
                 </div>
 
                 {/* Modern Shimmer Progress Bar */}
@@ -197,13 +226,13 @@ export const DomainPreloader: React.FC<DomainPreloaderProps> = ({
                 {/* Sequentially Lit Status Pills */}
                 <div className='live-status-indicators'>
                     <span className={`status-pill ${progress >= 15 ? 'status-pill--active' : ''}`}>
-                        <span className='pill-dot' /> AI Engine Ready
+                        <span className='pill-dot' /> Rise/Fall Engine Ready
                     </span>
                     <span className={`status-pill ${progress >= 35 ? 'status-pill--active' : ''}`}>
                         <span className='pill-dot' /> WS Connected
                     </span>
                     <span className={`status-pill ${progress >= 60 ? 'status-pill--active' : ''}`}>
-                        <span className='pill-dot' /> Market Scanner Active
+                        <span className='pill-dot' /> Scanner Active
                     </span>
                     <span className={`status-pill ${progress >= 85 ? 'status-pill--active' : ''}`}>
                         <span className='pill-dot' /> AI Models Loaded
