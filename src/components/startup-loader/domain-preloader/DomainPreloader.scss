@@ -141,6 +141,7 @@ $exit-duration: 0.8s;
     margin: 0 0 6px 0;
     background: linear-gradient(135deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
