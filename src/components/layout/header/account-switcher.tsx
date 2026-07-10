@@ -18,6 +18,29 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const { accountList, activeLoginid } = useApiBase();
     const { client, run_panel } = useStore() ?? {};
 
+    const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'KES'>(() => {
+        return (localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD';
+    });
+    const [rate, setRate] = useState<number>(() => {
+        return parseFloat(localStorage.getItem('converter_kes_rate') || '129.5');
+    });
+
+    useEffect(() => {
+        const handleSync = () => {
+            setDisplayCurrency((localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD');
+            setRate(parseFloat(localStorage.getItem('converter_kes_rate') || '129.5'));
+        };
+        window.addEventListener('currency_changed', handleSync);
+        return () => window.removeEventListener('currency_changed', handleSync);
+    }, []);
+
+    const toggleDisplayCurrency = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const next = displayCurrency === 'USD' ? 'KES' : 'USD';
+        localStorage.setItem('converter_display_currency', next);
+        window.dispatchEvent(new Event('currency_changed'));
+    };
+
     const is_bot_running = run_panel?.is_running || api_base.is_running;
     const isSingleAccount = !accountList || accountList.length <= 1;
 
@@ -55,15 +78,28 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
         return accountList
-            .map(account => ({
-                loginid: account.loginid,
-                currency: account.currency,
-                balance: addComma(Number(account.balance ?? 0).toFixed(getDecimalPlaces(account.currency))),
-                isVirtual: isDemoAccount(account.loginid),
-                isActive: account.loginid === activeLoginid,
-            }))
+            .map(account => {
+                const accCurr = account.currency || 'USD';
+                const balanceNum = Number(account.balance ?? 0);
+                const displayBal =
+                    displayCurrency === 'KES' && accCurr === 'USD'
+                        ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+                              balanceNum * rate
+                          )
+                        : addComma(balanceNum.toFixed(getDecimalPlaces(accCurr)));
+                const displayCurr =
+                    displayCurrency === 'KES' && accCurr === 'USD' ? 'KES' : getCurrencyDisplayCode(accCurr);
+
+                return {
+                    loginid: account.loginid,
+                    currency: account.currency ? displayCurr : '',
+                    balance: displayBal,
+                    isVirtual: isDemoAccount(account.loginid),
+                    isActive: account.loginid === activeLoginid,
+                };
+            })
             .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
-    }, [accountList, activeLoginid]);
+    }, [accountList, activeLoginid, displayCurrency, rate]);
 
     if (!activeAccount) return null;
 
@@ -121,7 +157,12 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                             )}
                         </div>
                         {(typeof balance !== 'undefined' || !currency) && (
-                            <div className='acc-info__balance-section'>
+                            <div
+                                className='acc-info__balance-section'
+                                onClick={toggleDisplayCurrency}
+                                style={{ cursor: 'pointer' }}
+                                title='Click to toggle display currency'
+                            >
                                 <p
                                     data-testid='dt_balance'
                                     className={classNames('acc-info__balance', {
@@ -131,7 +172,15 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                     {!currency ? (
                                         <Localize i18n_default_text='No currency assigned' />
                                     ) : (
-                                        `${balance} ${getCurrencyDisplayCode(currency)}`
+                                        (() => {
+                                            const accCurr = currency || 'USD';
+                                            if (displayCurrency === 'KES' && accCurr === 'USD') {
+                                                const balanceNum = parseFloat(balance.replace(/,/g, '')) || 0;
+                                                const converted = balanceNum * rate;
+                                                return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(converted)} KES`;
+                                            }
+                                            return `${balance} ${getCurrencyDisplayCode(accCurr)}`;
+                                        })()
                                     )}
                                 </p>
                             </div>

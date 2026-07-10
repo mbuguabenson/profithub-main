@@ -157,10 +157,13 @@ export const ToolboxItems = () =>
                         </Shadow>
                     </Value>
                 </Block>
+                <Block type='active_symbol_changer' />
+                <Block type='trade_definition_alternate_markets' />
             </Category>
             <Category id='purchase_conditions' name={localize('Purchase conditions')}>
                 <Block type='before_purchase' />
                 <Block type='purchase' />
+                <Block type='apollo_purchase' />
             </Category>
             <Category id='sell_conditions' name={localize('Sell conditions (optional)')}>
                 <Block type='during_purchase' />
@@ -421,6 +424,22 @@ export const ToolboxItems = () =>
                     <Block type='balance' />
                     <Block type='total_profit' />
                     <Block type='total_runs' />
+                </Category>
+                <Category name={localize('Analysis Logics')} id='analysis_logics'>
+                    <Block type='digit_frequency' />
+                    <Block type='even_odd_percent' />
+                    <Block type='last_digits_condition' />
+                    <Block type='match_diff_percent' />
+                    <Block type='over_under_percent' />
+                    <Block type='rise_fall_percent' />
+                </Category>
+                <Category name={localize('Contract Modifiers')} id='contract_modifiers'>
+                    <Block type='barrier_settings' />
+                    <Block type='contract_type_switcher' />
+                    <Block type='custom_prediction_setter' />
+                    <Block type='market_symbol_changer' />
+                    <Block type='touchnotouch_barrier_changer' />
+                    <Block type='touchnotouch_offset_enabler' />
                 </Category>
             </Category>
 
@@ -776,6 +795,13 @@ export const ToolboxItems = () =>
                             </Shadow>
                         </Value>
                     </Block>
+                </Category>
+                <Category name={localize('Virtual Hook')} id='virtual_hook'>
+                    <Block type='vh_settings' />
+                    <Block type='vh_toggle' />
+                </Category>
+                <Category name={localize('Binary Tools')} id='binary_tools'>
+                    <Block type='tool_binarytools' />
                 </Category>
             </Category>
 

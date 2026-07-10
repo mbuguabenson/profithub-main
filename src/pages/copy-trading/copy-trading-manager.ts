@@ -1,5 +1,5 @@
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
-import { getAppId } from '@/components/shared/utils/config/config';
+import { getAppId, isProduction } from '@/components/shared/utils/config/config';
 
 export type TConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -28,7 +28,7 @@ const LS_KEYS = {
     SETTINGS: 'copy_trading.settings',
 };
 
-// Lightweight Deriv API client wrapper for isolated connections per token
+// Lightweight Deriv API client wrapper for isolated connections per token using the new API flow
 class DerivClient {
     api: any | null = null;
     status: TConnectionStatus = 'disconnected';
@@ -40,56 +40,104 @@ class DerivClient {
     async connectAndAuthorize(token: string) {
         this.status = 'connecting';
         
-        // Always use v3 for copy trading since v1 requires OAuth OTPs
+        const environment = isProduction() ? 'production' : 'staging';
+        const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
         const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
-        this.ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
-        this.api = new DerivAPIBasic({ connection: this.ws });
 
-        // wait for socket open
-        await new Promise<void>((resolve, reject) => {
-            const onOpen = () => {
-                this.ws?.removeEventListener?.('open', onOpen);
-                resolve();
-            };
-            const onErr = () => {
-                this.ws?.removeEventListener?.('error', onErr);
-                reject(new Error('socket error'));
-            };
-            this.ws?.addEventListener?.('open', onOpen);
-            this.ws?.addEventListener?.('error', onErr);
-            // fallback timeout
-            setTimeout(() => resolve(), 1000);
-        });
+        try {
+            // 1. Fetch Options accounts to find the account_id
+            const accountsResponse = await fetch(`${baseURL}options/accounts`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Deriv-App-ID': appId,
+                },
+            });
 
-        const { authorize, error } = await this.api.authorize(token);
-        if (error) {
+            if (!accountsResponse.ok) {
+                throw new Error(`Failed to fetch accounts list: ${accountsResponse.statusText}`);
+            }
+
+            const accountsData = await accountsResponse.json();
+            const accounts = accountsData?.data || [];
+            if (accounts.length === 0) {
+                throw new Error('No options accounts found for this token.');
+            }
+
+            // Use the first account
+            const activeAccount = accounts[0];
+            const accountId = activeAccount.account_id;
+            this.loginId = accountId;
+            this.balance = typeof activeAccount.balance === 'number' ? activeAccount.balance : parseFloat(activeAccount.balance || '0');
+
+            // 2. Fetch OTP and WebSocket URL
+            const otpResponse = await fetch(`${baseURL}options/accounts/${accountId}/otp`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Deriv-App-ID': appId,
+                },
+            });
+
+            if (!otpResponse.ok) {
+                throw new Error(`Failed to fetch OTP: ${otpResponse.statusText}`);
+            }
+
+            const otpData = await otpResponse.json();
+            const wsUrl = otpData?.data?.url;
+            if (!wsUrl) {
+                throw new Error('WebSocket URL not found in OTP response.');
+            }
+
+            // 3. Connect to the WebSocket
+            this.ws = new WebSocket(wsUrl);
+            this.api = new DerivAPIBasic({ connection: this.ws });
+
+            // wait for socket open
+            await new Promise<void>((resolve, reject) => {
+                const onOpen = () => {
+                    this.ws?.removeEventListener?.('open', onOpen);
+                    resolve();
+                };
+                const onErr = () => {
+                    this.ws?.removeEventListener?.('error', onErr);
+                    reject(new Error('WebSocket connection error'));
+                };
+                this.ws?.addEventListener?.('open', onOpen);
+                this.ws?.addEventListener?.('error', onErr);
+                // fallback timeout
+                setTimeout(() => resolve(), 3000);
+            });
+
+            this.status = 'connected';
+
+            // Try to subscribe to balance (optional)
+            try {
+                const res = await this.api.send({ balance: 1, subscribe: 1 });
+                if (!res?.error) {
+                    this.balance = res?.balance?.balance;
+                    if (res?.subscription?.id) {
+                        this.balanceSub = this.api.onMessage()?.subscribe(({ data }: any) => {
+                            if (data?.msg_type === 'balance') {
+                                this.balance = data?.balance?.balance;
+                            }
+                        });
+                    }
+                }
+            } catch (balanceError: any) {
+                // Ignore balance subscription failure if connection was successful
+            }
+
+            // Return mock authorize-like response structure for compatibility
+            return {
+                loginid: accountId,
+                email: activeAccount.email || '',
+                currency: activeAccount.currency || 'USD',
+            };
+        } catch (error: any) {
             this.status = 'error';
             throw error;
         }
-        this.status = 'connected';
-        this.loginId = authorize?.loginid;
-
-        // Try to subscribe to balance (optional - don't fail connection if this fails)
-        try {
-            const res = await this.api.send({ balance: 1, account: 'all', subscribe: 1 });
-            if (res?.error) {
-                // Balance subscription failed, but connection is still valid
-            } else {
-                this.balance = res?.balance?.balance;
-                if (res?.subscription?.id) {
-                    this.balanceSub = this.api.onMessage()?.subscribe(({ data }: any) => {
-                        if (data?.msg_type === 'balance') {
-                            this.balance = data?.balance?.balance;
-                        }
-                    });
-                }
-            }
-        } catch (balanceError: any) {
-            // Balance subscription failed, but connection is still valid
-            // Connection is still successful even if balance fails
-        }
-
-        return authorize;
     }
 
     disconnect() {

@@ -7,7 +7,7 @@ import { Localize } from '@deriv-com/translations';
 import { LabelPairedPuzzlePieceTwoCaptionBoldIcon } from '@deriv/quill-icons/LabelPaired';
 import './trading-bots.scss';
 
-type TradingBotSubTab = 'free-bots' | 'speedbots' | 'calculator' | 'strategies';
+type TradingBotSubTab = 'free-bots' | 'hybridbots' | 'calculator' | 'strategies';
 
 const TradingBots: React.FC = () => {
     const [active_tool, setActiveTool] = useState<TradingBotSubTab>('free-bots');
@@ -22,7 +22,7 @@ const TradingBots: React.FC = () => {
         switch (active_tool) {
             case 'free-bots':
                 return <FreeBots />;
-            case 'speedbots':
+            case 'hybridbots':
                 return <HybridBots />;
             case 'calculator':
                 return <RiskCalculator />;
@@ -52,20 +52,17 @@ const TradingBots: React.FC = () => {
                     </div>
                 </div>
                 <div
-                    className={`trading-bots__card trading-bots__card--light ${active_tool === 'speedbots' ? 'trading-bots__card--active' : ''}`}
-                    onClick={() => handleCardClick('speedbots')}
+                    className={`trading-bots__card trading-bots__card--light ${active_tool === 'hybridbots' ? 'trading-bots__card--active' : ''}`}
+                    onClick={() => handleCardClick('hybridbots')}
                 >
                     <div className='trading-bots__card-content'>
                         <LabelPairedPuzzlePieceTwoCaptionBoldIcon
                             height='16px'
                             width='16px'
-                            fill={active_tool === 'speedbots' ? '#3b82f6' : '#1e3a8a'}
+                            fill={active_tool === 'hybridbots' ? '#3b82f6' : '#1e3a8a'}
                         />
                         <span className='trading-bots__card-label'>
-                            <Localize i18n_default_text='SpeedBots' />
-                        </span>
-                        <span className='nav-speedbots-rocket' aria-hidden='true'>
-                            🚀
+                            <Localize i18n_default_text='Hybrid Bots' />
                         </span>
                     </div>
                 </div>

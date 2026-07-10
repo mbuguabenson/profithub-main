@@ -5,44 +5,27 @@ import './all-analysis.scss';
 const AllAnalysis: React.FC = () => {
     // All Analysis functionality
     useEffect(() => {
+        let isCancelled = false;
+        let ws: WebSocket | null = null;
+        let intervalId: NodeJS.Timeout | null = null;
+
         // Initialize WebSocket connection and signals functionality
-        const initializeSignals = () => {
+        const initializeSignals = async () => {
             // Store ticks per subscribed symbol (filled dynamically)
             const ticksStorage: { [key: string]: number[] } = {};
 
-            const appId = getAppId();
-            const server = getSocketURL();
-            const ws = new WebSocket(`wss://${server}/websockets/v3?app_id=${appId}`);
-
             const subscribeTicks = (symbol: string) => {
-                ws.send(
-                    JSON.stringify({
-                        ticks_history: symbol,
-                        count: 255,
-                        end: 'latest',
-                        style: 'ticks',
-                        subscribe: 1,
-                    })
-                );
-            };
-
-            ws.onopen = () => {
-                console.log('WebSocket connected, requesting active symbols...');
-
-                // Request active symbols to get the correct 1s volatility indices
-                ws.send(
-                    JSON.stringify({
-                        active_symbols: 'brief',
-                    })
-                );
-
-                // Also subscribe to standard volatility indices immediately
-                const standardSymbols = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100'];
-                standardSymbols.forEach(symbol => {
-                    if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
-                    subscribeTicks(symbol);
-                    console.log('Subscribed to standard symbol:', symbol);
-                });
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(
+                        JSON.stringify({
+                            ticks_history: symbol,
+                            count: 255,
+                            end: 'latest',
+                            style: 'ticks',
+                            subscribe: 1,
+                        })
+                    );
+                }
             };
 
             const calculateTrendPercentage = (symbol: string, ticksCount: number) => {
@@ -62,69 +45,6 @@ const AllAnalysis: React.FC = () => {
                     risePercentage: total > 0 ? (riseCount / total) * 100 : 0,
                     fallPercentage: total > 0 ? (fallCount / total) * 100 : 0,
                 };
-            };
-
-            ws.onmessage = event => {
-                try {
-                    const data = JSON.parse(event.data);
-
-                    // Log any errors
-                    if (data.error) {
-                        console.error(
-                            'WebSocket error for symbol:',
-                            data.echo_req?.ticks_history || 'unknown',
-                            data.error
-                        );
-                        return;
-                    }
-
-                    // Handle active symbols response
-                    if (data.active_symbols) {
-                        console.log('Active symbols received:', data.active_symbols.length, 'symbols');
-
-                        // Filter for 1-second volatility indices
-                        const oneSecondVolatilityIndices = data.active_symbols.filter(
-                            (symbol: any) => symbol.display_name && symbol.display_name.includes('(1s)')
-                        );
-                        console.log('1-Second Volatility Indices found:', oneSecondVolatilityIndices.length);
-
-                        // Subscribe to all 1s volatility indices
-                        oneSecondVolatilityIndices.forEach((symbolData: any) => {
-                            const symbol = symbolData.symbol;
-                            if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
-                            subscribeTicks(symbol);
-                            console.log('Subscribed to 1s volatility symbol:', symbol, symbolData.display_name);
-                        });
-                        return;
-                    }
-
-                    if (data.history && data.history.prices) {
-                        const symbol = data.echo_req.ticks_history;
-                        if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
-                        ticksStorage[symbol] = data.history.prices.map((price: string) => parseFloat(price));
-                        console.log(`History received for ${symbol}: ${ticksStorage[symbol].length} ticks`);
-                        // Trigger immediate update after history is received
-                        setTimeout(updateTables, 100);
-                    } else if (data.tick) {
-                        const symbol = data.tick.symbol;
-                        if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
-                        ticksStorage[symbol].push(parseFloat(data.tick.quote));
-                        if (ticksStorage[symbol].length > 255) ticksStorage[symbol].shift();
-                        console.log(
-                            `Tick received for ${symbol}: ${data.tick.quote}, total ticks: ${ticksStorage[symbol].length}`
-                        );
-                    }
-                } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                }
-            };
-
-            ws.onerror = error => {
-                console.error('WebSocket error:', error);
-            };
-
-            ws.onclose = () => {
-                console.log('WebSocket closed');
             };
 
             function updateTables() {
@@ -191,16 +111,117 @@ const AllAnalysis: React.FC = () => {
                 });
             }
 
-            const intervalId = setInterval(updateTables, 1000); // Update every second
+            try {
+                const wsUrl = await getSocketURL();
+                if (isCancelled) return;
 
-            return () => {
-                clearInterval(intervalId);
-                ws.close();
-            };
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    if (isCancelled) {
+                        ws?.close();
+                        return;
+                    }
+                    console.log('WebSocket connected, requesting active symbols...');
+
+                    // Request active symbols to get the correct 1s volatility indices
+                    ws.send(
+                        JSON.stringify({
+                            active_symbols: 'brief',
+                        })
+                    );
+
+                    // Also subscribe to standard volatility indices immediately
+                    const standardSymbols = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100'];
+                    standardSymbols.forEach(symbol => {
+                        if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
+                        subscribeTicks(symbol);
+                        console.log('Subscribed to standard symbol:', symbol);
+                    });
+                };
+
+                ws.onmessage = event => {
+                    if (isCancelled) return;
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        // Log any errors
+                        if (data.error) {
+                            console.error(
+                                'WebSocket error for symbol:',
+                                data.echo_req?.ticks_history || 'unknown',
+                                data.error
+                            );
+                            return;
+                        }
+
+                        // Handle active symbols response
+                        if (data.active_symbols) {
+                            console.log('Active symbols received:', data.active_symbols.length, 'symbols');
+
+                            // Filter for 1-second volatility indices
+                            const oneSecondVolatilityIndices = data.active_symbols.filter(
+                                (symbol: any) => symbol.display_name && symbol.display_name.includes('(1s)')
+                            );
+                            console.log('1-Second Volatility Indices found:', oneSecondVolatilityIndices.length);
+
+                            // Subscribe to all 1s volatility indices
+                            oneSecondVolatilityIndices.forEach((symbolData: any) => {
+                                const symbol = symbolData.symbol;
+                                if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
+                                subscribeTicks(symbol);
+                                console.log('Subscribed to 1s volatility symbol:', symbol, symbolData.display_name);
+                            });
+                            return;
+                        }
+
+                        if (data.history && data.history.prices) {
+                            const symbol = data.echo_req.ticks_history;
+                            if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
+                            ticksStorage[symbol] = data.history.prices.map((price: string) => parseFloat(price));
+                            console.log(`History received for ${symbol}: ${ticksStorage[symbol].length} ticks`);
+                            // Trigger immediate update after history is received
+                            setTimeout(updateTables, 100);
+                        } else if (data.tick) {
+                            const symbol = data.tick.symbol;
+                            if (!ticksStorage[symbol]) ticksStorage[symbol] = [];
+                            ticksStorage[symbol].push(parseFloat(data.tick.quote));
+                            if (ticksStorage[symbol].length > 255) ticksStorage[symbol].shift();
+                            console.log(
+                                `Tick received for ${symbol}: ${data.tick.quote}, total ticks: ${ticksStorage[symbol].length}`
+                            );
+                        }
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                ws.onerror = error => {
+                    if (isCancelled) return;
+                    console.error('WebSocket error:', error);
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket closed');
+                };
+
+                intervalId = setInterval(updateTables, 1000); // Update every second
+            } catch (err) {
+                console.error('Error establishing WebSocket connection in AllAnalysis:', err);
+            }
         };
 
-        const cleanup = initializeSignals();
-        return cleanup;
+        initializeSignals();
+
+        return () => {
+            isCancelled = true;
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            if (ws) {
+                ws.close();
+            }
+        };
     }, []);
 
     return (

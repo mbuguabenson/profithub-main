@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { observer } from 'mobx-react-lite';
 import IframeWrapper from '@/components/iframe-wrapper';
 import { getAppId } from '@/components/shared/utils/config/config';
@@ -9,10 +9,9 @@ const Dtrader = observer(() => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
     const buildIframeUrl = useCallback((token: string, loginId: string) => {
-        // Get currency from clientAccounts or accountsList
         const clientAccountsStr = localStorage.getItem('clientAccounts') || '{}';
         const accountsListStr = localStorage.getItem('accountsList') || '{}';
-        let currency = 'USD'; // Default currency
+        let currency = 'USD';
 
         try {
             const clientAccounts = JSON.parse(clientAccountsStr);
@@ -20,11 +19,9 @@ const Dtrader = observer(() => {
             if (account?.currency) {
                 currency = account.currency;
             } else {
-                // Fallback to accountsList
                 const accountsList = JSON.parse(accountsListStr);
                 const accountInfo = Object.keys(accountsList).find(key => key === loginId);
                 if (accountInfo) {
-                    // Try to get currency from account info if available
                     const accountData = JSON.parse(localStorage.getItem('accountList') || '[]');
                     const acc = accountData.find((a: any) => a.loginid === loginId);
                     if (acc?.currency) {
@@ -36,12 +33,8 @@ const Dtrader = observer(() => {
             console.error('Error parsing clientAccounts:', error);
         }
 
-        // Get app ID (same as used in login auth)
-        // getAppId() always returns the correct app_id and updates localStorage
         const appId = getAppId() || 114292;
 
-        // Build iframe URL with authentication parameters
-        // Try multiple parameters to disable bot controls in DTrader
         const params = new URLSearchParams({
             acct1: loginId,
             token1: token,
@@ -52,7 +45,6 @@ const Dtrader = observer(() => {
             interval: '1t',
             symbol: '1HZ100V',
             trade_type: 'over_under',
-            // Multiple attempts to disable bot controls
             hide_bot: '1',
             bot_disabled: 'true',
             disable_bot: '1',
@@ -61,12 +53,11 @@ const Dtrader = observer(() => {
             hide_bot_controls: 'true',
         });
 
-        const url = `https://deriv-dtrader.vercel.app/dtrader?${params.toString()}`;
+        const url = `https://hyperbot-indol.vercel.app/?${params.toString()}`;
         setIframeSrc(url);
     }, []);
 
     useEffect(() => {
-        // Check if user is authenticated
         const token = V2GetActiveToken();
         const activeLoginId = V2GetActiveClientId();
 
@@ -75,14 +66,12 @@ const Dtrader = observer(() => {
             buildIframeUrl(token, activeLoginId);
         } else {
             setIsAuthenticated(false);
-            // Load dtrader without authentication (will prompt login)
             setIframeSrc(
-                'https://deriv-dtrader.vercel.app/dtrader?chart_type=area&interval=1t&symbol=1HZ100V&trade_type=over_under'
+                'https://hyperbot-indol.vercel.app/?chart_type=area&interval=1t&symbol=1HZ100V&trade_type=over_under'
             );
         }
     }, [buildIframeUrl]);
 
-    // Listen for account switches and authentication changes
     useEffect(() => {
         const checkAuthAndUpdate = () => {
             const token = V2GetActiveToken();
@@ -96,12 +85,11 @@ const Dtrader = observer(() => {
             } else if (isAuthenticated) {
                 setIsAuthenticated(false);
                 setIframeSrc(
-                    'https://deriv-dtrader.vercel.app/dtrader?chart_type=area&interval=1t&symbol=1HZ100V&trade_type=over_under'
+                    'https://hyperbot-indol.vercel.app/?chart_type=area&interval=1t&symbol=1HZ100V&trade_type=over_under'
                 );
             }
         };
 
-        // Listen for storage changes (account switches from other tabs)
         const handleStorageChange = (e: StorageEvent) => {
             if (
                 e.key === 'authToken' ||
@@ -115,9 +103,6 @@ const Dtrader = observer(() => {
         };
 
         window.addEventListener('storage', handleStorageChange);
-
-        // Check periodically for localStorage changes (same tab)
-        // This handles cases where auth is set after component mount
         const interval = setInterval(checkAuthAndUpdate, 2000);
 
         return () => {

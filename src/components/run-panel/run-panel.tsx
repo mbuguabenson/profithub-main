@@ -19,9 +19,10 @@ import { useDevice } from '@deriv-com/ui';
 import ThemedScrollbars from '../shared_ui/themed-scrollbars';
 
 type TStatisticsTile = {
-    content: React.ElementType | string;
-    contentClassName: string;
+    content: React.ReactNode;
+    contentClassName?: string;
     title: string;
+    alignment?: string;
 };
 
 type TStatisticsSummary = {
@@ -46,7 +47,16 @@ type TDrawerContent = {
     active_index: number;
     is_drawer_open: boolean;
     active_tour: string;
-    setActiveTabIndex: () => void;
+    setActiveTabIndex: (index: number) => void;
+    currency: string;
+    is_mobile: boolean;
+    lost_contracts: number;
+    number_of_runs: number;
+    toggleStatisticsInfoModal: () => void;
+    total_payout: number;
+    total_profit: number;
+    total_stake: number;
+    won_contracts: number;
 };
 
 type TDrawerFooter = {
@@ -146,7 +156,7 @@ const DrawerContent = ({ active_index, is_drawer_open, active_tour, setActiveTab
 
     return (
         <>
-            <Tabs active_index={active_index} onTabItemClick={setActiveTabIndex} top>
+            <Tabs active_index={active_index} onTabItemClick={setActiveTabIndex} top history={{} as any}>
                 <div id='db-run-panel-tab__summary' label={<Localize i18n_default_text='Summary' />}>
                     <Summary is_drawer_open={is_drawer_open} />
                 </div>
@@ -269,6 +279,29 @@ const RunPanel = observer(() => {
     const { total_payout, total_profit, total_stake, won_contracts, lost_contracts, number_of_runs } = statistics;
     const { BOT_BUILDER, CHART } = DBOT_TABS;
 
+    const [displayCurrency, setDisplayCurrency] = React.useState<'USD' | 'KES'>(() => {
+        return (localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD';
+    });
+    const [rate, setRate] = React.useState<number>(() => {
+        return parseFloat(localStorage.getItem('converter_kes_rate') || '129.5');
+    });
+
+    React.useEffect(() => {
+        const handleSync = () => {
+            setDisplayCurrency((localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD');
+            setRate(parseFloat(localStorage.getItem('converter_kes_rate') || '129.5'));
+        };
+        window.addEventListener('currency_changed', handleSync);
+        return () => window.removeEventListener('currency_changed', handleSync);
+    }, []);
+
+    const targetCurrency = displayCurrency === 'KES' && (currency === 'USD' || !currency) ? 'KES' : currency || 'USD';
+    const finalRate = targetCurrency === 'KES' ? rate : 1;
+
+    const display_stake = total_stake * finalRate;
+    const display_payout = total_payout * finalRate;
+    const display_profit = total_profit * finalRate;
+
     React.useEffect(() => {
         onMount();
         return () => onUnmount();
@@ -284,16 +317,16 @@ const RunPanel = observer(() => {
     const content = (
         <DrawerContent
             active_index={active_index}
-            currency={currency}
+            currency={targetCurrency}
             is_drawer_open={is_drawer_open}
             is_mobile={!isDesktop}
             lost_contracts={lost_contracts}
             number_of_runs={number_of_runs}
             setActiveTabIndex={setActiveTabIndex}
             toggleStatisticsInfoModal={toggleStatisticsInfoModal}
-            total_payout={total_payout}
-            total_profit={total_profit}
-            total_stake={total_stake}
+            total_payout={display_payout}
+            total_profit={display_profit}
+            total_stake={display_stake}
             won_contracts={won_contracts}
             active_tour={active_tour}
         />
@@ -324,7 +357,7 @@ const RunPanel = observer(() => {
                     })}
                     contentClassName='run-panel__content'
                     header={header}
-                    footer={isDesktop && footer}
+                    footer={isDesktop ? footer : undefined}
                     is_open={is_drawer_open}
                     toggleDrawer={toggleDrawer}
                     width={366}

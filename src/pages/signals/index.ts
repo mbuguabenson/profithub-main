@@ -1,1 +1,2 @@
-export { default } from './signals';
+import Signals from './signals';
+export default Signals;

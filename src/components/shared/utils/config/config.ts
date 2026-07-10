@@ -40,20 +40,12 @@ export const isProduction = () => {
 export const isLocal = () => /localhost(:\d+)?$/i.test(window.location.hostname);
 
 export const getAppId = () => {
-    return localStorage.getItem('APP_ID') || process.env.CLIENT_ID || '1069';
+    return localStorage.getItem('APP_ID') || process.env.APP_ID || '1069';
 };
 
 const getDefaultServerURL = () => {
-    const isProductionEnv = isProduction();
-
-    try {
-        return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
-    } catch (error) {
-        console.error('Error in getDefaultServerURL:', error);
-    }
-
-    // Production defaults to demov2, staging/preview defaults to qa194 (demo)
-    return isProductionEnv ? WS_SERVERS.PRODUCTION : WS_SERVERS.STAGING;
+    const appId = getAppId();
+    return `wss://ws.derivws.com/websockets/v3?app_id=${appId}`;
 };
 
 /**

@@ -29,7 +29,6 @@ import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@der
 import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import RunPanel from '../../components/run-panel';
-import SpeedBotFloatingStop from '../../components/speedbot-floating-stop';
 import ChartModal from '../chart/chart-modal';
 import Dashboard from '../dashboard';
 import RunStrategy from '../dashboard/run-strategy';
@@ -46,7 +45,10 @@ const CopyTrading = lazy(() => import('../copy-trading'));
 const Strategies = lazy(() => import('../free-bots/strategies'));
 const ProTool = lazy(() => import('../pro-tool'));
 const Dtrader = lazy(() => import('../dtrader'));
-const Speedbot = lazy(() => import('../speedbot'));
+const Signals = lazy(() => import('../signals'));
+const AutoTrades = lazy(() => import('../auto-trades/auto-trades'));
+const ManualTrading = lazy(() => import('../manual-trading/manual-trading'));
+const ScannerPage = lazy(() => import('../scanner/scanner'));
 import TradingBots from '../free-bots/trading-bots';
 
 const AppWrapper = observer(() => {
@@ -93,7 +95,11 @@ const AppWrapper = observer(() => {
         'dtrader',
         'tradingview',
         'profihub',
-        'speedbot',
+        'tutorials',
+        'signals',
+        'auto_trades',
+        'manual_trading',
+        'scanner',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -228,7 +234,7 @@ const AppWrapper = observer(() => {
 
     React.useEffect(() => {
         const trashcan_init_id = setTimeout(() => {
-            if (active_tab === BOT_BUILDER && Blockly?.derivWorkspace?.trashcan) {
+            if (active_tab === BOT_BUILDER && (Blockly as any)?.derivWorkspace?.trashcan) {
                 const trashcanY = window.innerHeight - 250;
                 let trashcanX;
                 if (is_drawer_open) {
@@ -236,7 +242,7 @@ const AppWrapper = observer(() => {
                 } else {
                     trashcanX = isDbotRTL() ? 20 : window.innerWidth - 100;
                 }
-                Blockly?.derivWorkspace?.trashcan?.setTrashcanPosition(trashcanX, trashcanY);
+                (Blockly as any)?.derivWorkspace?.trashcan?.setTrashcanPosition(trashcanX, trashcanY);
             }
         }, 100);
 
@@ -289,7 +295,7 @@ const AppWrapper = observer(() => {
                     })}
                 >
                     <div>
-                        <Tabs active_index={active_tab} className='main__tabs' onTabItemClick={handleTabChange} top>
+                        <Tabs active_index={active_tab} className='main__tabs' onTabItemClick={handleTabChange} history={window.history as any} top>
                             <div
                                 label={
                                     <>
@@ -481,25 +487,7 @@ const AppWrapper = observer(() => {
                                     <ProfihubAnalysis />
                                 </Suspense>
                             </div>
-                            <div
-                                label={
-                                    <>
-                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
-                                            height='28px'
-                                            width='28px'
-                                            fill='#f5c542'
-                                        />
-                                        <Localize i18n_default_text='Speedbot' />
-                                    </>
-                                }
-                                id='id-speedbot'
-                            >
-                                <Suspense
-                                    fallback={<ChunkLoader message={localize('Please wait, loading Speedbot...')} />}
-                                >
-                                    <Speedbot />
-                                </Suspense>
-                            </div>
+
                             <div
                                 label={
                                     <>
@@ -516,7 +504,71 @@ const AppWrapper = observer(() => {
                                 <Suspense
                                     fallback={<ChunkLoader message={localize('Please wait, loading Tutorials...')} />}
                                 >
-                                    <Tutorials />
+                                    <Tutorials handleTabChange={handleTabChange} />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LegacyGuide1pxIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Signals' />
+                                    </>
+                                }
+                                id='id-signals'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Signals...')} />}
+                                >
+                                    <Signals />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Auto Trades' />
+                                    </>
+                                }
+                                id='id-auto-trades'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Auto Trades...')} />}
+                                >
+                                    <AutoTrades />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Manual Trading' />
+                                    </>
+                                }
+                                id='id-manual-trading'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Manual Trading...')} />}
+                                >
+                                    <ManualTrading />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Scanner' />
+                                    </>
+                                }
+                                id='id-scanner'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Scanner...')} />}
+                                >
+                                    <ScannerPage />
                                 </Suspense>
                             </div>
                         </Tabs>
@@ -537,7 +589,7 @@ const AppWrapper = observer(() => {
             <MobileWrapper>
                 {!is_open && active_tab !== DBOT_TABS.STRATEGIES && active_tab !== DBOT_TABS.DTRADER && <RunPanel />}
             </MobileWrapper>
-            <SpeedBotFloatingStop />
+
             <Dialog
                 cancel_button_text={cancel_button_text || localize('Cancel')}
                 className='dc-dialog__wrapper--fixed'
@@ -545,14 +597,14 @@ const AppWrapper = observer(() => {
                 has_close_icon
                 is_mobile_full_width={false}
                 is_visible={is_dialog_open}
-                onCancel={onCancelButtonClick}
+                onCancel={onCancelButtonClick || undefined}
                 onClose={onCloseDialog}
                 onConfirm={onOkButtonClick || onCloseDialog}
                 portal_element_id='modal_root'
                 title={title}
                 login={handleLoginGeneration}
-                dismissable={dismissable}
-                is_closed_on_cancel={is_closed_on_cancel}
+                dismissable={dismissable as unknown as boolean}
+                is_closed_on_cancel={is_closed_on_cancel as unknown as boolean}
             >
                 {message}
             </Dialog>

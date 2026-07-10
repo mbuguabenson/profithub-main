@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import Hyperbot from '../hyperbot';
 import Diffbot from '../diffbot';
-import SpeedBot from '../speedbot';
 import { Localize } from '@deriv-com/translations';
 import { LabelPairedPuzzlePieceTwoCaptionBoldIcon } from '@deriv/quill-icons/LabelPaired';
 import './hybrid-bots.scss';
 
-type HybridBotSubTab = 'diffbot' | 'hyperbot' | 'speedbot';
+type HybridBotSubTab = 'diffbot' | 'hyperbot';
 
 const HybridBots: React.FC = () => {
     const [active_tool, setActiveTool] = useState<HybridBotSubTab>('diffbot');
@@ -23,8 +22,6 @@ const HybridBots: React.FC = () => {
                 return <Diffbot />;
             case 'hyperbot':
                 return <Hyperbot />;
-            case 'speedbot':
-                return <SpeedBot />;
             default:
                 return null;
         }
@@ -63,24 +60,7 @@ const HybridBots: React.FC = () => {
                         </span>
                     </div>
                 </div>
-                <div
-                    className={`hybrid-bots__card hybrid-bots__card--light ${active_tool === 'speedbot' ? 'hybrid-bots__card--active' : ''}`}
-                    onClick={() => handleCardClick('speedbot')}
-                >
-                    <div className='hybrid-bots__card-content'>
-                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon
-                            height='16px'
-                            width='16px'
-                            fill={active_tool === 'speedbot' ? '#3b82f6' : '#1e3a8a'}
-                        />
-                        <span className='hybrid-bots__card-label nav-speedbot-label'>
-                            <Localize i18n_default_text='SpeedBot' />
-                        </span>
-                        <span className='nav-rocket' aria-hidden='true'>
-                            🚀
-                        </span>
-                    </div>
-                </div>
+
             </div>
             {active_tool && <div className='hybrid-bots__content'>{renderContent()}</div>}
         </div>

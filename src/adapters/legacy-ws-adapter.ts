@@ -1,5 +1,4 @@
-import { getAppId } from '@/components/shared/utils/config/config';
-import { generateDerivApiInstance } from '@/external/bot-skeleton/services/api/appId';
+import { getAppId, isProduction } from '@/components/shared/utils/config/config';
 
 // A mock WebSocket that intercepts legacy calls and routes them through the new API
 export class LegacyWSAdapter {
@@ -49,7 +48,7 @@ export class LegacyWSAdapter {
             } else if (data.ping === 1) {
                 // Mock ping
                 this.dispatchEvent('message', {
-                    data: JSON.stringify({ ping: 'pong', msg_type: 'ping', req_id: data.req_id })
+                    data: JSON.stringify({ ping: 'pong', msg_type: 'ping', req_id: data.req_id }),
                 });
             }
         } catch (e) {
@@ -59,36 +58,33 @@ export class LegacyWSAdapter {
 
     private async handleMultiAuthorize(tokens: string[], req_id: number) {
         const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+        const environment = isProduction() ? 'production' : 'staging';
+        const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
         const accountList: any[] = [];
 
-        // For each token, we use DerivAPIBasic to authorize and get the account info
-        // We'll use v3 for the legacy API tokens since v1 requires OAuth
+        // For each token, retrieve Options account info via new REST API
         for (const token of tokens) {
             try {
-                // Since this is just for UI population (webSS), we can use basic API requests
-                const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
-                
-                const authPromise = new Promise((resolve) => {
-                    ws.onopen = () => ws.send(JSON.stringify({ authorize: token }));
-                    ws.onmessage = (msg) => {
-                        const response = JSON.parse(msg.data);
-                        if (response.msg_type === 'authorize') {
-                            resolve(response.authorize);
-                        }
-                    };
-                    setTimeout(() => resolve(null), 5000); // 5s timeout
+                const response = await fetch(`${baseURL}options/accounts`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Deriv-App-ID': appId,
+                    },
                 });
 
-                const auth: any = await authPromise;
-                if (auth) {
-                    accountList.push({
-                        loginid: auth.loginid,
-                        currency: auth.currency,
-                        is_virtual: auth.is_virtual,
-                        currency_type: 'fiat'
-                    });
+                if (response.ok) {
+                    const data = await response.json();
+                    const accounts = data?.data || [];
+                    for (const auth of accounts) {
+                        accountList.push({
+                            loginid: auth.account_id,
+                            currency: auth.currency,
+                            is_virtual: auth.account_type === 'demo' ? 1 : 0,
+                            currency_type: 'fiat',
+                        });
+                    }
                 }
-                ws.close();
             } catch (e) {
                 console.error('Failed to auth token in adapter:', e);
             }
@@ -100,9 +96,9 @@ export class LegacyWSAdapter {
                 req_id,
                 msg_type: 'authorize',
                 authorize: {
-                    account_list: accountList
-                }
-            })
+                    account_list: accountList,
+                },
+            }),
         });
     }
 
@@ -116,30 +112,43 @@ export class LegacyWSAdapter {
             if (key === loginid) matchedToken = accountsList[key];
         });
 
-        // Use v3 to fetch balance quickly for UI
+        // Use REST accounts API to fetch balance
         if (matchedToken) {
             const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
-            const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
-            
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ authorize: matchedToken }));
-            };
-            ws.onmessage = (msg) => {
-                const response = JSON.parse(msg.data);
-                if (response.msg_type === 'authorize') {
-                    ws.send(JSON.stringify({ balance: 1, account: 'all' }));
-                } else if (response.msg_type === 'balance') {
-                    this.dispatchEvent('message', {
-                        data: JSON.stringify({
-                            echo_req: { req_id },
-                            req_id,
-                            msg_type: 'balance',
-                            balance: response.balance
-                        })
-                    });
-                    ws.close();
+            const environment = isProduction() ? 'production' : 'staging';
+            const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+
+            try {
+                const response = await fetch(`${baseURL}options/accounts`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${matchedToken}`,
+                        'Deriv-App-ID': appId,
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const accounts = data?.data || [];
+                    const matchedAcc = accounts.find((a: any) => a.account_id === loginid);
+                    if (matchedAcc) {
+                        this.dispatchEvent('message', {
+                            data: JSON.stringify({
+                                echo_req: { req_id },
+                                req_id,
+                                msg_type: 'balance',
+                                balance: {
+                                    balance: typeof matchedAcc.balance === 'number' ? matchedAcc.balance : parseFloat(matchedAcc.balance || '0'),
+                                    currency: matchedAcc.currency,
+                                    loginid: matchedAcc.account_id,
+                                },
+                            }),
+                        });
+                    }
                 }
-            };
+            } catch (e) {
+                console.error('Failed to fetch balance in adapter:', e);
+            }
         }
     }
 

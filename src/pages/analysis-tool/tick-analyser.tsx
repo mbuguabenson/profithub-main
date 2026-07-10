@@ -54,75 +54,98 @@ const TickAnalyser: React.FC = () => {
     ];
 
     useEffect(() => {
-        const appId = getAppId();
-        const server = getSocketURL();
-        const ws = new WebSocket(`wss://${server}/websockets/v3?app_id=${appId}`);
-        wsRef.current = ws;
+        let isCancelled = false;
+        let ws: WebSocket | null = null;
 
-        ws.onopen = () => {
-            setIsLoading(false);
-            // Subscribe to tick history
-            ws.send(
-                JSON.stringify({
-                    ticks_history: selectedSymbol,
-                    count: tickCount,
-                    end: 'latest',
-                    style: 'ticks',
-                    subscribe: 1,
-                })
-            );
-        };
-
-        ws.onmessage = event => {
+        const connect = async () => {
             try {
-                const data = JSON.parse(event.data);
+                const wsUrl = await getSocketURL();
+                if (isCancelled) return;
 
-                if (data.error) {
-                    console.error('WebSocket error:', data.error);
-                    return;
-                }
+                ws = new WebSocket(wsUrl);
+                wsRef.current = ws;
 
-                if (data.history && data.history.prices) {
-                    const prices = data.history.prices.map((price: string, index: number) => ({
-                        price: parseFloat(price),
-                        timestamp: Date.now() - (data.history.prices.length - index) * 1000,
-                    }));
-                    setTicks(prices);
-                    if (prices.length > 0) {
-                        setCurrentPrice(prices[prices.length - 1].price);
+                ws.onopen = () => {
+                    if (isCancelled) {
+                        ws?.close();
+                        return;
                     }
-                } else if (data.tick) {
-                    const newTick: TickData = {
-                        price: parseFloat(data.tick.quote),
-                        timestamp: data.tick.epoch * 1000,
-                    };
-                    setTicks(prev => {
-                        const updated = [...prev, newTick];
-                        if (updated.length > tickCount) {
-                            updated.shift();
+                    setIsLoading(false);
+                    // Subscribe to tick history
+                    ws?.send(
+                        JSON.stringify({
+                            ticks_history: selectedSymbol,
+                            count: tickCount,
+                            end: 'latest',
+                            style: 'ticks',
+                            subscribe: 1,
+                        })
+                    );
+                };
+
+                ws.onmessage = event => {
+                    if (isCancelled) return;
+                    try {
+                        const data = JSON.parse(event.data);
+
+                        if (data.error) {
+                            console.error('WebSocket error:', data.error);
+                            return;
                         }
-                        return updated;
-                    });
-                    setCurrentPrice(newTick.price);
+
+                        if (data.history && data.history.prices) {
+                            const prices = data.history.prices.map((price: string, index: number) => ({
+                                price: parseFloat(price),
+                                timestamp: Date.now() - (data.history.prices.length - index) * 1000,
+                            }));
+                            setTicks(prices);
+                            if (prices.length > 0) {
+                                setCurrentPrice(prices[prices.length - 1].price);
+                            }
+                        } else if (data.tick) {
+                            const newTick: TickData = {
+                                price: parseFloat(data.tick.quote),
+                                timestamp: data.tick.epoch * 1000,
+                            };
+                            setTicks(prev => {
+                                const updated = [...prev, newTick];
+                                if (updated.length > tickCount) {
+                                    updated.shift();
+                                }
+                                return updated;
+                            });
+                            setCurrentPrice(newTick.price);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing WebSocket message:', error);
+                    }
+                };
+
+                ws.onerror = error => {
+                    if (isCancelled) return;
+                    console.error('WebSocket error:', error);
+                    setIsLoading(false);
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket closed');
+                };
+            } catch (err) {
+                console.error('Error establishing WebSocket connection in TickAnalyser:', err);
+                if (!isCancelled) {
+                    setIsLoading(false);
                 }
-            } catch (error) {
-                console.error('Error parsing WebSocket message:', error);
             }
         };
 
-        ws.onerror = error => {
-            console.error('WebSocket error:', error);
-            setIsLoading(false);
-        };
-
-        ws.onclose = () => {
-            console.log('WebSocket closed');
-        };
+        connect();
 
         return () => {
-            if (wsRef.current) {
-                wsRef.current.close();
+            isCancelled = true;
+            if (ws) {
+                ws.close();
             }
+            wsRef.current = null;
         };
     }, [selectedSymbol, tickCount]);
 

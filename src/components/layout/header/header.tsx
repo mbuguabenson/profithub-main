@@ -18,188 +18,139 @@ import useThemeSwitcher from '@/hooks/useThemeSwitcher';
 import { LegacyThemeDarkIcon, LegacyThemeLightIcon } from '@deriv/quill-icons/Legacy';
 import './header.scss';
 
-const CurrencyConverter = ({ activeAccount }: { activeAccount: any }) => {
-    const [rate, setRate] = useState<number>(129.5);
-    const [isOpen, setIsOpen] = useState(false);
-    const [displayCurrency, setDisplayCurrency] = useState<'USD' | 'KES'>(() => {
-        return (localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'KES';
-    });
-    const popoverRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        fetch('https://open.er-api.com/v6/latest/USD')
-            .then(res => res.json())
-            .then(data => {
-                if (data?.rates?.KES) {
-                    setRate(data.rates.KES);
-                }
-            })
-            .catch(err => console.warn('Failed to fetch real-time KES exchange rate:', err));
-    }, []);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const balanceStr = activeAccount?.balance || '0';
-    const balanceNum = parseFloat(balanceStr.replace(/,/g, '')) || 0;
-    const currency = activeAccount?.currency || 'USD';
-    const convertedBalance = balanceNum * rate;
-
-    const formattedUsd = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(balanceNum);
-    const formattedKes = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(convertedBalance);
-
-    return (
-        <div style={{ position: 'relative' }} ref={popoverRef}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                style={{
-                    background: 'var(--general-section-1)',
-                    border: '1px solid var(--border-normal)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    color: 'var(--text-general)',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    transition: 'all 0.2s',
-                    height: '32px',
-                }}
-                onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = 'var(--general-hover)';
-                }}
-                onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = 'var(--general-section-1)';
-                }}
-                type='button'
-            >
-                <span style={{ fontSize: '14px' }}>💵</span>
-                <span>{displayCurrency} {displayCurrency === 'KES' ? formattedKes : formattedUsd}</span>
-            </button>
-
-            {isOpen && (
-                <div
-                    className='currency-converter-popover'
-                    style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        marginTop: '8px',
-                        width: '260px',
-                        background: 'var(--general-main-1)',
-                        border: '1px solid var(--border-normal)',
-                        borderRadius: '12px',
-                        padding: '16px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                        zIndex: 9999,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px',
-                    }}
-                >
-                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-general)' }}>
-                        Balance Converter
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>Active Balance</div>
-                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-general)' }}>
-                            {formattedUsd} {currency}
-                        </div>
-                    </div>
-                    <div style={{ height: '1px', background: 'var(--border-normal)' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>Equivalent in KES</div>
-                        <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#4caf50' }}>
-                            {formattedKes} KES
-                        </div>
-                    </div>
-                    <div style={{ height: '1px', background: 'var(--border-normal)' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ fontSize: '11px', color: 'var(--text-less-prominent)' }}>Display Currency</div>
-                        <select
-                            value={displayCurrency}
-                            onChange={e => {
-                                const val = e.target.value as 'USD' | 'KES';
-                                setDisplayCurrency(val);
-                                localStorage.setItem('converter_display_currency', val);
-                            }}
-                            style={{
-                                width: '100%',
-                                padding: '8px',
-                                borderRadius: '6px',
-                                border: '1px solid var(--border-normal)',
-                                background: 'var(--general-section-1)',
-                                color: 'var(--text-general)',
-                                outline: 'none',
-                                fontSize: '13px',
-                                cursor: 'pointer',
-                            }}
-                        >
-                            <option value="KES">KES (Kenyan Shilling)</option>
-                            <option value="USD">USD (US Dollar)</option>
-                        </select>
-                    </div>
-                    <div style={{ height: '1px', background: 'var(--border-normal)' }} />
-                    <div style={{ fontSize: '10px', color: 'var(--text-less-prominent)', textAlign: 'right' }}>
-                        Rate: 1 USD = {rate.toFixed(2)} KES
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const ChangeSpeedHeader = () => {
-    const [isSpeedMode, setIsSpeedMode] = useState(() => {
-        return localStorage.getItem('is_speed_mode_on') === 'true';
+const CurrencyToggle = () => {
+    const [currency, setCurrency] = useState<'USD' | 'KES'>(() => {
+        return (localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD';
     });
 
-    const toggleSpeedMode = () => {
-        const nextState = !isSpeedMode;
-        localStorage.setItem('is_speed_mode_on', String(nextState));
-        setIsSpeedMode(nextState);
-        window.dispatchEvent(new Event('speed_mode_changed'));
+    const toggleCurrency = () => {
+        const next = currency === 'USD' ? 'KES' : 'USD';
+        localStorage.setItem('converter_display_currency', next);
+        setCurrency(next);
+        window.dispatchEvent(new Event('currency_changed'));
     };
 
     useEffect(() => {
         const handleSync = () => {
-            setIsSpeedMode(localStorage.getItem('is_speed_mode_on') === 'true');
+            setCurrency((localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD');
         };
-        window.addEventListener('speed_mode_changed', handleSync);
-        return () => window.removeEventListener('speed_mode_changed', handleSync);
+        window.addEventListener('currency_changed', handleSync);
+        return () => window.removeEventListener('currency_changed', handleSync);
+    }, []);
+
+    useEffect(() => {
+        const fetchRate = () => {
+            fetch('https://open.er-api.com/v6/latest/USD')
+                .then(res => res.json())
+                .then(data => {
+                    if (data?.rates?.KES) {
+                        localStorage.setItem('converter_kes_rate', String(data.rates.KES));
+                        window.dispatchEvent(new Event('currency_changed'));
+                    }
+                })
+                .catch(err => console.warn('Failed to fetch real-time KES exchange rate:', err));
+        };
+        const cachedRate = localStorage.getItem('converter_kes_rate');
+        if (!cachedRate) {
+            fetchRate();
+        } else {
+            fetchRate();
+        }
     }, []);
 
     return (
         <button
-            onClick={toggleSpeedMode}
+            onClick={toggleCurrency}
             style={{
-                background: isSpeedMode ? 'rgba(255, 68, 79, 0.15)' : 'transparent',
+                background: 'var(--general-section-1)',
+                border: '1px solid var(--border-normal)',
                 cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '2px',
+                borderRadius: '20px',
+                color: 'var(--text-general)',
+                fontSize: '11px',
+                fontWeight: 'bold',
+                transition: 'all 0.2s',
+                height: '32px',
+                width: '80px',
+                position: 'relative',
+                overflow: 'hidden',
+            }}
+            type='button'
+            title='Toggle display currency (USD / KES)'
+        >
+            <div
+                style={{
+                    position: 'absolute',
+                    top: '2px',
+                    bottom: '2px',
+                    left: currency === 'USD' ? '2px' : '40px',
+                    width: '36px',
+                    background: '#f5c542',
+                    borderRadius: '16px',
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    zIndex: 1,
+                }}
+            />
+            <span
+                style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    zIndex: 2,
+                    color: currency === 'USD' ? '#000000' : 'var(--text-general)',
+                    transition: 'color 0.2s',
+                }}
+            >
+                USD
+            </span>
+            <span
+                style={{
+                    flex: 1,
+                    textAlign: 'center',
+                    zIndex: 2,
+                    color: currency === 'KES' ? '#000000' : 'var(--text-general)',
+                    transition: 'color 0.2s',
+                }}
+            >
+                KES
+            </span>
+        </button>
+    );
+};
+
+const WhatsAppLink = () => {
+    return (
+        <a
+            href='https://wa.me/254757722344'
+            target='_blank'
+            rel='noopener noreferrer'
+            style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '8px',
                 borderRadius: '8px',
-                color: isSpeedMode ? '#ff444f' : 'var(--text-general)',
-                transition: 'all 0.2s',
-                border: isSpeedMode ? '1px solid rgba(255, 68, 79, 0.3)' : '1px solid transparent',
+                color: 'var(--text-general)',
+                transition: 'background-color 0.2s',
+                textDecoration: 'none',
+                cursor: 'pointer',
                 height: '32px',
                 width: '32px',
             }}
-            title={isSpeedMode ? 'Speed Mode: MAX (Trading every tick)' : 'Speed Mode: NORMAL'}
-            type='button'
+            onMouseEnter={e => {
+                e.currentTarget.style.backgroundColor = 'var(--general-hover)';
+            }}
+            onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title='Contact on WhatsApp'
         >
-            <span style={{ fontSize: '16px', fontWeight: 'bold' }}>⚡</span>
-        </button>
+            <svg viewBox='0 0 24 24' width='20' height='20' fill='currentColor'>
+                <path d='M6.62 10.79a15.15 15.15 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.27 11.4 11.4 0 0 0 3.58.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .57 3.58 1 1 0 0 1-.27 1.02z' />
+            </svg>
+        </a>
     );
 };
 
@@ -463,8 +414,8 @@ const AppHeader = observer(() => {
                 </Wrapper>
                 <Wrapper variant='right'>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {activeLoginid && <CurrencyConverter activeAccount={activeAccount} />}
-                        <ChangeSpeedHeader />
+                        {activeLoginid && <CurrencyToggle />}
+                        <WhatsAppLink />
                         <ChangeThemeHeader />
                         {renderAccountSection('right')}
                     </div>

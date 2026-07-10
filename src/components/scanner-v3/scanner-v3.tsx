@@ -217,15 +217,14 @@ const NativeSignalScanner3: React.FC<{ isFloating?: boolean; onClose?: () => voi
             setBestSignal(null);
             setExpandedResult(null);
 
-            const appId = getAppId();
-            const server = getSocketURL();
             const tempResults: MarketScanResult[] = [];
 
             // Define which markets to scan
             const targetSymbols = isMultiMarket ? SYMBOLS : SYMBOLS.filter(s => s.id === selectedMarket);
 
             try {
-                const ws = new WebSocket(`wss://${server}/websockets/v3?app_id=${appId}`);
+                const wsUrl = await getSocketURL();
+                const ws = new WebSocket(wsUrl);
 
                 const fetchHistory = (symbolId: string): Promise<any> => {
                     return new Promise(resolve => {

@@ -3,6 +3,8 @@ import CopyTradingManager from './copy-trading-manager';
 import { api_base } from '@/external/bot-skeleton';
 import { getToken } from '@/external/bot-skeleton/services/api/appId';
 import { isSpecialCRAccount, getDemoAccountIdForSpecialCR } from '@/utils/special-accounts-config';
+import { getAppId, isProduction } from '@/components/shared/utils/config/config';
+import DBot from '@/external/bot-skeleton/scratch/dbot';
 
 // Simple duplicate guard by purchase_reference or timestamp
 const recentKeys = new Set<string>();
@@ -208,90 +210,134 @@ export function initReplicator(manager: CopyTradingManager) {
 
             updateReplicationStatus('copying', `Copying to ${tokens.length} account(s)...`);
 
-            // Build request like the working code
-            let reqBase: any = {};
+            // Build request contract parameters
+            let contract_parameters: any = null;
 
             if (payload.mode === 'proposal_id') {
-                // For proposal_id mode
                 const proposalId = payload.request?.buy || payload.request?.id;
-                const price = payload.request?.price;
+                const proposals = (DBot as any).interpreter?.bot?.tradeEngine?.data?.proposals || [];
+                const matchedProposal = proposals.find((p: any) => p.id === proposalId);
 
-                if (price) {
-                    let amt = Number(price) * (settings.stakeMultiplier || 1);
-                    if (settings.stakeCap) amt = Math.min(amt, settings.stakeCap);
-                    reqBase = {
-                        buy_contract_for_multiple_accounts: proposalId,
-                        price: Number(amt.toFixed(2)),
-                        tokens: tokens,
-                    };
-                } else {
-                    reqBase = {
-                        buy_contract_for_multiple_accounts: proposalId,
-                        tokens: tokens,
+                if (matchedProposal) {
+                    contract_parameters = {
+                        contract_type: matchedProposal.contract_type,
+                        underlying_symbol: matchedProposal.symbol || matchedProposal.underlying_symbol || matchedProposal.echo_req?.underlying_symbol,
+                        currency: matchedProposal.currency || 'USD',
+                        amount: matchedProposal.amount || matchedProposal.ask_price,
+                        basis: matchedProposal.basis || 'stake',
+                        duration: matchedProposal.duration,
+                        duration_unit: matchedProposal.duration_unit,
+                        ...(matchedProposal.barrier !== undefined && { barrier: matchedProposal.barrier }),
+                        ...(matchedProposal.barrier2 !== undefined && { barrier2: matchedProposal.barrier2 }),
+                        ...(matchedProposal.selected_tick !== undefined && { selected_tick: matchedProposal.selected_tick }),
+                        ...(matchedProposal.prediction !== undefined && { prediction: matchedProposal.prediction }),
                     };
                 }
-            } else if (payload.mode === 'parameters') {
-                // For parameters mode - like the working code
+            }
+
+            if (!contract_parameters) {
+                // Fallback to params
                 const params = JSON.parse(JSON.stringify(payload.request?.parameters || payload.request || {}));
+                const tradeEngine = (DBot as any).interpreter?.bot?.tradeEngine;
+                const tradeOptions = tradeEngine?.tradeOptions || {};
 
-                // Apply multiplier/cap to amount
-                if (params.amount) {
-                    let amt = Number(params.amount) * (settings.stakeMultiplier || 1);
-                    if (settings.stakeCap) amt = Math.min(amt, settings.stakeCap);
-                    params.amount = Number(amt.toFixed(2));
-                }
-
-                reqBase = {
-                    buy_contract_for_multiple_accounts: '1',
-                    price: params.amount || params.price,
-                    tokens: tokens,
-                    parameters: {
-                        amount: params.amount,
-                        basis: params.basis,
-                        contract_type: params.contract_type || payload.contract_type,
-                        currency: params.currency,
-                        duration: params.duration,
-                        duration_unit: params.duration_unit,
-                        multiplier: params.multiplier,
-                        symbol: params.symbol,
-                        ...(params.barrier !== undefined && { barrier: params.barrier }),
-                        ...(params.barrier2 !== undefined && { barrier2: params.barrier2 }),
-                        ...(params.selected_tick !== undefined && { selected_tick: params.selected_tick }),
-                        ...(params.prediction !== undefined && { prediction: params.prediction }),
-                    },
-                };
-            } else {
-                // Fallback
-                reqBase = {
-                    buy_contract_for_multiple_accounts: payload.request?.buy || '1',
-                    price: payload.request?.price,
-                    tokens: tokens,
-                    parameters: payload.request?.parameters || {},
+                contract_parameters = {
+                    contract_type: params.contract_type || payload.contract_type || tradeOptions.contract_type,
+                    underlying_symbol: params.symbol || params.underlying_symbol || payload.request?.symbol || tradeOptions.symbol || tradeOptions.underlying_symbol,
+                    currency: params.currency || tradeOptions.currency || 'USD',
+                    amount: params.amount || params.price || payload.request?.price || tradeOptions.amount,
+                    basis: params.basis || tradeOptions.basis || 'stake',
+                    duration: params.duration || tradeOptions.duration,
+                    duration_unit: params.duration_unit || tradeOptions.duration_unit,
+                    ...((params.barrier !== undefined || tradeOptions.barrier !== undefined) && { barrier: params.barrier ?? tradeOptions.barrier }),
+                    ...((params.barrier2 !== undefined || tradeOptions.barrier2 !== undefined) && { barrier2: params.barrier2 ?? tradeOptions.barrier2 }),
+                    ...((params.selected_tick !== undefined || tradeOptions.selected_tick !== undefined) && { selected_tick: params.selected_tick ?? tradeOptions.selected_tick }),
+                    ...((params.prediction !== undefined || tradeOptions.prediction !== undefined) && { prediction: params.prediction ?? tradeOptions.prediction }),
                 };
             }
 
-            // Send single API call with all tokens (like the mkorean working code)
-            // Use existing api_base instance directly, no MULTI authorization needed
-            try {
-                const res = await api_base.api.send(reqBase);
+            // Apply multiplier/cap to amount
+            if (contract_parameters.amount) {
+                let amt = Number(contract_parameters.amount) * (settings.stakeMultiplier || 1);
+                if (settings.stakeCap) amt = Math.min(amt, settings.stakeCap);
+                contract_parameters.amount = Number(amt.toFixed(2));
+            }
 
-                // Check if response has error
-                if (res?.error) {
-                    const errorMsg = res.error.message || res.error.code || 'Unknown API error';
-                    const errorCode = res.error.code || 'Unknown';
-                    updateReplicationStatus('error', `API Error: ${errorMsg} (${errorCode})`);
-                    tradeLogs.push({
-                        id: 'all',
-                        accountId: 'multiple',
-                        payload: reqBase,
-                        time: Date.now(),
-                        error: errorMsg,
-                    });
-                    return;
+            // Separate accounts into demo/real groups
+            const demoAccounts: Array<{ token: string; account_id: string }> = [];
+            const realAccounts: Array<{ token: string; account_id: string }> = [];
+
+            const getAccountIdForToken = (token: string, mgr: CopyTradingManager): string | null => {
+                const copier = mgr.copiers.find(c => c.token === token);
+                if (copier && copier.loginId) return copier.loginId;
+
+                if (mgr.master.token === token && mgr.master.loginId) return mgr.master.loginId;
+
+                try {
+                    const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
+                    for (const loginId of Object.keys(accountsList)) {
+                        if (accountsList[loginId] === token) {
+                            return loginId;
+                        }
+                    }
+                } catch (e) {}
+
+                return null;
+            };
+
+            for (const token of tokens) {
+                const accountId = getAccountIdForToken(token, manager);
+                if (accountId) {
+                    const isDemo = accountId.startsWith('VR') || accountId.startsWith('VRT');
+                    if (isDemo) {
+                        demoAccounts.push({ token, account_id: accountId });
+                    } else {
+                        realAccounts.push({ token, account_id: accountId });
+                    }
+                }
+            }
+
+            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+            const environment = isProduction() ? 'production' : 'staging';
+            const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+
+            const buyForGroup = async (groupAccounts: typeof demoAccounts, isDemo: boolean) => {
+                if (groupAccounts.length === 0) return;
+
+                const endpoint = `${baseURL}options/contracts/bulk-purchase/${isDemo ? 'demo' : 'real'}`;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Deriv-App-ID': appId,
+                    },
+                    body: JSON.stringify({
+                        contract_parameters,
+                        accounts: groupAccounts,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                if (result.error) {
+                    throw result.error;
+                }
+                return result;
+            };
+
+            try {
+                if (demoAccounts.length > 0) {
+                    await buyForGroup(demoAccounts, true);
+                }
+                if (realAccounts.length > 0) {
+                    await buyForGroup(realAccounts, false);
                 }
 
                 updateReplicationStatus('success', `Copied to ${tokens.length} account(s) successfully`);
-                tradeLogs.push({ id: 'all', accountId: 'multiple', payload: reqBase, time: Date.now() });
+                tradeLogs.push({ id: 'all', accountId: 'multiple', payload: contract_parameters, time: Date.now() });
             } catch (e: any) {
                 const errorMsg = e?.error?.message || e?.message || 'Unknown error';
                 const errorCode = e?.error?.code || e?.code || 'Unknown';
@@ -299,7 +345,7 @@ export function initReplicator(manager: CopyTradingManager) {
                 tradeLogs.push({
                     id: 'all',
                     accountId: 'multiple',
-                    payload: reqBase,
+                    payload: contract_parameters,
                     time: Date.now(),
                     error: errorMsg,
                 });
