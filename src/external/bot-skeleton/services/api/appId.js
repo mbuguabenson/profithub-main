@@ -86,6 +86,36 @@ export const generateDerivApiInstance = async (forceNew = false) => {
             // Store the instance immediately (don't wait for connection)
             derivApiInstance = deriv_api;
 
+            // Intercept active_symbols calls to fetch them via REST API
+            const originalSend = deriv_api.send;
+            deriv_api.send = async function (request) {
+                if (request && request.active_symbols) {
+                    console.log('[DerivAPI Wrapper] Intercepting active_symbols request and fetching via REST');
+                    try {
+                        const appId = localStorage.getItem('APP_ID') || '1069';
+                        const environment = window.location.hostname.includes('staging') ? 'staging' : 'production';
+                        const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+                        
+                        const response = await fetch(`${baseURL}options/active-symbols`, {
+                            method: 'GET',
+                            headers: {
+                                'Deriv-App-ID': appId,
+                            },
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            return {
+                                active_symbols: result?.data || [],
+                            };
+                        }
+                    } catch (e) {
+                        console.error('[DerivAPI Wrapper] REST active_symbols fetch failed:', e);
+                    }
+                }
+                return originalSend.call(this, request);
+            };
+
             // Intercept and cache authorize calls to prevent redundant round-trip latencies
             const originalAuthorize = deriv_api.authorize;
             if (typeof originalAuthorize === 'function') {
