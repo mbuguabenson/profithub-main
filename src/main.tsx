@@ -12,6 +12,12 @@ configure({ isolateGlobalState: true });
 // Perform version check FIRST - before any other operations
 performVersionCheck();
 
+import StartupLoader from '@/components/startup-loader';
+
 // Removed AnalyticsInitializer() call - analytics dependency removed
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<AuthWrapper />);
+ReactDOM.createRoot(document.getElementById('root')!).render(
+    <StartupLoader>
+        <AuthWrapper />
+    </StartupLoader>
+);

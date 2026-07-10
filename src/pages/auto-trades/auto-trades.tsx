@@ -1212,7 +1212,7 @@ const AutoTrades = observer(() => {
             percentageBackfillInFlight: false,
             currentStake: 1,
             cooldownLeft: 0,
-        } as unknown as MarketDisplay))
+        }))
     );
 
     const subscriptionsRef = useRef<Record<string, any>>({});
@@ -2152,7 +2152,7 @@ const AutoTrades = observer(() => {
                     setFloatingStrategyAlert({
                         marketLabel,
                         message: state.alertMessage,
-                        strategyId: activeStrategyTemplate as unknown as DigitStrategyId,
+                        strategyId: activeStrategyTemplate,
                         symbol,
                     });
                 } else if (
@@ -2552,13 +2552,13 @@ const AutoTrades = observer(() => {
         resetSession();
         try {
             run_panel.setIsRunning(true);
-            (run_panel as any).setRunId?.(`run-${Date.now()}`);
+            run_panel.setRunId(`run-${Date.now()}`);
             run_panel.setContractStage?.(contract_stages.RUNNING);
             run_panel.toggleDrawer(true);
         } catch {
             // Ignore optional run-panel mount failures.
         }
-        (dashboard as any).setActiveTradingModule?.('auto_trades');
+        dashboard.setActiveTradingModule('auto_trades');
         runningRef.current = true;
         setIsRunning(true);
     }, [dashboard, resetSession, run_panel, selectedMarkets.length]);
@@ -2581,7 +2581,7 @@ const AutoTrades = observer(() => {
         setCooldownDisplay(0);
         setCurrentStakeDisplay(configRef.current.stake);
         nextStakeRef.current = configRef.current.stake;
-        (dashboard as any).setActiveTradingModule?.(null);
+        dashboard.setActiveTradingModule(null);
         recordDiagnosticEvent('auto_trades.stop_trading', {
             selectedMarkets: selectedMarketsRef.current.length,
             tickStreams: Object.keys(subscriptionsRef.current).length,
@@ -2610,7 +2610,7 @@ const AutoTrades = observer(() => {
     useEffect(() => {
         if (!show_auto) return undefined;
 
-        (dashboard as any).registerTradingStopHandler?.('auto_trades', stopTrading);
+        dashboard.registerTradingStopHandler('auto_trades', stopTrading);
         globalObserver.register('bot.running', run_panel.onBotRunningEvent);
         globalObserver.register('contract.status', run_panel.onContractStatusEvent);
         globalObserver.register('Error', run_panel.onError);
@@ -2618,7 +2618,7 @@ const AutoTrades = observer(() => {
         globalObserver.register('bot.manual_stop', stopTrading);
 
         return () => {
-            (dashboard as any).unregisterTradingStopHandler?.('auto_trades');
+            dashboard.unregisterTradingStopHandler('auto_trades');
             globalObserver.unregister('bot.running', run_panel.onBotRunningEvent);
             globalObserver.unregister('contract.status', run_panel.onContractStatusEvent);
             globalObserver.unregister('Error', run_panel.onError);

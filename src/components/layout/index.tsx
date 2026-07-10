@@ -9,6 +9,7 @@ import { crypto_currencies_display_order, fiat_currencies_display_order } from '
 import Footer from './footer';
 import AppHeader from './header';
 import Body from './main-body';
+import { RiskDisclaimer } from '../shared_ui/risk-disclaimer/risk-disclaimer';
 import './layout.scss';
 
 const Layout = observer(() => {
@@ -153,6 +154,7 @@ const Layout = observer(() => {
                 <Outlet />
             </Body>
             {!isCallbackPage && isDesktop && <Footer />}
+            <RiskDisclaimer />
         </div>
     );
 });

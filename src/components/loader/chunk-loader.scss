@@ -1,0 +1,72 @@
+@keyframes spinRing {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes pulseIcon {
+    0%, 100% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+.chunk-loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modern-loader {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.loader-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+.loader-ring-1 {
+    border-top-color: #f5c542;
+    animation: spinRing 1.2s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+}
+
+.loader-ring-2 {
+    border-bottom-color: rgba(245, 197, 66, 0.3);
+    animation: spinRing 1.8s linear infinite reverse;
+}
+
+.loader-icon-container {
+    color: #f5c542;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: pulseIcon 1.5s ease-in-out infinite;
+}
+
+.chunk-loader-message {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    max-width: 250px;
+}
