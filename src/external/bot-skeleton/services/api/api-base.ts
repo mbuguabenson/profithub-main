@@ -3,6 +3,7 @@ import { getAccountId, getAccountType, isDemoAccount, removeUrlParameter } from 
 /* [/AI] */
 import CommonStore from '@/stores/common-store';
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
+import { getAppId, isProduction } from '@/components/shared/utils/config/config';
 import { TAuthData } from '@/types/api-types';
 import { clearAuthData } from '@/utils/auth-utils';
 import { handleBackendError, isBackendError } from '@/utils/error-handler';
@@ -391,30 +392,63 @@ class APIBase {
     }
 
     getActiveSymbols = async () => {
-        if (!this.api) {
-            throw new Error('API connection not available for fetching active symbols');
+        let active_symbols: any[] = [];
+
+        // 1. Try to fetch active symbols via the new REST API
+        try {
+            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+            const environment = isProduction() ? 'production' : 'staging';
+            const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+
+            const response = await fetch(`${baseURL}options/active-symbols`, {
+                method: 'GET',
+                headers: {
+                    'Deriv-App-ID': appId,
+                },
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                active_symbols = result?.data || [];
+            }
+        } catch (e) {
+            console.warn('[APIBase] REST active symbols fetch failed, will try WebSocket:', e);
+        }
+
+        // 2. Fallback to WebSocket if REST failed or returned empty
+        if (active_symbols.length === 0) {
+            if (!this.api) {
+                throw new Error('API connection not available for fetching active symbols');
+            }
+
+            try {
+                // Add timeout to prevent hanging
+                const timeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Active symbols fetch timeout')), this.ACTIVE_SYMBOLS_TIMEOUT_MS)
+                );
+
+                const activeSymbolsPromise = doUntilDone(() => this.api?.send({ active_symbols: 'brief' }), [], this);
+
+                const apiResult = await Promise.race([activeSymbolsPromise, timeout]);
+
+                const { active_symbols: ws_symbols = [], error = {} } = apiResult as any;
+
+                if (error && Object.keys(error).length > 0) {
+                    throw new Error(`Active symbols API error: ${error.message || 'Unknown error'}`);
+                }
+
+                active_symbols = ws_symbols;
+            } catch (error) {
+                console.error('[APIBase] WebSocket active symbols fetch failed:', error);
+                throw error;
+            }
+        }
+
+        if (!active_symbols.length) {
+            throw new Error('No active symbols received from API');
         }
 
         try {
-            // Add timeout to prevent hanging
-            const timeout = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Active symbols fetch timeout')), this.ACTIVE_SYMBOLS_TIMEOUT_MS)
-            );
-
-            const activeSymbolsPromise = doUntilDone(() => this.api?.send({ active_symbols: 'brief' }), [], this);
-
-            const apiResult = await Promise.race([activeSymbolsPromise, timeout]);
-
-            const { active_symbols = [], error = {} } = apiResult as any;
-
-            if (error && Object.keys(error).length > 0) {
-                throw new Error(`Active symbols API error: ${error.message || 'Unknown error'}`);
-            }
-
-            if (!active_symbols.length) {
-                throw new Error('No active symbols received from API');
-            }
-
             this.has_active_symbols = true;
 
             // Process active symbols using the dedicated service with fallback
@@ -438,7 +472,7 @@ class APIBase {
             this.toggleRunButton(false);
             return this.active_symbols;
         } catch (error) {
-            console.error('Failed to fetch and process active symbols:', error);
+            console.error('Failed to process active symbols:', error);
             throw error;
         }
     };
