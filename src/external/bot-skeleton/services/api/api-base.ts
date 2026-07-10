@@ -259,7 +259,7 @@ class APIBase {
         setIsAuthorizing(true);
 
         try {
-            const { balance, error } = await this.api.balance();
+            const { balance, error } = await (this.api as any).balance();
 
             if (error) {
                 const errorMessage = isBackendError(error)
