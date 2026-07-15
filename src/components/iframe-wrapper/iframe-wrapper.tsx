@@ -71,11 +71,22 @@ const IframeWrapper: React.FC<IframeWrapperProps> = observer(({ src, title, clas
         };
 
         const expectedOrigin = process.env.DTRADER_PROXY_URL || 'https://deriv-dtrader.vercel.app';
+        
+        const allowedOrigins = [
+            expectedOrigin,
+            'https://www.derivcircles.com',
+            'https://bot-analysis-tool-belex.web.app',
+            'https://analysisprofithub.vercel.app',
+            'https://www.smartanalysistool.com',
+            window.location.origin
+        ];
 
         // Listen for messages from iframe (auth requests and trade events)
         const handleMessage = (event: MessageEvent) => {
-            // Security: validate event.origin when using the DTrader proxy
-            if (event.origin !== expectedOrigin) return;
+            const isAllowed = allowedOrigins.includes(event.origin) || 
+                              /^http:\/\/localhost(:\d+)?$/i.test(event.origin);
+
+            if (!isAllowed) return;
 
             // Debug: Log all messages from iframe
             if (event.data && event.data.type) {
