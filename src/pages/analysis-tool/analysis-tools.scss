@@ -8,6 +8,8 @@
     background: var(--general-main-1);
     padding: 1rem 2rem;
     position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
 
     &__cards-container {
         display: flex;
@@ -145,7 +147,7 @@
     &__content {
         flex: 1;
         width: 100%;
-        height: calc(100vh - 200px);
+        height: 100%;
         min-height: 0;
         overflow-y: auto;
         overflow-x: hidden;
