@@ -61,6 +61,10 @@ export interface IDashboardStore {
     toast_message: string;
     is_chart_modal_visible: boolean;
     is_trading_view_modal_visible: boolean;
+    is_profihub_modal_visible: boolean;
+    setProfihubModalVisibility: () => void;
+    is_protool_ai_modal_visible: boolean;
+    setProToolAiModalVisibility: (visible: boolean) => void;
     setPreviewOnPopup: (is_preview_on_popup: boolean) => void;
     pending_free_bot: { name: string; xml: string } | null;
     setPendingFreeBot: (bot: { name: string; xml: string } | null) => void;
@@ -132,6 +136,10 @@ export default class DashboardStore implements IDashboardStore {
             setShowMobileTourDialog: action.bound,
             is_chart_modal_visible: observable,
             is_trading_view_modal_visible: observable,
+            is_profihub_modal_visible: observable,
+            setProfihubModalVisibility: action.bound,
+            is_protool_ai_modal_visible: observable,
+            setProToolAiModalVisibility: action.bound,
             bot_builder_symbol: observable,
             pending_free_bot: observable,
             setPendingFreeBot: action.bound,
@@ -224,6 +232,8 @@ export default class DashboardStore implements IDashboardStore {
     filtered_tab_list = [];
     is_chart_modal_visible = false;
     is_trading_view_modal_visible = false;
+    is_profihub_modal_visible = false;
+    is_protool_ai_modal_visible = false;
     faq_title = '';
     pending_free_bot: { name: string; xml: string } | null = null;
 
@@ -318,6 +328,14 @@ export default class DashboardStore implements IDashboardStore {
 
     setTradingViewModalVisibility = () => {
         this.is_trading_view_modal_visible = !this.is_trading_view_modal_visible;
+    };
+
+    setProfihubModalVisibility = () => {
+        this.is_profihub_modal_visible = !this.is_profihub_modal_visible;
+    };
+
+    setProToolAiModalVisibility = (visible: boolean) => {
+        this.is_protool_ai_modal_visible = visible;
     };
 
     setIsFileSupported = (is_file_supported: boolean) => {

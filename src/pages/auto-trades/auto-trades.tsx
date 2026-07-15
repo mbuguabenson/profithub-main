@@ -26,6 +26,7 @@ import {
 } from './strategy-presets';
 import type { AutoTradeStrategyPreset } from './strategy-presets';
 import { formatLoginDisplay, isLoggedIn } from '@/utils/token-bridge';
+import SmartanalysisDashboard from './smartanalysis-dashboard';
 import './auto-trades.scss';
 
 type MartingaleModeType = 'no_martingale' | 'after_one_loss' | 'after_two_losses' | 'custom_consecutive_loss_trigger';
@@ -1035,7 +1036,11 @@ const appendPercentageQuote = (
     rebuildPercentageAnalytics(symbol, state, trade_type);
 };
 
-const AutoTrades = observer(() => {
+type TAutoTradesProps = {
+    isModal?: boolean;
+};
+
+const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     const { dashboard, client, run_panel, summary_card, transactions } = useStore();
     const { currency } = client;
     const { active_tab } = dashboard;
@@ -1185,6 +1190,8 @@ const AutoTrades = observer(() => {
     const [dataStreamLoading, setDataStreamLoading] = useState(false);
     const [dataStreamMessage, setDataStreamMessage] = useState('Loading selected market data...');
     const [floatingStrategyAlert, setFloatingStrategyAlert] = useState<FloatingStrategyAlert | null>(null);
+    const [activeAnalysisSymbol, setActiveAnalysisSymbol] = useState<string>('');
+    const [modalTab, setModalTab] = useState<'console' | 'markets' | 'smart'>('console');
 
     const [marketDisplays, setMarketDisplays] = useState<MarketDisplay[]>(
         selectedMarkets.map(m => ({
@@ -3660,6 +3667,47 @@ const AutoTrades = observer(() => {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* SmartAnalysis Dashboard */}
+                            {marketDisplays.length > 0 && (
+                                <div className='auto-trades-smartanalysis'>
+                                    <div className='auto-trades-smartanalysis__header'>
+                                        <h2 className='auto-trades-smartanalysis__title'>SmartAnalysis Dashboard</h2>
+                                        {marketDisplays.length > 1 && (
+                                            <select
+                                                className='auto-trades-smartanalysis__select'
+                                                value={activeAnalysisSymbol || marketDisplays[0]?.symbol}
+                                                onChange={e => setActiveAnalysisSymbol(e.target.value)}
+                                            >
+                                                {marketDisplays.map(md => (
+                                                    <option key={md.symbol} value={md.symbol}>
+                                                        {md.label} ({md.symbol})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </div>
+                                    <SmartanalysisDashboard
+                                        market={(() => {
+                                            const sym = activeAnalysisSymbol || marketDisplays[0]?.symbol;
+                                            const found = marketDisplays.find(md => md.symbol === sym);
+                                            if (!found) return null;
+                                            return {
+                                                symbol: found.symbol,
+                                                label: found.label,
+                                                lastDigits: found.lastDigits,
+                                                digitPercentages: found.digitPercentages,
+                                                directionHistory: found.directionHistory,
+                                                lastQuote: found.lastQuote,
+                                                confidenceScore: found.confidenceScore,
+                                            };
+                                        })()}
+                                        strategyType={tradeType}
+                                        isModal={isModal}
+                                        consecutiveLosses={consecutiveLossRef.current}
+                                    />
                                 </div>
                             )}
                         </div>

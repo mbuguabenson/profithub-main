@@ -32,6 +32,13 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
         run_panel;
     const [shouldDisable, setShouldDisable] = React.useState(false);
     const is_unavailable_for_payment_agent = false;
+    const [isSpeedMode, setIsSpeedMode] = React.useState(() => localStorage.getItem('is_speed_mode_on') === 'true');
+
+    const toggleSpeedMode = () => {
+        const newVal = !isSpeedMode;
+        setIsSpeedMode(newVal);
+        localStorage.setItem('is_speed_mode_on', String(newVal));
+    };
 
     // Get the load_modal store to monitor strategy deletions
     const { load_modal } = useStore();
@@ -165,6 +172,17 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
 
     return (
         <div className={classNames('animation__wrapper', className)}>
+            <div
+                className={classNames('animation__speed-toggle', {
+                    'animation__speed-toggle--active': isSpeedMode,
+                })}
+                onClick={toggleSpeedMode}
+                title={isSpeedMode ? localize('Speed Mode: On (Executes on every tick)') : localize('Speed Mode: Off (Standard execution)')}
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill={isSpeedMode ? '#f5c542' : 'none'} stroke={isSpeedMode ? 'none' : '#858999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'all 0.2s' }}>
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+            </div>
             {should_show_tooltip ? (
                 <div className='run__button_wrapper'>
                     <Tooltip

@@ -70,6 +70,32 @@
         height: 40px;
     }
 
+    &__speed-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        margin-right: 8px;
+        cursor: pointer;
+        background-color: var(--general-section-1);
+        border: 1px solid var(--border-normal);
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+
+        &:hover {
+            background-color: var(--general-section-2);
+            border-color: var(--border-hover);
+        }
+
+        &--active {
+            background-color: rgba(245, 197, 66, 0.15);
+            border-color: #f5c542;
+            box-shadow: 0 0 8px rgba(245, 197, 66, 0.3);
+        }
+    }
+
     &__overlay {
         border-top-left-radius: 0;
         border-bottom-right-radius: $BORDER_RADIUS;

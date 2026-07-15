@@ -10,6 +10,7 @@ import MobileWrapper from '@/components/shared_ui/mobile-wrapper';
 import Tabs from '@/components/shared_ui/tabs/tabs';
 import TradingViewModal from '@/components/trading-view-chart/trading-view-modal';
 import ProfihubModal from '@/components/profihub-analysis/profihub-modal';
+import ProToolAiModal from '@/components/protool-ai/protool-ai-modal';
 import { DBOT_TABS, TAB_IDS } from '@/constants/bot-contents';
 import { api_base, updateWorkspaceName } from '@/external/bot-skeleton';
 import { CONNECTION_STATUS } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
@@ -490,6 +491,7 @@ const AppWrapper = observer(() => {
                 <ChartModal />
                 <TradingViewModal />
                 <ProfihubModal />
+                <ProToolAiModal />
             </DesktopWrapper>
             <MobileWrapper>
                 {!is_open && <RunPanel />}

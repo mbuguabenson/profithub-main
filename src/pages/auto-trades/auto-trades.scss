@@ -2379,3 +2379,60 @@ $at-text-faint: var(--auto-trades-text-faint);
         padding: 1rem;
     }
 }
+
+// ─── SmartAnalysis Dashboard Section ─────────────────────────────────────────
+.auto-trades-smartanalysis {
+    margin-top: 2rem;
+    padding: 2rem;
+    background: rgba(16, 30, 53, 0.45);
+    border: 1px solid var(--auto-trades-border-subtle, rgba(255, 255, 255, 0.06));
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    &__title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--auto-trades-text, #e6edf3);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+
+        &::before {
+            content: '📊';
+            font-size: 1.4rem;
+        }
+    }
+
+    &__select {
+        background: rgba(8, 14, 29, 0.6);
+        border: 1px solid var(--auto-trades-border, rgba(255, 255, 255, 0.08));
+        border-radius: 8px;
+        color: var(--auto-trades-text, #e6edf3);
+        padding: 0.5rem 1rem;
+        font-size: 1.2rem;
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s ease;
+
+        &:hover,
+        &:focus {
+            border-color: var(--auto-trades-accent-bright, #58a6ff);
+        }
+
+        option {
+            background: #0d1117;
+            color: #e6edf3;
+        }
+    }
+}

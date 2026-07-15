@@ -148,6 +148,27 @@ const WorkspaceGroup = observer(() => {
                             </span>
                         }
                     />
+                    <ToolbarIcon
+                        popover_message={localize('ProTool AI')}
+                        icon={
+                            <span
+                                className={classNames('toolbar__icon', {
+                                    'toolbar__icon--active': dashboard.is_protool_ai_modal_visible,
+                                })}
+                                id='db-toolbar__protool-ai-button'
+                                onClick={() => {
+                                    setPreviewOnPopup(true);
+                                    dashboard.setProToolAiModalVisibility(!dashboard.is_protool_ai_modal_visible);
+                                }}
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', color: dashboard.is_protool_ai_modal_visible ? '#f5c542' : 'currentColor' }}>
+                                    <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12c0-2.4 1-4.6 2.6-6.2" />
+                                    <path d="M12 6a6 6 0 0 1 6 6c0 3.3-2.7 6-6 6s-6-2.7-6-6c0-1.4.5-2.8 1.4-3.8" />
+                                    <circle cx="12" cy="12" r="2" fill="currentColor" />
+                                </svg>
+                            </span>
+                        }
+                    />
                 </>
                 <div className='vertical-divider' />
                 <ToolbarIcon
