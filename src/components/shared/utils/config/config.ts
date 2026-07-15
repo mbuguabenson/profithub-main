@@ -243,8 +243,19 @@ export const generateOAuthURL = async (prompt?: string) => {
             // Store code verifier for token exchange
             storeCodeVerifier(codeVerifier);
 
-            // Build redirect URL - dynamic to support both local development and production
-            const redirectUrl = window.location.origin;
+            // Build redirect URL - use pre-registered hostnames for production/staging, fallback to origin for localhost/testing
+            let redirectUrl = window.location.origin;
+            if (!isLocal()) {
+                const environment = isProduction() ? 'production' : 'staging';
+                const brandHost = brandConfig?.platform?.hostname?.[environment]?.com;
+                if (brandHost) {
+                    redirectUrl = `https://${brandHost}`;
+                } else {
+                    redirectUrl = environment === 'production'
+                        ? 'https://www.profithub.co.ke'
+                        : 'https://staging.profithub.co.ke';
+                }
+            }
             const scopes = 'trade';
 
             // Build OAuth URL with PKCE parameters
