@@ -289,7 +289,7 @@ const IframeWrapper: React.FC<IframeWrapperProps> = observer(({ src, title, clas
                 }
             } catch (e) {
                 // Cross-origin or blocked - this is normal for cross-origin iframes
-                console.log('ℹ️ Cross-origin iframe (normal):', e.message);
+                console.log('ℹ️ Cross-origin iframe (normal):', e instanceof Error ? e.message : String(e));
                 // Still wait for load event
             }
         };
