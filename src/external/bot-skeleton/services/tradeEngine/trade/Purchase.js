@@ -12,7 +12,8 @@ export default Engine =>
     class Purchase extends Engine {
         purchase(contract_type) {
             // Prevent calling purchase twice
-            const isSpeedMode = localStorage.getItem('is_speed_mode_on') === 'true';
+            const speed = localStorage.getItem('bot_execution_speed') || '1';
+            const isSpeedMode = speed !== '1';
             if (!isSpeedMode && this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
@@ -22,7 +23,7 @@ export default Engine =>
                 const lastPurchase = this.lastPurchaseTime || 0;
                 const symbol = this.symbol || this.tradeOptions?.symbol || (this.trade_option && this.trade_option.underlying_symbol) || '';
                 const is1sMarket = symbol && (symbol.startsWith('1HZ') || symbol.includes('1s') || symbol.includes('1S'));
-                const minDelay = is1sMarket ? 1000 : 2000;
+                const minDelay = speed === '3' ? 50 : (is1sMarket ? 1000 : 2000);
                 if (now - lastPurchase < minDelay) {
                     return Promise.resolve();
                 }
@@ -47,13 +48,14 @@ export default Engine =>
                 }
 
                 if (isSpeedMode) {
+                    const postDelay = speed === '3' ? 10 : 50;
                     setTimeout(() => {
                         this.contractId = '';
                         if (this.afterPromise) {
                             this.afterPromise();
                         }
                         this.store.dispatch(sell());
-                    }, 50);
+                    }, postDelay);
                 }
 
                 delayIndex = 0;

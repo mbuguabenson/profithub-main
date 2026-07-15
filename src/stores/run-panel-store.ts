@@ -56,6 +56,7 @@ export default class RunPanelStore {
             setIsRunning: action,
             setRunId: action,
             onRunButtonClick: action,
+            onResumeButtonClick: action,
             is_contract_buying_in_progress: observable,
             SetpurchaseInProgress: action,
             onStopButtonClick: action,
@@ -212,6 +213,40 @@ export default class RunPanelStore {
             this.run_id = `run-${Date.now()}`;
 
             summary_card.clear();
+            this.setContractStage(contract_stages.STARTING);
+            this.dbot.runBot();
+        });
+        this.setShowBotStopMessage(false);
+    };
+
+    onResumeButtonClick = async () => {
+        const { client, ui } = this.core;
+        const is_ios = mobileOSDetect() === 'iOS';
+        this.dbot.saveRecentWorkspace();
+        this.dbot.unHighlightAllBlocks();
+        if (!client.is_logged_in) {
+            this.showLoginDialog();
+            return;
+        }
+
+        if (is_ios || isSafari()) this.preloadAudio();
+
+        this.registerBotListeners();
+
+        if (!this.dbot.shouldRunBot()) {
+            this.unregisterBotListeners();
+            return;
+        }
+
+        ui?.setAccountSwitcherDisabledMessage(
+            localize(
+                'Account switching is disabled while your bot is running. Please stop your bot before switching accounts.'
+            )
+        );
+        runInAction(() => {
+            this.setIsRunning(true);
+            ui.setPromptHandler(true);
+            this.toggleDrawer(true);
             this.setContractStage(contract_stages.STARTING);
             this.dbot.runBot();
         });

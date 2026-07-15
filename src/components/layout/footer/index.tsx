@@ -9,8 +9,6 @@ import { isLoggedIn } from '@/utils/token-bridge';
 import { useTranslations } from '@deriv-com/translations';
 import { DesktopLanguagesModal, useDevice, Tooltip } from '@deriv-com/ui';
 import { LabelPairedUserMdRegularIcon } from '@deriv/quill-icons/LabelPaired';
-import { useState } from 'react';
-import AccountInfoModal from './AccountInfoModal';
 import ChangeTheme from './ChangeTheme';
 import FullScreen from './FullScreen';
 import LanguageSettings from './LanguageSettings';
@@ -47,7 +45,6 @@ const Footer = () => {
     const enableThemeToggle = brandConfig.platform.footer?.enable_theme_toggle ?? true;
 
     const { isDesktop } = useDevice();
-    const [isAccountInfoOpen, setIsAccountInfoOpen] = useState(false);
 
     const openLanguageSettingModal = () => showModal('DesktopLanguagesModal');
 
@@ -63,7 +60,7 @@ const Footer = () => {
                     <Tooltip
                         as='button'
                         className='app-footer__icon'
-                        onClick={() => setIsAccountInfoOpen(true)}
+                        onClick={() => window.dispatchEvent(new Event('open_account_info'))}
                         tooltipContent={localize('Account Info')}
                     >
                         <LabelPairedUserMdRegularIcon fill='var(--text-general)' width={16} height={16} />
@@ -118,8 +115,6 @@ const Footer = () => {
                     selectedLanguage={currentLang}
                 />
             )}
-            {/* Account Info Modal */}
-            <AccountInfoModal isOpen={isAccountInfoOpen} onClose={() => setIsAccountInfoOpen(false)} />
         </footer>
     );
 };

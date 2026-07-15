@@ -89,6 +89,7 @@ export const SpeedSelector = () => {
     const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const next = e.target.value;
         localStorage.setItem('bot_execution_speed', next);
+        localStorage.setItem('is_speed_mode_on', next !== '1' ? 'true' : 'false');
         setSpeed(next);
         window.dispatchEvent(new CustomEvent('bot_speed_changed', { detail: { speed: next } }));
     };

@@ -10,9 +10,17 @@ import Footer from './footer';
 import AppHeader from './header';
 import Body from './main-body';
 import { RiskDisclaimer } from '../shared_ui/risk-disclaimer/risk-disclaimer';
+import AccountInfoModal from './footer/AccountInfoModal';
 import './layout.scss';
 
 const Layout = observer(() => {
+    const [isAccountInfoOpen, setIsAccountInfoOpen] = useState(false);
+
+    useEffect(() => {
+        const handleOpen = () => setIsAccountInfoOpen(true);
+        window.addEventListener('open_account_info', handleOpen);
+        return () => window.removeEventListener('open_account_info', handleOpen);
+    }, []);
     const { isDesktop } = useDevice();
     const store = useStore();
     const is_quick_strategy_active = store?.quick_strategy?.is_open;
@@ -152,6 +160,7 @@ const Layout = observer(() => {
             </Body>
             {!isCallbackPage && isDesktop && <Footer />}
             <RiskDisclaimer />
+            <AccountInfoModal isOpen={isAccountInfoOpen} onClose={() => setIsAccountInfoOpen(false)} />
         </div>
     );
 });

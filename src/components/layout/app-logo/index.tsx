@@ -13,14 +13,10 @@ export const AppLogo = () => {
     const logoConfig = brandConfig.platform.logo;
     const logoUrl = logoConfig.link_url || '/';
 
-    // Only render the logo on desktop screens
-    if (!isDesktop) return null;
-
     return (
         <a href={logoUrl} className='app-header__logo' aria-label={localize('Home')}>
-            {/* [AI] Use configurable brand logo from brand.config.json */}
-            <BrandLogo width={120} height={32} fill='var(--text-general)' />
-            {/* [/AI] */}
+            {/* Configurable brand logo from brand.config.json */}
+            <BrandLogo width={isDesktop ? 120 : 90} height={isDesktop ? 32 : 24} fill='var(--text-general)' />
         </a>
     );
 };

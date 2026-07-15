@@ -211,7 +211,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                                 if (isPaused) {
                                     // Resume: restart the bot
                                     setIsPaused(false);
-                                    onRunButtonClick();
+                                    run_panel.onResumeButtonClick();
                                 } else {
                                     // Pause: stop gracefully (no new contracts will be opened)
                                     setIsPaused(true);
