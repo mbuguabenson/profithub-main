@@ -341,69 +341,7 @@
     }
 }
 
-// ─── Speed Selector ──────────────────────────────────────────────────────────
-.speed-selector {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: var(--general-section-1);
-    border: 1px solid var(--border-normal);
-    border-radius: 20px;
-    padding: 0 10px 0 10px;
-    height: 32px;
-    cursor: pointer;
-    transition: border-color 0.2s, box-shadow 0.2s;
 
-    &:hover,
-    &:focus-within {
-        border-color: var(--brand-blue, #4c82f7);
-        box-shadow: 0 0 0 2px rgba(76, 130, 247, 0.18);
-    }
-
-    &--active {
-        border-color: #22c55e;
-        background: rgba(34, 197, 94, 0.08);
-
-        .speed-selector__icon {
-            color: #22c55e;
-        }
-
-        &:hover,
-        &:focus-within {
-            border-color: #22c55e;
-            box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.18);
-        }
-    }
-
-    &__icon {
-        display: flex;
-        align-items: center;
-        color: var(--text-less-prominent);
-        pointer-events: none;
-        flex-shrink: 0;
-    }
-
-    &__select {
-        appearance: none;
-        -webkit-appearance: none;
-        background: transparent;
-        border: none;
-        outline: none;
-        color: var(--text-general);
-        font-size: 11px;
-        font-weight: 700;
-        cursor: pointer;
-        padding-right: 14px;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234c82f7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 0 center;
-
-        option {
-            background: var(--general-main-1);
-            color: var(--text-general);
-        }
-    }
-}
 
 /* Shared Premium Button Foundation */
 .app-header__login-btn,
@@ -459,18 +397,46 @@
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
+@keyframes glowing-pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
 
-/* 1. Run Button (Uiverse Orange/Amber Glowing Pulse Colors Only) */
+  70% {
+    box-shadow: 0 0 0 15px rgba(76, 175, 80, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+/* 1. Run Button (Vibrant Green Gradient matching image with Lightstreak effect) */
 .animation__run-button {
     position: relative !important;
-    background: linear-gradient(to right, #FFB900, #FF7730) !important;
+    background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%) !important;
     color: white !important;
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7) !important;
-    animation: glowing-pulse 2s infinite !important;
-    overflow: visible !important; // override overflow: hidden to show the outer glow
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3) !important;
+    animation: glowing-pulse-green 2s infinite !important;
+    overflow: hidden !important;
+    border: none !important;
 
     &::after {
-        display: none !important; // disable standard shimmer/lightstreak
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -150%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.65) 50%,
+            rgba(255, 255, 255, 0) 100%
+        );
+        transform: skewX(-25deg);
+        pointer-events: none;
+        display: block !important;
     }
 
     &::before {
@@ -480,16 +446,26 @@
         left: -5px !important;
         right: -5px !important;
         bottom: -5px !important;
-        border-radius: inherit !important; // match button's original border-radius
-        box-shadow: 0 0 20px #FF7730 !important;
+        border-radius: inherit !important;
+        box-shadow: 0 0 20px #8bc34a !important;
         opacity: 0 !important;
         pointer-events: none !important;
         transition: opacity 0.3s ease !important;
         z-index: -1 !important;
     }
 
-    &:hover::before {
-        opacity: 1 !important;
+    &:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5) !important;
+
+        &::after {
+            left: 150% !important;
+            transition: left 0.8s ease-in-out !important;
+        }
+
+        &::before {
+            opacity: 1 !important;
+        }
     }
 }
 
@@ -525,5 +501,70 @@
     }
 }
 
+// ─── Transfer Button ─────────────────────────────────────────────────────────
+.app-header__transfer-btn {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px !important;
+    min-width: unset !important;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%) !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 6px 16px !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
 
+    .dc-btn__text {
+        color: #fff !important;
+    }
 
+    svg {
+        stroke: #fff;
+    }
+
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4) !important;
+        background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%) !important;
+    }
+
+    @media (max-width: 926px) {
+        padding: 6px 10px !important;
+        height: 32px !important;
+        width: 32px !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+// ─── Global Icon Visibility (Light/Dark Theme) ──────────────────────────────
+.app-header {
+    // Ensure all header icons are visible in both themes
+    svg {
+        color: var(--text-prominent);
+    }
+
+    .auth-actions svg {
+        color: inherit;
+    }
+}
+
+// Mobile menu icons - increase visibility
+.mobile-menu {
+    &__toggle svg,
+    &__item svg {
+        width: 20px;
+        height: 20px;
+        color: var(--text-prominent);
+        fill: var(--text-prominent);
+        transition: color 0.2s ease, fill 0.2s ease;
+    }
+
+    &__toggle:hover svg,
+    &__item:hover svg {
+        color: var(--text-general);
+        fill: var(--text-general);
+    }
+}

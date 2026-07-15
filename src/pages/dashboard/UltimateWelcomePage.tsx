@@ -173,25 +173,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange }: { handleTabCha
                 <div className='candle candle--red candle-4' />
             </div>
 
-            {/* Profile Section (Top Left) */}
-            <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className='ultimate-landing__profile'
-            >
-                <div className='profile-card'>
-                    <div className='profile-card__avatar'>
-                        <span>{userName.substring(0, 2).toUpperCase()}</span>
-                        <div className='profile-card__indicator' />
-                    </div>
-                    <div className='profile-card__info'>
-                        <div className='profile-card__name'>{userName}</div>
-                        <div className='profile-card__id'>{client.loginid || localize('Not connected')}</div>
-                        <div className='profile-card__status'>{localize('Connected to Deriv')}</div>
-                    </div>
-                </div>
-            </motion.div>
+
 
             {/* Hero Main Header Section */}
             <div className='ultimate-landing__hero'>

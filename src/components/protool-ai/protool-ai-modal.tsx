@@ -1,8 +1,10 @@
 import React, { Component, type ReactNode } from 'react';
 import { observer } from 'mobx-react-lite';
 import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
+import MobileFullPageModal from '@/components/shared_ui/mobile-full-page-modal';
 import { useStore } from '@/hooks/useStore';
 import { localize } from '@deriv-com/translations';
+import { useDevice } from '@deriv-com/ui';
 import AutoTrades from '@/pages/auto-trades/auto-trades';
 import './protool-ai-modal.scss';
 
@@ -17,7 +19,6 @@ class ProToolErrorBoundary extends Component<{ children: ReactNode }, EBState> {
     }
 
     componentDidCatch(error: Error, info: React.ErrorInfo) {
-        // Log for diagnostics without surfacing the generic "Sorry" modal
         console.error('[ProTool AI] Render error:', error, info.componentStack);
     }
 
@@ -51,12 +52,42 @@ class ProToolErrorBoundary extends Component<{ children: ReactNode }, EBState> {
 const ProToolAiModal = observer(() => {
     const { dashboard } = useStore();
     const { is_protool_ai_modal_visible, setProToolAiModalVisibility } = dashboard;
+    const { isDesktop } = useDevice();
 
     const handleClose = () => {
         setProToolAiModalVisibility(false);
     };
 
     if (!is_protool_ai_modal_visible) return null;
+
+    const ModalBody = () => (
+        <div className='protool-ai-modal-body'>
+            <ProToolErrorBoundary>
+                <React.Suspense
+                    fallback={
+                        <div className='protool-ai-modal-loading'>
+                            {localize('Loading Automation AI...')}
+                        </div>
+                    }
+                >
+                    <AutoTrades isModal={true} />
+                </React.Suspense>
+            </ProToolErrorBoundary>
+        </div>
+    );
+
+    if (!isDesktop) {
+        return (
+            <MobileFullPageModal
+                is_modal_open={is_protool_ai_modal_visible}
+                header={localize('ProTool AI')}
+                onClickClose={handleClose}
+                height_offset='80px'
+            >
+                <ModalBody />
+            </MobileFullPageModal>
+        );
+    }
 
     return (
         <DraggableResizeWrapper
@@ -69,19 +100,7 @@ const ProToolAiModal = observer(() => {
             minHeight={450}
             enableResizing
         >
-            <div className='protool-ai-modal-body'>
-                <ProToolErrorBoundary>
-                    <React.Suspense
-                        fallback={
-                            <div className='protool-ai-modal-loading'>
-                                {localize('Loading Automation AI...')}
-                            </div>
-                        }
-                    >
-                        <AutoTrades isModal={true} />
-                    </React.Suspense>
-                </ProToolErrorBoundary>
-            </div>
+            <ModalBody />
         </DraggableResizeWrapper>
     );
 });

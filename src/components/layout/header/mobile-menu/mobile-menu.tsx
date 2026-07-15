@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import brandConfig from '@/../brand.config.json';
 import useModalManager from '@/hooks/useModalManager';
+import RiskDisclaimer from '@/pages/dashboard/risk-disclaimer';
 // [AI] Import useStore to check if menu has items
 import { useStore } from '@/hooks/useStore';
 // [/AI]
@@ -29,6 +30,7 @@ type TMobileMenuProps = {
 const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
+    const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const { currentLang = 'EN', localize, switchLanguage } = useTranslations();
     const { hideModal, isModalOpenFor, showModal } = useModalManager();
     const { isDesktop } = useDevice();
@@ -41,7 +43,10 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
     const enableThemeToggle = brandConfig.platform.footer?.enable_theme_toggle ?? true;
 
     // Check if menu has any items to determine if mobile menu should be shown
-    const { hasMenuItems } = useMobileMenuConfig(client, onLogout, enableThemeToggle);
+    const { hasMenuItems } = useMobileMenuConfig(client, onLogout, enableThemeToggle, () => {
+        closeDrawer();
+        setIsDisclaimerOpen(true);
+    });
 
     const openDrawer = () => setIsDrawerOpen(true);
     const closeDrawer = () => {
@@ -84,7 +89,7 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
 
                             <MobileLanguagesDrawer
                                 isOpen
-                                languages={FILTERED_LANGUAGES}
+                                languages={FILTERED_LANGUAGES as any}
                                 onClose={hideModal}
                                 onLanguageSwitch={code => {
                                     try {
@@ -118,6 +123,10 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
                                 closeDrawer();
                                 onLogout?.();
                             }}
+                            onOpenDisclaimer={() => {
+                                closeDrawer();
+                                setIsDisclaimerOpen(true);
+                            }}
                         />
                     )}
                     {/* [/AI] */}
@@ -128,6 +137,14 @@ const MobileMenu = ({ onLogout }: TMobileMenuProps) => {
                     <NetworkStatus />
                 </Drawer.Footer>
             </Drawer>
+            {isDisclaimerOpen && (
+                <RiskDisclaimer
+                    is_mobile={true}
+                    is_modal={true}
+                    is_open={isDisclaimerOpen}
+                    onClose={() => setIsDisclaimerOpen(false)}
+                />
+            )}
         </div>
     );
 };

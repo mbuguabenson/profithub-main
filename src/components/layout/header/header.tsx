@@ -72,62 +72,6 @@ const CurrencyDropdown = () => {
     );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Speed Selector  (Normal / Fast / Turbo)
-// ─────────────────────────────────────────────────────────────────────────────
-const SPEED_OPTIONS = [
-    { value: '1', label: '1x' },
-    { value: '2', label: '2x' },
-    { value: '3', label: '3x' },
-] as const;
-
-export const SpeedSelector = () => {
-    const [speed, setSpeed] = useState<string>(() => {
-        return localStorage.getItem('bot_execution_speed') || '1';
-    });
-
-    const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const next = e.target.value;
-        localStorage.setItem('bot_execution_speed', next);
-        localStorage.setItem('is_speed_mode_on', next !== '1' ? 'true' : 'false');
-        setSpeed(next);
-        window.dispatchEvent(new CustomEvent('bot_speed_changed', { detail: { speed: next } }));
-    };
-
-    // Sync when speed changes from elsewhere
-    useEffect(() => {
-        const handleSync = () => {
-            setSpeed(localStorage.getItem('bot_execution_speed') || '1');
-        };
-        window.addEventListener('bot_speed_changed', handleSync);
-        return () => window.removeEventListener('bot_speed_changed', handleSync);
-    }, []);
-
-    const isActive = speed !== '1';
-
-    return (
-        <div className={clsx('speed-selector', { 'speed-selector--active': isActive })} title='Bot execution speed'>
-            <span className='speed-selector__icon'>
-                {/* Lightning bolt SVG */}
-                <svg viewBox='0 0 24 24' width='14' height='14' fill='currentColor'>
-                    <path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' />
-                </svg>
-            </span>
-            <select
-                id='speed-select'
-                className='speed-selector__select'
-                value={speed}
-                onChange={handleChange}
-            >
-                {SPEED_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                    </option>
-                ))}
-            </select>
-        </div>
-    );
-};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main AppHeader
@@ -252,15 +196,23 @@ const AppHeader = observer(() => {
                                     <AccountSwitcher activeAccount={activeAccount} />
                                 </div>
                             )}
-                            {isDesktop && (
-                                <Button
-                                    primary
-                                    disabled={client?.is_logging_out || !authData?.currency}
-                                    onClick={handleTransfer}
-                                >
+                            <Button
+                                primary
+                                className='app-header__transfer-btn'
+                                disabled={client?.is_logging_out || !authData?.currency}
+                                onClick={handleTransfer}
+                            >
+                                {isDesktop ? (
                                     <Localize i18n_default_text='Transfer' />
-                                </Button>
-                            )}
+                                ) : (
+                                    <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                                        <path d='M17 1l4 4-4 4' />
+                                        <path d='M3 11V9a4 4 0 014-4h14' />
+                                        <path d='M7 23l-4-4 4-4' />
+                                        <path d='M21 13v2a4 4 0 01-4 4H3' />
+                                    </svg>
+                                )}
+                            </Button>
                         </div>
                     );
                 }
@@ -342,10 +294,8 @@ const AppHeader = observer(() => {
                 </Wrapper>
                 <Wrapper variant='right'>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {/* Currency dropdown (replaces toggle) — only when logged in */}
+                        {/* Currency dropdown — only when logged in */}
                         {activeLoginid && <CurrencyDropdown />}
-                        {/* Speed selector — always visible */}
-                        <SpeedSelector />
                         {renderAccountSection('right')}
                     </div>
                 </Wrapper>

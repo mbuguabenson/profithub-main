@@ -2130,8 +2130,28 @@ $at-text-faint: var(--auto-trades-text-faint);
 
 @include mobile-or-tablet-screen {
     .auto-trades-page {
+        overflow-y: auto !important;
+        height: auto !important;
+
+        &__scroll {
+            overflow-y: visible !important;
+            height: auto !important;
+            max-height: none !important;
+        }
+
         &__inner {
             padding: 1rem 0.75rem 7.5rem;
+            font-size: 1.25rem !important;
+
+            h1, h2, h3, h4, .auto-trades-page__title {
+                font-size: 1.8rem !important;
+            }
+            .auto-trades-page__subtitle {
+                font-size: 1.1rem !important;
+            }
+            .auto-trades-card__title {
+                font-size: 1.3rem !important;
+            }
         }
 
         &__header {

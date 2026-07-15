@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
 import { localize } from '@deriv-com/translations';
 import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { api_base } from '@/external/bot-skeleton';
+import classNames from 'classnames';
 import './scanner.scss';
 
 const Scanner = observer(() => {
@@ -11,58 +12,57 @@ const Scanner = observer(() => {
   const {
     is_open,
     is_scanning,
-    selected_strategy,
     selected_symbols,
     current_signal,
     setScannerVisibility,
-    setSelectedStrategy,
     setSelectedSymbols,
     startScanning,
     stopScanning,
     loadBotWithStrategy,
     loadBotAndRun,
+
+    // New states / actions
+    selected_strategies,
+    scan_market_mode,
+    single_market_symbol,
+    ticks_counter,
+    toggleStrategy,
+    setScanMarketMode,
+    setSingleMarketSymbol,
   } = scanner;
 
-  const [available_symbols, setAvailableSymbols] = useState<string[]>([]);
+  const [available_symbols, setAvailableSymbols] = useState<any[]>([]);
 
-  // Load available symbols
   useEffect(() => {
-    const fetchSymbols = async () => {
-      try {
-        if (api_base.active_symbols && api_base.active_symbols.length > 0) {
-          const symbols = api_base.active_symbols
-            .map((s: any) => s.symbol || s.underlying_symbol)
-            .filter(Boolean);
-          setAvailableSymbols(symbols);
+    if (api_base.active_symbols && api_base.active_symbols.length > 0) {
+      // Filter out symbols to keep only synthetic indices or desired volatilities
+      const symbols = api_base.active_symbols.filter((s: any) => 
+        (s.symbol || s.underlying_symbol || '').includes('1HZ') || 
+        (s.symbol || s.underlying_symbol || '').includes('R_') ||
+        (s.symbol || s.underlying_symbol || '').includes('BOOM') ||
+        (s.symbol || s.underlying_symbol || '').includes('CRASH')
+      );
+      setAvailableSymbols(symbols.length > 0 ? symbols : api_base.active_symbols);
 
-          if (symbols.length > 0 && selected_symbols.length === 0) {
-            // Select all symbols by default
-            setSelectedSymbols(symbols);
-          }
-        }
-      } catch (error) {
-        console.error('[Scanner] Error fetching symbols:', error);
+      if (selected_symbols.length === 0) {
+        const allSyms = (symbols.length > 0 ? symbols : api_base.active_symbols).map((s: any) => s.symbol || s.underlying_symbol);
+        setSelectedSymbols(allSyms);
       }
-    };
-
-    fetchSymbols();
+    }
   }, []);
 
-  const toggleSymbol = (symbol: string) => {
-    const existingIndex = selected_symbols.indexOf(symbol);
-    if (existingIndex > -1) {
-      setSelectedSymbols(selected_symbols.filter(s => s !== symbol));
-    } else {
-      setSelectedSymbols([...selected_symbols, symbol]);
-    }
-  };
-
-  const strategyTabs: { value: string; label: string }[] = [
+  const strategyOptions: { value: string; label: string }[] = [
     { value: 'even_odd', label: 'Even/Odd' },
     { value: 'over_under', label: 'Over/Under' },
     { value: 'matches', label: 'Matches' },
     { value: 'differs', label: 'Differs' },
     { value: 'rise_fall', label: 'Rise/Fall' },
+    { value: 'pro_even_odd', label: 'Pro E/O' },
+    { value: 'pro_over_under', label: 'Pro O/U' },
+    { value: 'pro_differs', label: 'Pro Diff' },
+    { value: 'under_7', label: 'Under 7' },
+    { value: 'over_2', label: 'Over 2' },
+    { value: 'super', label: 'Super Signals' },
   ];
 
   return (
@@ -78,143 +78,150 @@ const Scanner = observer(() => {
           minHeight={524}
           enableResizing
         >
-          <div className="scanner-container">
-            {/* Header Section */}
-            <div className="scanner-header">
-              <div className="recovery-engine">
-                <span className="recovery-icon">ⓘ</span>
-                <span className="recovery-text">RECOVERY ENGINE</span>
+          <div className="scanner-container minimal-scanner">
+            
+            {/* Market Selection Section */}
+            <div className="section-card">
+              <div className="section-header">
+                <span className="section-title">{localize('Markets')}</span>
+                <div className="mode-toggle">
+                  <button
+                    className={classNames('mode-btn', { active: scan_market_mode === 'multi' })}
+                    onClick={() => setScanMarketMode('multi')}
+                  >
+                    {localize('All Markets')}
+                  </button>
+                  <button
+                    className={classNames('mode-btn', { active: scan_market_mode === 'single' })}
+                    onClick={() => setScanMarketMode('single')}
+                  >
+                    {localize('Single')}
+                  </button>
+                </div>
               </div>
-              <div className="scanner-title">
-                <h1>Digits Scanner</h1>
-                <p>Scans markets and signals entry points</p>
-              </div>
-              <div className="scanner-icon">
-                <svg viewBox="0 0 100 100" width="80" height="80">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fff" strokeWidth="2" opacity="0.2" />
-                  <circle cx="50" cy="50" r="30" fill="none" stroke="#fff" strokeWidth="2" opacity="0.4" />
-                  <circle cx="50" cy="50" r="20" fill="none" stroke="#fff" strokeWidth="2" opacity="0.6" />
-                  <circle cx="50" cy="50" r="8" fill="#4a9eff" />
-                  <line x1="50" y1="10" x2="50" y2="30" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="50" y1="70" x2="50" y2="90" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="10" y1="50" x2="30" y2="50" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="70" y1="50" x2="90" y2="50" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="22" y1="22" x2="36" y2="36" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="64" y1="64" x2="78" y2="78" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="78" y1="22" x2="64" y2="36" stroke="#4a9eff" strokeWidth="2" />
-                  <line x1="36" y1="64" x2="22" y2="78" stroke="#4a9eff" strokeWidth="2" />
-                </svg>
-              </div>
-            </div>
 
-            {/* Strategy Tabs */}
-            <div className="strategy-tabs">
-              {strategyTabs.map(tab => (
-                <button
-                  key={tab.value}
-                  className={selected_strategy === tab.value ? 'active' : ''}
-                  onClick={() => setSelectedStrategy(tab.value as any)}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Stats Grid */}
-            <div className="stats-grid">
-              <div className="stat-card">
-                <p className="stat-label">SCAN DEPTH</p>
-                <p className="stat-value">10K</p>
-              </div>
-              <div className="stat-card">
-                <p className="stat-label">MODE</p>
-                <p className="stat-value">All Markets</p>
-              </div>
-              <div className="stat-card active">
-                <p className="stat-label">SYMBOL COUNT</p>
-                <p className="stat-value">{selected_symbols.length}</p>
-              </div>
-            </div>
-
-            {/* Info Grid */}
-            <div className="info-grid">
-              <div className="info-card">
-                <p className="info-label">SELECTED MARKETS</p>
-                <p className="info-value">
-                  {selected_symbols.length > 0
-                    ? `${selected_symbols.slice(0, 3).join(', ')}${selected_symbols.length > 3 ? ` +${selected_symbols.length - 3}` : ''}`
-                    : 'All Markets'}
+              {scan_market_mode === 'single' ? (
+                <div className="market-select-wrapper">
+                  <select
+                    className="market-select"
+                    value={single_market_symbol}
+                    onChange={(e) => setSingleMarketSymbol(e.target.value)}
+                  >
+                    {available_symbols.map((sym: any) => (
+                      <option key={sym.symbol || sym.underlying_symbol} value={sym.symbol || sym.underlying_symbol}>
+                        {sym.display_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="scan-info-text">
+                  {localize('Scanning all volatility indices and boom/crash markets')}
                 </p>
-              </div>
-              <div className="info-card">
-                <p className="info-label">TRADE TYPE</p>
-                <p className="info-value">
-                  {current_signal
-                    ? current_signal.details.recommendation
-                    : 'Waiting for scan'}
-                </p>
-              </div>
+              )}
             </div>
 
-            {/* Ready Status */}
-            <div className="ready-status">
-              <span className="ready-dot"></span>
-              <span className="ready-text">
-                {is_scanning ? 'Scanning markets...' : 'Ready to scan markets'}
+            {/* Strategies Selection Section */}
+            <div className="section-card">
+              <span className="section-title" style={{ marginBottom: '8px', display: 'block' }}>
+                {localize('Select Strategies')}
               </span>
+              <div className="strategy-grid">
+                {strategyOptions.map(opt => {
+                  const isSelected = selected_strategies.includes(opt.value as any);
+                  return (
+                    <button
+                      key={opt.value}
+                      className={classNames('strategy-checkbox', { active: isSelected })}
+                      onClick={() => toggleStrategy(opt.value as any)}
+                    >
+                      <span className="check-indicator">{isSelected ? '✓' : ''}</span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="action-buttons">
+            {/* Scanning Progress */}
+            <div className="section-card scanning-status">
+              <div className="scanning-info">
+                <span className={classNames('status-dot', { scanning: is_scanning })}></span>
+                <span className="status-message">
+                  {is_scanning 
+                    ? `${localize('Evaluating tick patterns')}... (${ticks_counter}/25)`
+                    : localize('Ready to scan')}
+                </span>
+              </div>
+              <div className="progress-bar-bg">
+                <div 
+                  className="progress-bar-fill" 
+                  style={{ width: is_scanning ? `${(ticks_counter / 25) * 100}%` : '0%' }}
+                />
+              </div>
+            </div>
+
+            {/* Live Signals Scrollable Area */}
+            <div className="section-card signals-area">
+              <span className="section-title" style={{ marginBottom: '8px', display: 'block' }}>
+                {localize('Active Signals')}
+              </span>
+              {scanner.signals.length === 0 ? (
+                <p className="no-signals-text">
+                  {is_scanning ? localize('Scanning for opportunities...') : localize('Click scan to search setups')}
+                </p>
+              ) : (
+                <div className="signals-scroll-list">
+                  {scanner.signals.map((sig, idx) => {
+                    const isSelected = current_signal && current_signal.symbol === sig.symbol && current_signal.strategy === sig.strategy;
+                    const isStrong = sig.confidence >= 0.9;
+                    return (
+                      <div
+                        key={idx}
+                        className={classNames('signal-row-item', { active: isSelected, strong: isStrong })}
+                        onClick={() => {
+                          scanner.current_signal = sig;
+                          scanner.is_manual_selection = true;
+                        }}
+                      >
+                        <div className="row-header">
+                          <span className="row-symbol">{sig.symbol}</span>
+                          <span className="row-strategy">{sig.strategy.replace('_', ' ').toUpperCase()}</span>
+                          <span className="row-pct">{(sig.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <p className="row-rec">{sig.details.recommendation}</p>
+                        <p className="row-entry">Entry: {sig.details.entryCondition}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Action Buttons */}
+            <div className="footer-actions">
               <button
-                className="primary-btn"
+                className="action-btn scan-btn"
                 onClick={is_scanning ? stopScanning : startScanning}
               >
-                {is_scanning ? localize('Stop Scanning') : localize('Deep Scan Markets')}
+                {is_scanning ? localize('Stop') : localize('Scan Again')}
               </button>
               <button
-                className="secondary-btn"
+                className="action-btn load-btn"
                 onClick={loadBotWithStrategy}
                 disabled={!current_signal}
               >
-                ⋮ Load Scan
+                {localize('Load Bot')}
+              </button>
+              <button
+                className="action-btn run-btn"
+                onClick={loadBotAndRun}
+                disabled={!current_signal}
+              >
+                {localize('Load and Run')}
               </button>
             </div>
 
-            {/* Signal Found Section (if current signal exists) */}
-            {current_signal && (
-              <div className="signal-found">
-                <h3>
-                  <span className="signal-dot"></span>
-                  Signal Found
-                </h3>
-                <div className="signal-details">
-                  <p className="signal-rec">
-                    {current_signal.details.recommendation}
-                  </p>
-                  <p className="signal-entry">
-                    Entry: {current_signal.details.entryCondition}
-                  </p>
-                  <div className="confidence-bar-container">
-                    <p>Confidence</p>
-                    <div className="confidence-bar">
-                      <div
-                        className="confidence-fill"
-                        style={{
-                          width: `${(current_signal.confidence * 100).toFixed(0)}%`
-                        }}
-                      />
-                    </div>
-                    <p className="confidence-value">
-                      {(current_signal.confidence * 100).toFixed(0)}%
-                    </p>
-                  </div>
-                  <p className="signal-symbol">
-                    Symbol: {current_signal.symbol}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </DraggableResizeWrapper>
       )}

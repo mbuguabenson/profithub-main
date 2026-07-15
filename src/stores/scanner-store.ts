@@ -2,7 +2,7 @@ import { action, makeObservable, observable } from 'mobx';
 import { api_base } from '@/external/bot-skeleton';
 import RootStore from './root-store';
 
-export type TStrategyType = 'even_odd' | 'over_under' | 'matches' | 'differs' | 'rise_fall' | '';
+export type TStrategyType = 'even_odd' | 'over_under' | 'matches' | 'differs' | 'rise_fall' | 'pro_even_odd' | 'pro_over_under' | 'pro_differs' | 'under_7' | 'over_2' | 'super' | '';
 export type TSignalStatus = "TRADE NOW" | "WAIT" | "NEUTRAL";
 export type TDigitFrequency = { digit: number; count: number; percentage: number };
 
@@ -53,6 +53,11 @@ interface IScannerStore {
   scan_mode: 'single' | 'multiple';
   signals: TScanSignal[];
   current_signal: TScanSignal | null;
+  selected_strategies: TStrategyType[];
+  scan_market_mode: 'single' | 'multi';
+  single_market_symbol: string;
+  ticks_counter: number;
+  is_manual_selection: boolean;
   setScannerVisibility: (is_open?: boolean) => void;
   setSelectedStrategy: (strategy: TStrategyType) => void;
   setSelectedSymbols: (symbols: string[]) => void;
@@ -60,6 +65,10 @@ interface IScannerStore {
   startScanning: () => void;
   stopScanning: () => void;
   resetScanner: () => void;
+  toggleStrategy: (strategy: TStrategyType) => void;
+  setScanMarketMode: (mode: 'single' | 'multi') => void;
+  setSingleMarketSymbol: (symbol: string) => void;
+  setTicksCounter: (count: number) => void;
 }
 
 export default class ScannerStore implements IScannerStore {
@@ -73,6 +82,13 @@ export default class ScannerStore implements IScannerStore {
   current_signal: TScanSignal | null = null;
   private scanning_timeout: ReturnType<typeof setTimeout> | null = null;
 
+  // New multi-strategy and market selection options
+  selected_strategies: TStrategyType[] = ['even_odd'];
+  scan_market_mode: 'single' | 'multi' = 'multi';
+  single_market_symbol: string = 'R_100';
+  ticks_counter: number = 0;
+  is_manual_selection = false;
+
   constructor(root_store: RootStore) {
     makeObservable(this, {
       is_open: observable,
@@ -82,6 +98,11 @@ export default class ScannerStore implements IScannerStore {
       scan_mode: observable,
       signals: observable,
       current_signal: observable,
+      selected_strategies: observable,
+      scan_market_mode: observable,
+      single_market_symbol: observable,
+      ticks_counter: observable,
+      is_manual_selection: observable,
       setScannerVisibility: action,
       setSelectedStrategy: action,
       setSelectedSymbols: action,
@@ -90,13 +111,40 @@ export default class ScannerStore implements IScannerStore {
       stopScanning: action,
       resetScanner: action,
       addSignal: action,
+      toggleStrategy: action,
+      setScanMarketMode: action,
+      setSingleMarketSymbol: action,
+      setTicksCounter: action,
     });
 
     this.root_store = root_store;
   }
 
-  setScannerVisibility = (is_open?: boolean) => {
-    this.is_open = is_open ?? !this.is_open;
+  toggleStrategy = (strategy: TStrategyType) => {
+    const existingIndex = this.selected_strategies.indexOf(strategy);
+    if (existingIndex > -1) {
+      if (this.selected_strategies.length > 1) {
+        this.selected_strategies = this.selected_strategies.filter(s => s !== strategy);
+      }
+    } else {
+      this.selected_strategies = [...this.selected_strategies, strategy];
+    }
+  };
+
+  setScanMarketMode = (mode: 'single' | 'multi') => {
+    this.scan_market_mode = mode;
+  };
+
+  setSingleMarketSymbol = (symbol: string) => {
+    this.single_market_symbol = symbol;
+  };
+
+  setTicksCounter = (count: number) => {
+    this.ticks_counter = count;
+  };
+
+  setScannerVisibility = (is_open?: boolean | any) => {
+    this.is_open = typeof is_open === 'boolean' ? is_open : !this.is_open;
     console.log('setScannerVisibility called, is_open now:', this.is_open);
   };
 
@@ -113,16 +161,16 @@ export default class ScannerStore implements IScannerStore {
   };
 
   addSignal = (signal: TScanSignal) => {
-    // Update current signal if this is the best one
-    if (!this.current_signal || signal.confidence > this.current_signal.confidence) {
-      this.current_signal = signal;
+    if (!this.is_manual_selection) {
+      if (!this.current_signal || signal.confidence > this.current_signal.confidence) {
+        this.current_signal = signal;
+      }
     }
     this.signals = [signal, ...this.signals].slice(0, 20); // Keep last 20 signals
   };
 
   startScanning = async () => {
     if (!this.selected_symbols.length) {
-      // If no symbols selected, select all available
       if (api_base.active_symbols) {
         const allSymbols = api_base.active_symbols
           .map((s: any) => s.symbol || s.underlying_symbol)
@@ -135,12 +183,12 @@ export default class ScannerStore implements IScannerStore {
     }
 
     this.is_scanning = true;
+    this.ticks_counter = 0;
+    this.is_manual_selection = false;
 
     try {
       await this.analyzeMarkets();
-      if (this.scan_mode === 'multiple') {
-        this.setupContinuousScanning();
-      }
+      this.setupContinuousScanning();
     } catch (error) {
       console.error('[ScannerStore] Scanning error:', error);
       this.is_scanning = false;
@@ -159,18 +207,25 @@ export default class ScannerStore implements IScannerStore {
     this.stopScanning();
     this.signals = [];
     this.current_signal = null;
+    this.ticks_counter = 0;
   };
 
   private setupContinuousScanning = () => {
-    if (this.is_scanning && this.scan_mode === 'multiple') {
+    if (this.is_scanning) {
       this.scanning_timeout = setTimeout(async () => {
         try {
-          await this.analyzeMarkets();
+          if (this.ticks_counter >= 25) {
+            this.ticks_counter = 0;
+            await this.analyzeMarkets();
+          } else {
+            this.ticks_counter += 1;
+          }
           this.setupContinuousScanning();
         } catch (error) {
           console.error('[ScannerStore] Continuous scanning error:', error);
+          this.setupContinuousScanning();
         }
-      }, 2000); // Scan every 2 seconds
+      }, 200); // 200ms per tick evaluation
     }
   };
 
@@ -391,7 +446,7 @@ export default class ScannerStore implements IScannerStore {
       const lastTickValue = last10[last10.length - 1];
       const trend = lastTickValue - firstTickValue;
       const direction = trend > 0 ? 'rise' : 'fall';
-      const confidence = Math.min(60 + Math.abs(trend) * 10, 75);
+      const confidence = Math.min(60 + Math.abs(trend) * 100, 75);
       if (confidence >= 60) {
         signals.set('rise_fall', {
           type: 'rise_fall',
@@ -423,33 +478,289 @@ export default class ScannerStore implements IScannerStore {
     return signals;
   };
 
+  // Step 5: Generate Pro Signals (Advanced Strategies)
+  generateProSignals = (analysis: TAnalysisResult): Map<TStrategyType, TSignal> => {
+    const signals = new Map<TStrategyType, TSignal>();
+    const lastDigits = analysis.lastDigits;
+    const last20 = lastDigits.slice(-20);
+
+    // --- 1. Pro Even/Odd ---
+    const evenDigitsFreqs = analysis.digitFrequencies.filter(f => f.digit % 2 === 0);
+    const oddDigitsFreqs = analysis.digitFrequencies.filter(f => f.digit % 2 !== 0);
+    const evenFreq11Plus = evenDigitsFreqs.filter(f => f.percentage >= 11).length;
+    const oddFreq11Plus = oddDigitsFreqs.filter(f => f.percentage >= 11).length;
+    const strongestIsEven = analysis.powerIndex.strongest % 2 === 0;
+    const evenInLast20 = last20.filter(d => d % 2 === 0).length;
+    const oddInLast20 = last20.filter(d => d % 2 !== 0).length;
+
+    // EVEN Strategy
+    if (
+      analysis.evenPercentage >= 55 &&
+      evenFreq11Plus >= 2 &&
+      strongestIsEven &&
+      evenInLast20 >= 11
+    ) {
+      let consecutiveOdds = 0;
+      for (let i = lastDigits.length - 1; i >= 0; i--) {
+        if (lastDigits[i] % 2 !== 0) consecutiveOdds++;
+        else break;
+      }
+
+      if (consecutiveOdds >= 3) {
+        signals.set('pro_even_odd', {
+          type: 'pro_even_odd',
+          status: 'TRADE NOW',
+          probability: analysis.evenPercentage / 100,
+          recommendation: `EVEN STRATEGY: ${consecutiveOdds} consecutive odds detected - Enter EVEN now!`,
+          entryCondition: 'Enter EVEN immediately after first even digit appears',
+        });
+      } else {
+        signals.set('pro_even_odd', {
+          type: 'pro_even_odd',
+          status: 'WAIT',
+          probability: analysis.evenPercentage / 100,
+          recommendation: 'EVEN conditions met - Waiting for 3+ consecutive ODD digits',
+          entryCondition: 'Wait for 3+ consecutive ODD digits, then enter EVEN',
+        });
+      }
+    }
+    // ODD Strategy
+    else if (
+      analysis.oddPercentage >= 70 &&
+      oddFreq11Plus >= 2 &&
+      !strongestIsEven &&
+      oddInLast20 >= 14
+    ) {
+      let consecutiveEvens = 0;
+      for (let i = lastDigits.length - 1; i >= 0; i--) {
+        if (lastDigits[i] % 2 === 0) consecutiveEvens++;
+        else break;
+      }
+
+      if (consecutiveEvens >= 3) {
+        signals.set('pro_even_odd', {
+          type: 'pro_even_odd',
+          status: 'TRADE NOW',
+          probability: analysis.oddPercentage / 100,
+          recommendation: `ODD STRATEGY: ${consecutiveEvens} consecutive evens detected - Enter ODD now!`,
+          entryCondition: 'Enter ODD immediately after first odd digit appears',
+        });
+      } else {
+        signals.set('pro_even_odd', {
+          type: 'pro_even_odd',
+          status: 'WAIT',
+          probability: analysis.oddPercentage / 100,
+          recommendation: 'ODD conditions met - Waiting for 3+ consecutive EVEN digits',
+          entryCondition: 'Wait for 3+ consecutive EVEN digits, then enter ODD',
+        });
+      }
+    }
+
+    // --- 2. Pro Over/Under ---
+    const d0Freq = analysis.digitFrequencies[0].percentage;
+    const d1Freq = analysis.digitFrequencies[1].percentage;
+    const range2_9Freq11Plus = analysis.digitFrequencies.filter(f => f.digit >= 2 && f.percentage >= 11).length;
+    const weakestIs0or1 = analysis.powerIndex.weakest === 0 || analysis.powerIndex.weakest === 1;
+    const digitsGt1Last20 = last20.filter(d => d > 1).length;
+    const pctGt1 = (lastDigits.filter(d => d > 1).length / lastDigits.length) * 100;
+
+    // Over 1
+    if (
+      d0Freq < 10 &&
+      d1Freq < 10 &&
+      range2_9Freq11Plus >= 3 &&
+      weakestIs0or1 &&
+      analysis.highPercentage >= 90
+    ) {
+      if (digitsGt1Last20 >= 18) {
+        signals.set('pro_over_under', {
+          type: 'pro_over_under',
+          status: 'TRADE NOW',
+          probability: pctGt1 / 100,
+          recommendation: 'OVER 1 STRATEGY: Strong signal - 90%+ win rate detected!',
+          entryCondition: 'Wait for 1+ UNDER digits, then enter OVER 1 immediately',
+        });
+      }
+    }
+    // Under 8
+    else {
+      const d8Freq = analysis.digitFrequencies[8].percentage;
+      const d9Freq = analysis.digitFrequencies[9].percentage;
+      const range0_7Freq11Plus = analysis.digitFrequencies.filter(f => f.digit <= 7 && f.percentage >= 11).length;
+      const weakestIs8or9 = analysis.powerIndex.weakest === 8 || analysis.powerIndex.weakest === 9;
+      const digitsLt8Last20 = last20.filter(d => d < 8).length;
+      const pctLt8 = (lastDigits.filter(d => d < 8).length / lastDigits.length) * 100;
+
+      if (
+        d8Freq < 10 &&
+        d9Freq < 10 &&
+        range0_7Freq11Plus >= 3 &&
+        weakestIs8or9 &&
+        analysis.lowPercentage >= 90
+      ) {
+        if (digitsLt8Last20 >= 18) {
+          signals.set('pro_over_under', {
+            type: 'pro_over_under',
+            status: 'TRADE NOW',
+            probability: pctLt8 / 100,
+            recommendation: 'UNDER 8 STRATEGY: Strong signal - 90%+ win rate detected!',
+            entryCondition: 'Wait for 1+ OVER digits, then enter UNDER 8 immediately',
+          });
+        }
+      }
+    }
+
+    // --- 3. Pro Differs ---
+    const rareDigits = analysis.digitFrequencies.filter(f => f.percentage < 9);
+    if (rareDigits.length >= 2) {
+      const avgRarePct = rareDigits.reduce((acc, f) => acc + f.percentage, 0) / rareDigits.length;
+      const combinedDiffersConfidence = 100 - avgRarePct;
+      signals.set('pro_differs', {
+        type: 'pro_differs',
+        status: 'TRADE NOW',
+        probability: combinedDiffersConfidence / 100,
+        recommendation: `Pro differs on digit ${analysis.powerIndex.weakest} (multiple rare digits detected)`,
+        entryCondition: `Wait for digit ${analysis.powerIndex.weakest} to appear, then trade DIFFERS`,
+        targetDigit: analysis.powerIndex.weakest
+      });
+    }
+
+    // --- 4. Under 7 ---
+    const endRange7_9 = [7, 8, 9];
+    const range7_9Freqs = endRange7_9.map(d => analysis.digitFrequencies[d].percentage);
+    const countLt10Pct7_9 = range7_9Freqs.filter(p => p < 10).length;
+    const triggerDigit7_9 = endRange7_9.find(d => analysis.digitFrequencies[d].percentage >= 10);
+    const pctUnder7 = (lastDigits.filter(d => d < 7).length / lastDigits.length) * 100;
+
+    if (countLt10Pct7_9 >= 2 && triggerDigit7_9 !== undefined) {
+      signals.set('under_7', {
+        type: 'under_7',
+        status: 'TRADE NOW',
+        probability: pctUnder7 / 100,
+        recommendation: `UNDER 7 STRATEGY: Strong under 7 bias (trigger digit: ${triggerDigit7_9})`,
+        entryCondition: `Enter trade when trigger digit ${triggerDigit7_9} appears`,
+        targetDigit: triggerDigit7_9
+      });
+    }
+
+    // --- 5. Over 2 ---
+    const startRange0_2 = [0, 1, 2];
+    const range0_2Freqs = startRange0_2.map(d => analysis.digitFrequencies[d].percentage);
+    const countLt10Pct0_2 = range0_2Freqs.filter(p => p < 10).length;
+    const triggerDigit0_2 = startRange0_2.find(d => analysis.digitFrequencies[d].percentage >= 10);
+    const pctOver2 = (lastDigits.filter(d => d > 2).length / lastDigits.length) * 100;
+
+    if (countLt10Pct0_2 >= 2 && triggerDigit0_2 !== undefined) {
+      signals.set('over_2', {
+        type: 'over_2',
+        status: 'TRADE NOW',
+        probability: pctOver2 / 100,
+        recommendation: `OVER 2 STRATEGY: Strong over 2 bias (trigger digit: ${triggerDigit0_2})`,
+        entryCondition: `Enter trade when trigger digit ${triggerDigit0_2} appears`,
+        targetDigit: triggerDigit0_2
+      });
+    }
+
+    return signals;
+  };
+
+  // Step 6: Generate Super Signals (Real-Time Monitoring)
+  generateSuperSignals = (analysis: TAnalysisResult): TSignal[] => {
+    const activeSuperSignals: TSignal[] = [];
+    const allStd = this.generateAllSignals(analysis);
+    const allPro = this.generateProSignals(analysis);
+
+    const allMerged = new Map<TStrategyType, TSignal>();
+    for (const [key, val] of allStd.entries()) {
+      allMerged.set(key, val);
+    }
+    for (const [key, val] of allPro.entries()) {
+      allMerged.set(key, val);
+    }
+
+    for (const [, signal] of allMerged.entries()) {
+      const confidencePercent = signal.probability * 100;
+      
+      let status: TSignalStatus = 'NEUTRAL';
+      if (confidencePercent >= 90) {
+        status = 'TRADE NOW';
+      } else if (confidencePercent >= 65) {
+        status = 'TRADE NOW';
+      } else if (confidencePercent >= 55) {
+        status = 'WAIT';
+      }
+
+      const superSignal: TSignal = {
+        ...signal,
+        status,
+        signalDetails: {
+          ...signal.signalDetails,
+          isStrong: confidencePercent >= 90,
+          confidencePercent
+        }
+      };
+
+      if (confidencePercent >= 65) {
+        activeSuperSignals.push(superSignal);
+      }
+    }
+
+    return activeSuperSignals.sort((a, b) => b.probability - a.probability);
+  };
+
   private analyzeMarkets = async () => {
     const TicksService = (await import('@/external/bot-skeleton/services/api/ticks_service')).default;
     const ticksService = new TicksService();
 
-    for (const symbol of this.selected_symbols) {
+    // Clear old signals
+    this.signals = [];
+    if (!this.is_manual_selection) {
+      this.current_signal = null;
+    }
+
+    const symbolsToScan = this.scan_market_mode === 'single'
+      ? [this.single_market_symbol]
+      : this.selected_symbols;
+
+    for (const symbol of symbolsToScan) {
       try {
         const ticks = await ticksService.request({
           symbol,
-          count: 10000
+          count: 100
         });
 
         if (ticks && ticks.length > 0) {
           const analysisResult = this.analyzeTicks(ticks);
-          const allSignals = this.generateAllSignals(analysisResult);
-
-          // Check all strategies for this symbol
-          for (const [strategy, signal] of allSignals) {
-            if (signal.status === 'TRADE NOW' || signal.status === 'WAIT') {
-              const scanSignal: TScanSignal = {
-                symbol,
-                strategy,
-                confidence: signal.probability,
-                timestamp: Date.now(),
-                details: signal,
-                analysisResult
-              };
-              this.addSignal(scanSignal);
+          const allStd = this.generateAllSignals(analysisResult);
+          const allPro = this.generateProSignals(analysisResult);
+          
+          for (const strat of this.selected_strategies) {
+            if (strat === 'super') {
+              const superSignals = this.generateSuperSignals(analysisResult);
+              for (const signal of superSignals) {
+                const scanSignal: TScanSignal = {
+                  symbol,
+                  strategy: signal.type,
+                  confidence: signal.probability,
+                  timestamp: Date.now(),
+                  details: signal,
+                  analysisResult
+                };
+                this.addSignal(scanSignal);
+              }
+            } else {
+              const signal = allStd.get(strat) || allPro.get(strat);
+              if (signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT')) {
+                const scanSignal: TScanSignal = {
+                  symbol,
+                  strategy: strat,
+                  confidence: signal.probability,
+                  timestamp: Date.now(),
+                  details: signal,
+                  analysisResult
+                };
+                this.addSignal(scanSignal);
+              }
             }
           }
         }
@@ -469,12 +780,18 @@ export default class ScannerStore implements IScannerStore {
       matches: 'matchesdiffers',
       differs: 'matchesdiffers',
       rise_fall: 'callput',
+      pro_even_odd: 'evenodd',
+      pro_over_under: 'overunder',
+      pro_differs: 'matchesdiffers',
+      under_7: 'overunder',
+      over_2: 'overunder',
+      super: 'evenodd',
       '': ''
     };
 
     const formData = {
       symbol: this.current_signal.symbol,
-      tradetype: strategyTradetypeMap[this.current_signal.strategy],
+      tradetype: strategyTradetypeMap[this.current_signal.strategy] || 'evenodd',
       type: 'DIGITEVEN',
       durationtype: 't',
       duration: '1',

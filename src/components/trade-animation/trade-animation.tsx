@@ -32,11 +32,10 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
     const { isMobile } = useDevice();
 
     const { is_contract_completed, profit } = summary_card;
-    const { contract_stage, is_stop_button_visible, is_stop_button_disabled, onRunButtonClick, onStopBotClick } =
+    const { contract_stage, is_stop_button_visible, is_stop_button_disabled, is_paused, onRunButtonClick, onStopBotClick } =
         run_panel;
     const [shouldDisable, setShouldDisable] = React.useState(false);
     const is_unavailable_for_payment_agent = false;
-    const [isPaused, setIsPaused] = React.useState(false);
 
     // Get the load_modal store to monitor strategy deletions
     const { load_modal } = useStore();
@@ -199,32 +198,30 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
             ) : (
                 <div className='animation__run-stop-group'>
                     {/* Pause / Resume button — visible while running or when paused */}
-                    {(is_stop_button_visible || isPaused) && (
+                    {(is_stop_button_visible || is_paused) && (
                         <button
                             id='db-animation__pause-button'
                             className={classNames('animation__pause-button', {
-                                'animation__pause-button--paused': isPaused,
+                                'animation__pause-button--paused': is_paused,
                             })}
                             disabled={is_stop_button_visible && is_stop_button_disabled}
-                            title={isPaused ? localize('Resume bot') : localize('Pause bot after current contract')}
+                            title={is_paused ? localize('Resume bot') : localize('Pause bot after current contract')}
                             onClick={() => {
-                                if (isPaused) {
-                                    // Resume: restart the bot
-                                    setIsPaused(false);
-                                    run_panel.onResumeButtonClick();
+                                if (is_paused) {
+                                    // Resume: continue trading from where we left off
+                                    run_panel.onResumeFromPause();
                                 } else {
-                                    // Pause: stop gracefully (no new contracts will be opened)
-                                    setIsPaused(true);
-                                    onStopBotClick();
+                                    // Pause: finish current contract, don't open new ones
+                                    run_panel.onPauseButtonClick();
                                 }
                             }}
                         >
-                            {isPaused ? (
+                            {is_paused ? (
                                 <LabelPairedPlayLgFillIcon fill='#f5c542' width={16} height={16} />
                             ) : (
                                 <LabelPairedPauseLgFillIcon fill='var(--text-general)' width={16} height={16} />
                             )}
-                            <span>{isPaused ? <Localize i18n_default_text='Resume' /> : <Localize i18n_default_text='Pause' />}</span>
+                            <span>{is_paused ? <Localize i18n_default_text='Resume' /> : <Localize i18n_default_text='Pause' />}</span>
                         </button>
                     )}
                     <Button
@@ -234,7 +231,6 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
                         icon={button_props.icon}
                         onClick={() => {
                             setShouldDisable(true);
-                            setIsPaused(false); // clear paused state on manual stop
                             if (is_stop_button_visible) {
                                 onStopBotClick();
                                 return;

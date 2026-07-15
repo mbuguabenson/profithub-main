@@ -9,10 +9,7 @@ import OnboardTourHandler from '../tutorials/dbot-tours/onboarding-tour';
 import Announcements from './announcements';
 import Cards from './cards';
 import InfoPanel from './info-panel';
-import RiskDisclaimer from './risk-disclaimer';
 import UltimateWelcomePage from './UltimateWelcomePage';
-
-const RISK_DISCLAIMER_ACKNOWLEDGED_KEY = 'risk_disclaimer_acknowledged';
 
 type TMobileIconGuide = {
     handleTabChange: (active_number: number) => void;
@@ -24,14 +21,6 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
     const { active_tab, active_tour } = dashboard;
     const has_dashboard_strategies = !!dashboard_strategies?.length;
     const { isDesktop, isTablet } = useDevice();
-    const [showDisclaimer, setShowDisclaimer] = useState(false);
-
-    useEffect(() => {
-        if (client.is_logged_in) {
-            const isAcknowledged = localStorage.getItem(RISK_DISCLAIMER_ACKNOWLEDGED_KEY) === 'true';
-            setShowDisclaimer(!isAcknowledged);
-        }
-    }, [client.is_logged_in]);
 
     return (
         <React.Fragment>
@@ -42,6 +31,8 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
                     })}
                 >
                     <div className='tab__dashboard__content'>
+                        <div className='ultimate-landing__bg-glow ultimate-landing__bg-glow--primary' style={{ zIndex: 0 }} />
+                        <div className='ultimate-landing__bg-glow ultimate-landing__bg-glow--secondary' style={{ zIndex: 0 }} />
                         {client.is_logged_in && (
                             <Announcements is_mobile={!isDesktop} is_tablet={isTablet} handleTabChange={handleTabChange} />
                         )}
@@ -92,7 +83,6 @@ const DashboardComponent = observer(({ handleTabChange }: TMobileIconGuide) => {
                 <UltimateWelcomePage handleTabChange={handleTabChange} />
             )}
             <InfoPanel />
-            {client.is_logged_in && showDisclaimer && <RiskDisclaimer is_mobile={!isDesktop} />}
             {active_tab === 0 && <OnboardTourHandler is_mobile={!isDesktop} />}
         </React.Fragment>
     );

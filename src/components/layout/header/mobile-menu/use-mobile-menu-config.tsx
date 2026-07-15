@@ -5,7 +5,6 @@ import { LegacyLogout1pxIcon, LegacyTheme1pxIcon } from '@deriv/quill-icons/Lega
 import { useTranslations } from '@deriv-com/translations';
 import { ToggleSwitch } from '@deriv-com/ui';
 
-import { SpeedSelector } from '../header';
 
 export type TSubmenuSection = 'accountSettings' | 'cashier' | 'reports';
 
@@ -36,19 +35,7 @@ const UserIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-// Icon for Speed in mobile menu
-const SpeedIcon = ({ className }: { className?: string }) => (
-    <svg
-        className={className}
-        viewBox='0 0 24 24'
-        width='16'
-        height='16'
-        fill='currentColor'
-        style={{ color: 'var(--text-general)' }}
-    >
-        <path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' />
-    </svg>
-);
+
 
 // WhatsApp icon for mobile menu
 const WhatsAppIcon = ({ className, iconSize: _iconSize }: { className?: string; iconSize?: string }) => (
@@ -64,10 +51,31 @@ const WhatsAppIcon = ({ className, iconSize: _iconSize }: { className?: string; 
     </svg>
 );
 
+// Info icon for Risk Disclaimer
+const InfoIcon = ({ className }: { className?: string }) => (
+    <svg
+        className={className}
+        viewBox='0 0 24 24'
+        width='16'
+        height='16'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='2'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        style={{ color: 'var(--text-general)' }}
+    >
+        <circle cx='12' cy='12' r='10' />
+        <line x1='12' y1='16' x2='12' y2='12' />
+        <line x1='12' y1='8' x2='12.01' y2='8' />
+    </svg>
+);
+
 const useMobileMenuConfig = (
     client?: RootStore['client'],
     onLogout?: () => void,
-    enableThemeToggle: boolean = true
+    enableThemeToggle: boolean = true,
+    onOpenDisclaimer?: () => void
 ) => {
     const { localize } = useTranslations();
     const { is_dark_mode_on, toggleTheme } = useThemeSwitcher();
@@ -101,12 +109,12 @@ const useMobileMenuConfig = (
                         window.dispatchEvent(new Event('open_account_info'));
                     },
                 },
-                // Mobile Speed Selector Option
-                {
+                // Risk Disclaimer Option
+                onOpenDisclaimer && {
                     as: 'button',
-                    label: localize('Execution Speed'),
-                    LeftComponent: SpeedIcon,
-                    RightComponent: <SpeedSelector />,
+                    label: localize('Risk Disclaimer'),
+                    LeftComponent: InfoIcon,
+                    onClick: onOpenDisclaimer,
                 },
             ].filter(Boolean) as TMenuConfig,
             [

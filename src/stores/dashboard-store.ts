@@ -65,6 +65,8 @@ export interface IDashboardStore {
     setProfihubModalVisibility: () => void;
     is_protool_ai_modal_visible: boolean;
     setProToolAiModalVisibility: (visible: boolean) => void;
+    is_protool_assistant_visible: boolean;
+    setProToolAssistantVisibility: (visible: boolean) => void;
     setPreviewOnPopup: (is_preview_on_popup: boolean) => void;
     pending_free_bot: { name: string; xml: string } | null;
     setPendingFreeBot: (bot: { name: string; xml: string } | null) => void;
@@ -86,7 +88,7 @@ export default class DashboardStore implements IDashboardStore {
     active_trading_module: string | null = null;
     navigation_stop_in_progress = false;
 
-    constructor(root_store: RootStore, core: TStores) {
+    constructor(root_store: RootStore, core: any) {
         makeObservable(this, {
             active_tab_tutorials: observable,
             active_tab: observable,
@@ -140,6 +142,8 @@ export default class DashboardStore implements IDashboardStore {
             setProfihubModalVisibility: action.bound,
             is_protool_ai_modal_visible: observable,
             setProToolAiModalVisibility: action.bound,
+            is_protool_assistant_visible: observable,
+            setProToolAssistantVisibility: action.bound,
             bot_builder_symbol: observable,
             pending_free_bot: observable,
             setPendingFreeBot: action.bound,
@@ -234,6 +238,7 @@ export default class DashboardStore implements IDashboardStore {
     is_trading_view_modal_visible = false;
     is_profihub_modal_visible = false;
     is_protool_ai_modal_visible = false;
+    is_protool_assistant_visible = false;
     faq_title = '';
     pending_free_bot: { name: string; xml: string } | null = null;
 
@@ -336,6 +341,10 @@ export default class DashboardStore implements IDashboardStore {
 
     setProToolAiModalVisibility = (visible: boolean) => {
         this.is_protool_ai_modal_visible = visible;
+    };
+
+    setProToolAssistantVisibility = (visible: boolean) => {
+        this.is_protool_assistant_visible = visible;
     };
 
     setIsFileSupported = (is_file_supported: boolean) => {

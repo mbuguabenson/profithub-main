@@ -13,6 +13,9 @@ import QuickStrategy1 from './quick-strategy';
 import WorkspaceWrapper from './workspace-wrapper';
 import { DBOT_TABS } from '@/constants/bot-contents';
 
+import AutoTrades from '@/pages/auto-trades/auto-trades';
+import MobileFullPageModal from '@/components/shared_ui/mobile-full-page-modal';
+
 const BotBuilder = observer(() => {
     const { dashboard, app, run_panel, toolbar, quick_strategy, blockly_store, load_modal } = useStore();
     const { active_tab, active_tour, is_preview_on_popup } = dashboard;
@@ -147,6 +150,15 @@ const BotBuilder = observer(() => {
         };
     }, [active_tab, is_loading, dashboard.pending_free_bot, load_modal]);
 
+    // Resize Blockly workspace on assistant toggle
+    React.useEffect(() => {
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 100);
+    }, [dashboard.is_protool_assistant_visible]);
+
+    const showSidebar = dashboard.is_protool_assistant_visible;
+
     return (
         <>
             <div
@@ -155,16 +167,89 @@ const BotBuilder = observer(() => {
                     'bot-builder--inactive': is_preview_on_popup,
                     'bot-builder--tour-active': active_tour,
                 })}
+                style={{ display: 'flex', flexDirection: 'row', width: '100%', height: '100%', overflow: 'hidden' }}
             >
-                <div id='scratch_div' ref={el_ref}>
+                <div 
+                    id='scratch_div' 
+                    ref={el_ref}
+                    style={{
+                        flex: 1,
+                        minWidth: 0,
+                        width: (showSidebar && isDesktop) ? 'calc(100% - 420px)' : '100%'
+                    }}
+                >
                     <WorkspaceWrapper />
                 </div>
+                {showSidebar && isDesktop && (
+                    <div 
+                        className='protool-assistant-sidebar'
+                        style={{
+                            width: '420px',
+                            height: '100%',
+                            background: 'var(--general-main-1)',
+                            borderLeft: '1px solid var(--border-normal)',
+                            boxSizing: 'border-box',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
+                            zIndex: 10
+                        }}
+                    >
+                        <div 
+                            className='protool-assistant-sidebar__header'
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '12px 16px',
+                                borderBottom: '1px solid var(--border-normal)',
+                                background: 'var(--general-section-1)'
+                            }}
+                        >
+                            <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-prominent)', margin: 0 }}>
+                                {localize('ProTool AI Workspace Assistant')}
+                            </h3>
+                            <button
+                                onClick={() => dashboard.setProToolAssistantVisibility(false)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--text-less-prominent)',
+                                    fontSize: '1.6rem',
+                                    padding: '4px'
+                                }}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <React.Suspense fallback={<div>Loading ProTool AI...</div>}>
+                                <AutoTrades isModal={true} />
+                            </React.Suspense>
+                        </div>
+                    </div>
+                )}
             </div>
             {active_tab === DBOT_TABS.BOT_BUILDER && <BotBuilderTourHandler is_mobile={!isDesktop} />}
             {/* removed this outside from toolbar becuase it needs to loaded seperately without dependency */}
             <LoadModal />
             <SaveModal />
             {is_open && <QuickStrategy1 />}
+            {showSidebar && !isDesktop && (
+                <MobileFullPageModal
+                    is_modal_open={showSidebar}
+                    header={localize('ProTool AI')}
+                    onClickClose={() => dashboard.setProToolAssistantVisibility(false)}
+                    height_offset='80px'
+                >
+                    <div className='protool-ai-modal-body'>
+                        <React.Suspense fallback={<div>Loading ProTool AI...</div>}>
+                            <AutoTrades isModal={true} />
+                        </React.Suspense>
+                    </div>
+                </MobileFullPageModal>
+            )}
         </>
     );
 });

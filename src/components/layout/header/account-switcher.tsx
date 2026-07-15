@@ -7,7 +7,7 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
 import { isDemoAccount } from '@/utils/account-helpers';
-import { Localize } from '@deriv-com/translations';
+import { Localize, localize } from '@deriv-com/translations';
 import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
 import './account-switcher.scss';
@@ -24,6 +24,10 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const [rate, setRate] = useState<number>(() => {
         return parseFloat(localStorage.getItem('converter_kes_rate') || '129.5');
     });
+
+    // Reset balance state
+    const [isResettingBalance, setIsResettingBalance] = useState(false);
+    const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
         const handleSync = () => {
@@ -74,6 +78,41 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
         },
         [client]
     );
+
+    // Reset demo balance handler
+    const handleResetBalance = useCallback(async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isResettingBalance || !api_base.api) return;
+
+        setIsResettingBalance(true);
+        setResetMessage(null);
+
+        try {
+            const response = await api_base.api.send({ topup_virtual: 1 });
+            if (response?.error) {
+                setResetMessage({
+                    type: 'error',
+                    text: response.error.message || localize('Failed to reset balance'),
+                });
+            } else {
+                setResetMessage({
+                    type: 'success',
+                    text: localize('Balance reset to 10,000.00 USD'),
+                });
+                // Refresh account data
+                client?.checkAndRegenerateWebSocket();
+            }
+        } catch (error: any) {
+            setResetMessage({
+                type: 'error',
+                text: error?.message || localize('Failed to reset balance'),
+            });
+        } finally {
+            setIsResettingBalance(false);
+            // Auto-clear message after 3 seconds
+            setTimeout(() => setResetMessage(null), 3000);
+        }
+    }, [isResettingBalance, client]);
 
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
@@ -128,16 +167,21 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         }
                     }}
                 >
-                    <span className='acc-info__id' aria-hidden='true'></span>
+                    {/* Modern account badge */}
+                    <div className='acc-info__badge'>
+                        <span className={classNames('acc-info__badge-dot', {
+                            'acc-info__badge-dot--demo': isVirtual,
+                            'acc-info__badge-dot--real': !isVirtual,
+                        })} />
+                    </div>
                     <div className='acc-info__content'>
                         <div className='acc-info__account-type-header'>
-                            <Text as='p' size='xs' className='acc-info__account-type'>
-                                {isVirtual ? (
-                                    <Localize i18n_default_text='Demo account' />
-                                ) : (
-                                    <Localize i18n_default_text='Real account' />
-                                )}
-                            </Text>
+                            <span className={classNames('acc-info__type-pill', {
+                                'acc-info__type-pill--demo': isVirtual,
+                                'acc-info__type-pill--real': !isVirtual,
+                            })}>
+                                {isVirtual ? localize('Demo') : localize('Real')}
+                            </span>
                             {showChevron && (
                                 <span
                                     className={classNames('acc-info__select-arrow', {
@@ -185,6 +229,11 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
             </AccountInfoWrapper>
             {isOpen && (
                 <div className='acc-dropdown' role='listbox'>
+                    <div className='acc-dropdown__header'>
+                        <span className='acc-dropdown__header-title'>
+                            <Localize i18n_default_text='Switch Account' />
+                        </span>
+                    </div>
                     {formattedAccounts.map(account => (
                         <div
                             key={account.loginid}
@@ -203,27 +252,79 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                 }
                             }}
                         >
-                            <Text
-                                size='xxxs'
-                                className={classNames('acc-dropdown__account-type', {
-                                    'acc-dropdown__account-type--virtual': account.isVirtual,
-                                })}
-                            >
-                                {account.isVirtual ? (
-                                    <Localize i18n_default_text='Demo account' />
-                                ) : (
-                                    <Localize i18n_default_text='Real account' />
+                            <div className='acc-dropdown__account-row'>
+                                <span className={classNames('acc-dropdown__status-dot', {
+                                    'acc-dropdown__status-dot--demo': account.isVirtual,
+                                    'acc-dropdown__status-dot--real': !account.isVirtual,
+                                })} />
+                                <div className='acc-dropdown__account-details'>
+                                    <Text
+                                        size='xxxs'
+                                        className={classNames('acc-dropdown__account-type', {
+                                            'acc-dropdown__account-type--virtual': account.isVirtual,
+                                        })}
+                                    >
+                                        {account.isVirtual ? (
+                                            <Localize i18n_default_text='Demo' />
+                                        ) : (
+                                            <Localize i18n_default_text='Real' />
+                                        )}
+                                    </Text>
+                                    <Text size='xs' weight='bold' className='acc-dropdown__balance'>
+                                        {account.currency ? (
+                                            `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
+                                        ) : (
+                                            <Localize i18n_default_text='No currency assigned' />
+                                        )}
+                                    </Text>
+                                </div>
+                                {account.isActive && (
+                                    <span className='acc-dropdown__active-check'>
+                                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3' strokeLinecap='round' strokeLinejoin='round'>
+                                            <polyline points='20 6 9 17 4 12' />
+                                        </svg>
+                                    </span>
                                 )}
-                            </Text>
-                            <Text size='xs' weight='bold' className='acc-dropdown__balance'>
-                                {account.currency ? (
-                                    `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
-                                ) : (
-                                    <Localize i18n_default_text='No currency assigned' />
-                                )}
-                            </Text>
+                            </div>
                         </div>
                     ))}
+                    {/* Reset Demo Balance Button — only for demo accounts */}
+                    {isVirtual && (
+                        <div className='acc-dropdown__reset-section'>
+                            <button
+                                className={classNames('acc-dropdown__reset-btn', {
+                                    'acc-dropdown__reset-btn--loading': isResettingBalance,
+                                })}
+                                onClick={handleResetBalance}
+                                disabled={isResettingBalance}
+                            >
+                                {isResettingBalance ? (
+                                    <>
+                                        <svg className='acc-dropdown__reset-spinner' viewBox='0 0 24 24' width='14' height='14'>
+                                            <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeDasharray='31.416' strokeDashoffset='10' fill='none' />
+                                        </svg>
+                                        <Localize i18n_default_text='Resetting...' />
+                                    </>
+                                ) : (
+                                    <>
+                                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                                            <path d='M1 4v6h6' />
+                                            <path d='M3.51 15a9 9 0 102.13-9.36L1 10' />
+                                        </svg>
+                                        <Localize i18n_default_text='Reset Demo Balance' />
+                                    </>
+                                )}
+                            </button>
+                            {resetMessage && (
+                                <div className={classNames('acc-dropdown__reset-msg', {
+                                    'acc-dropdown__reset-msg--success': resetMessage.type === 'success',
+                                    'acc-dropdown__reset-msg--error': resetMessage.type === 'error',
+                                })}>
+                                    {resetMessage.text}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

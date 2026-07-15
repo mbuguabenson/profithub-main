@@ -17,7 +17,7 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
     const { is_contract_completed, is_contract_inactive, is_multiplier, is_accumulator, setIsBotRunning } =
         summary_card;
     const { onClickSell, is_sell_requested, contract_stage } = run_panel;
-    const { addToast, current_focus, removeToast, setCurrentFocus } = ui;
+    const { addToast, current_focus, removeToast, setCurrentFocus } = ui as any;
     const { server_time } = common;
 
     const { isDesktop } = useDevice();
@@ -29,46 +29,57 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
 
     const card_header = (
         <ContractCard.Header
-            contract_info={contract_info}
-            display_name={
-                (contract_info as any)?.underlying_symbol
+            {...({
+                contract_info: contract_info as any,
+                display_name: (contract_info as any)?.underlying_symbol
                     ? getSymbolDisplayNameSync((contract_info as any).underlying_symbol)
-                    : ''
-            }
-            getCardLabels={getCardLabels}
-            getContractTypeDisplay={getContractTypeDisplay}
-            has_progress_slider={!is_multiplier}
-            is_sold={is_contract_completed}
-            server_time={server_time}
+                    : '',
+                getCardLabels,
+                getContractTypeDisplay: getContractTypeDisplay as any,
+                has_progress_slider: !is_multiplier,
+                is_sold: is_contract_completed,
+                server_time,
+                is_mobile: !isDesktop,
+                is_sell_requested,
+                onClickSell,
+            } as any)}
         />
     );
 
     const card_body = (
         <ContractCard.Body
-            addToast={addToast}
-            contract_info={contract_info}
-            currency={contract_info?.currency ?? ''}
-            current_focus={current_focus}
-            error_message_alignment='left'
-            getCardLabels={getCardLabels}
-            getContractById={() => summary_card}
-            is_mobile={!isDesktop}
-            is_multiplier={is_multiplier}
-            is_accumulator={is_accumulator}
-            is_sold={is_contract_completed}
-            removeToast={removeToast}
-            server_time={server_time}
-            setCurrentFocus={setCurrentFocus}
+            {...({
+                addToast,
+                contract_info: contract_info as any,
+                currency: contract_info?.currency ?? '',
+                current_focus,
+                error_message_alignment: 'left',
+                getCardLabels,
+                getContractById: () => summary_card as any,
+                is_mobile: !isDesktop,
+                is_multiplier,
+                is_accumulator,
+                is_sold: is_contract_completed,
+                removeToast,
+                server_time,
+                setCurrentFocus,
+                contract_update: undefined as any,
+                should_show_cancellation_warning: false,
+                has_progress_slider: !is_multiplier,
+                toggleCancellationWarning: undefined as any,
+            } as any)}
         />
     );
 
     const card_footer = (
         <ContractCard.Footer
-            contract_info={contract_info}
+            contract_info={contract_info as any}
             getCardLabels={getCardLabels}
             is_multiplier={is_multiplier}
             is_sell_requested={is_sell_requested}
             onClickSell={onClickSell}
+            onClickCancel={undefined as any}
+            server_time={server_time as any}
         />
     );
 
@@ -95,16 +106,16 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
             {is_bot_running && <ContractCardLoader speed={2} contract_stage={contract_stage} />}
             {!is_contract_loading && contract_info && !is_bot_running && (
                 <ContractCard
-                    contract_info={contract_info}
+                    contract_info={contract_info as any}
                     getCardLabels={getCardLabels}
                     is_multiplier={is_multiplier}
-                    profit_loss={contract_info.profit}
+                    profit_loss={contract_info.profit as number}
                     should_show_result_overlay={true}
                 >
                     <div
                         className={classNames('dc-contract-card', {
-                            'dc-contract-card--green': contract_info.profit > 0,
-                            'dc-contract-card--red': contract_info.profit < 0,
+                            'dc-contract-card--green': (contract_info.profit ?? 0) > 0,
+                            'dc-contract-card--red': (contract_info.profit ?? 0) < 0,
                         })}
                     >
                         {contract_el}
@@ -112,11 +123,18 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
                 </ContractCard>
             )}
             {!is_contract_loading && !contract_info && !is_bot_running && (
-                <Text as='p' align='center' lineHeight='s' size='xs'>
-                    {localize('When you’re ready to trade, hit ')}
-                    <strong className='summary-panel-inactive__strong'>{localize('Run')}</strong>
-                    {localize('. You’ll be able to track your bot’s performance here.')}
-                </Text>
+                <div className='summary-card-inactive-wrapper'>
+                    <div className='summary-card-inactive-icon'>
+                        <svg viewBox='0 0 24 24' width='32' height='32' fill='currentColor'>
+                            <path d='M13 2L3 14h9l-1 8 10-12h-9l1-8z' />
+                        </svg>
+                    </div>
+                    <Text as='p' align='center' lineHeight='s' size='xs'>
+                        {localize('When you’re ready to trade, hit ')}
+                        <strong className='summary-panel-inactive__strong'>{localize('Run')}</strong>
+                        {localize('. You’ll be able to track your bot’s performance here.')}
+                    </Text>
+                </div>
             )}
         </div>
     );

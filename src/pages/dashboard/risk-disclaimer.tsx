@@ -12,10 +12,10 @@ import './risk-disclaimer.scss';
 const RISK_DISCLAIMER_ACKNOWLEDGED_KEY = 'risk_disclaimer_acknowledged';
 
 type TRiskDisclaimerProps = {
-    isMobile?: boolean;
-    isModal?: boolean;
+    is_mobile?: boolean;
+    is_modal?: boolean;
     onClose?: () => void;
-    isOpen?: boolean;
+    is_open?: boolean;
 };
 
 const RiskDisclaimer = observer(({ is_mobile, is_modal = false, onClose, is_open = true }: TRiskDisclaimerProps) => {
@@ -85,10 +85,12 @@ const RiskDisclaimer = observer(({ is_mobile, is_modal = false, onClose, is_open
         }
         return (
             <Dialog
-                title={localize('Risk Disclaimer')}
-                is_visible={is_open}
-                onCancel={onClose}
-                has_close_icon
+                {...({
+                    title: localize('Risk Disclaimer'),
+                    is_visible: is_open,
+                    onCancel: onClose,
+                    has_close_icon: true,
+                } as any)}
             >
                 <DisclaimerContent />
             </Dialog>

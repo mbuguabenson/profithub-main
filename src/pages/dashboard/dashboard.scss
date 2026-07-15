@@ -122,31 +122,50 @@
         }
 
         &__header {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 3.2rem;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2.4rem;
+
             &--listed {
-                margin-bottom: 0.8rem;
+                margin-bottom: 2.4rem;
             }
 
             @include mobile-screen {
                 height: auto;
                 margin-top: 0;
+                padding: 2rem;
             }
 
             @include tablet-screen {
-                padding: 0.8rem;
+                padding: 2.4rem;
             }
 
             .welcome-section {
                 text-align: center;
-                margin-bottom: 2rem;
+                margin-bottom: 1.6rem;
 
                 .welcome-title {
-                    margin: 0 0 0.5rem 0;
+                    font-size: 2.8rem;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #ffffff 30%, rgba(255, 255, 255, 0.7) 100%);
+                    -webkit-background-clip: text;
+                    background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    margin-bottom: 0.8rem;
                 }
 
                 .get-started-text {
+                    font-size: 1.4rem;
+                    font-weight: 700;
+                    color: #8bc34a !important;
+                    text-transform: uppercase;
+                    letter-spacing: 0.08em;
                     margin: 0;
-                    color: var(--button-primary-default);
-                    font-weight: bold;
                 }
             }
 
@@ -163,14 +182,15 @@
                 text-align: center;
                 margin-top: 1.6rem;
                 margin-bottom: 1rem;
+                color: rgba(255, 255, 255, 0.6) !important;
 
                 &__has-list {
                     text-align: center;
                     margin-top: 0;
 
                     @include mobile-or-tablet-screen {
-                        text-align: start;
-                        width: 85%;
+                        text-align: center;
+                        width: 100%;
                     }
 
                     @include tablet-screen {
@@ -187,7 +207,8 @@
             align-items: flex-start;
             height: var(--tab-content-height);
             flex-grow: 1;
-            background: var(--general-main-1);
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% 0%, #0b0f14 0%, #050505 100%);
             overflow: hidden;
             position: relative;
 

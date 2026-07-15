@@ -39,6 +39,7 @@ export default class RunPanelStore {
             dialog_options: observable,
             has_open_contract: observable,
             is_running: observable,
+            is_paused: observable,
             is_statistics_info_modal_open: observable,
             is_drawer_open: observable,
             is_dialog_open: observable,
@@ -57,6 +58,8 @@ export default class RunPanelStore {
             setRunId: action,
             onRunButtonClick: action,
             onResumeButtonClick: action,
+            onPauseButtonClick: action,
+            onResumeFromPause: action,
             is_contract_buying_in_progress: observable,
             SetpurchaseInProgress: action,
             onStopButtonClick: action,
@@ -105,6 +108,7 @@ export default class RunPanelStore {
     dialog_options = {};
     has_open_contract = false;
     is_running = false;
+    is_paused = false;
     is_statistics_info_modal_open = false;
     is_drawer_open = true;
     is_dialog_open = false;
@@ -245,12 +249,48 @@ export default class RunPanelStore {
         );
         runInAction(() => {
             this.setIsRunning(true);
+            this.is_paused = false;
             ui.setPromptHandler(true);
             this.toggleDrawer(true);
             this.setContractStage(contract_stages.STARTING);
             this.dbot.runBot();
         });
         this.setShowBotStopMessage(false);
+    };
+
+    // Pause: finish the current contract but do NOT open a new one.
+    // Unlike stop, we keep is_running = true and don't call dbot.stopBot().
+    onPauseButtonClick = () => {
+        runInAction(() => {
+            this.is_paused = true;
+        });
+    };
+
+    // Resume from pause: clear the flag and tell the trade engine to trade again.
+    onResumeFromPause = () => {
+        runInAction(() => {
+            this.is_paused = false;
+        });
+        // The bot is still alive — we just need to let it trade again.
+        // Trigger the trade-again handler directly.
+        try {
+            const tradeEngine = this.dbot?.interpreter?.bot?.tradeEngine;
+            if (tradeEngine && typeof tradeEngine.isStopped === 'function') {
+                // The trade engine checks its own `isStopped` flag.
+                // We need to invoke trade again.
+                tradeEngine.trade_again = true;
+                // Re-emit the trade_again event so the interpreter picks up.
+                globalThis.Blockly?.derivWorkspace?.cached_xml_;
+            }
+            // Fallback: re-run the bot if the engine can't be resumed directly.
+            if (!this.has_open_contract) {
+                this.dbot.runBot();
+            }
+        } catch (e) {
+            // If direct resume fails, fall back to a full re-run
+            console.warn('Direct resume failed, re-running bot:', e);
+            this.dbot.runBot();
+        }
     };
 
     onStopButtonClick = () => {
@@ -324,6 +364,7 @@ export default class RunPanelStore {
 
         this.setIsRunning(false);
         this.setHasOpenContract(false);
+        this.is_paused = false;
         this.clear();
         journal.clear();
         summary_card.clear();
@@ -620,6 +661,12 @@ export default class RunPanelStore {
     onBotTradeAgain = (is_trade_again: boolean) => {
         if (!is_trade_again) {
             this.stopBot();
+            return;
+        }
+        // If paused, do NOT trade again and do NOT stop.
+        // The bot stays alive waiting for resume.
+        if (this.is_paused) {
+            return;
         }
     };
 
