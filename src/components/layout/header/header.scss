@@ -446,42 +446,48 @@
     }
 }
 
-/* 1. Run Button (Green/Teal theme) */
+/* 1. Run Button (Neon Green / Mint theme) */
 .animation__run-button {
-    background-color: #059669 !important; // emerald base
-    border: 1px solid #047857 !important;
+    background-color: #00c853 !important; // vibrant green base
+    border: 1px solid #00b248 !important;
 
     &:hover {
-        background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%) !important;
-        box-shadow: 0 0 15px rgba(16, 185, 129, 0.6), 0 0 30px rgba(4, 120, 87, 0.3) !important;
+        background: linear-gradient(135deg, #00e676 0%, #00c853 50%, #00b248 100%) !important;
+        box-shadow: 0 0 15px rgba(0, 230, 118, 0.6), 0 0 30px rgba(0, 178, 72, 0.3) !important;
     }
 }
 
-/* 2. Login Button (Blue/Indigo theme) */
+/* 2. Login Button (Translucent Border / Violet-Magenta theme) */
 .app-header__login-btn {
-    background-color: transparent !important;
-    border: 1.5px solid #3b82f6 !important;
-    color: #3b82f6 !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: var(--text-general) !important;
 
     .dc-btn__text {
-        color: #3b82f6 !important;
+        color: var(--text-general) !important;
     }
 
     &:hover {
-        background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 50%, #4338ca 100%) !important;
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.6), 0 0 30px rgba(67, 56, 202, 0.3) !important;
+        background: linear-gradient(135deg, #7b2ff7 0%, #f107a3 100%) !important;
+        box-shadow: 0 0 15px rgba(123, 47, 247, 0.6), 0 0 30px rgba(241, 7, 163, 0.3) !important;
     }
 }
 
-/* 3. Signup Button (Amber/Orange theme) */
+/* 3. Signup Button (Ocean Blue / Cyan theme) */
 .app-header__signup-btn {
-    background-color: #ea580c !important; // orange base
-    border: 1.5px solid #d97706 !important;
+    background-color: #0088ff !important; // bright blue base
+    border: 1px solid #0077ee !important;
+    color: #ffffff !important;
+
+    .dc-btn__text {
+        color: #ffffff !important;
+    }
 
     &:hover {
-        background: linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #d97706 100%) !important;
-        box-shadow: 0 0 15px rgba(245, 158, 11, 0.6), 0 0 30px rgba(217, 119, 6, 0.3) !important;
+        background: linear-gradient(135deg, #00d2ff 0%, #0088ff 50%, #0055dd 100%) !important;
+        box-shadow: 0 0 15px rgba(0, 210, 255, 0.6), 0 0 30px rgba(0, 85, 221, 0.3) !important;
     }
 }
+
 
 
