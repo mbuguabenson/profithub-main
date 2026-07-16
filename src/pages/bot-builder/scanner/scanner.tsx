@@ -285,19 +285,37 @@ const Scanner = observer(() => {
                           return (
                             <div
                               key={idx}
-                              className={classNames('signal-row-item', { active: isSelected, strong: isStrong })}
+                              className={classNames('card', { active: isSelected })}
                               onClick={() => {
                                 scanner.current_signal = sig;
                                 scanner.is_manual_selection = true;
                               }}
                             >
-                              <div className="row-header">
-                                <span className="row-symbol">{sig.symbol}</span>
-                                <span className="row-strategy">{sig.strategy.replace('_', ' ').toUpperCase()}</span>
-                                <span className="row-pct">{(sig.confidence * 100).toFixed(0)}%</span>
+                              <div className="card__shine"></div>
+                              <div className="card__glow"></div>
+                              <div className="card__badge">{isStrong ? localize('STRONG') : localize('SIGNAL')}</div>
+                              <div className="card__content">
+                                <div className="card__image">
+                                  <span className="card-image-strategy">{sig.strategy.replace('_', ' ').toUpperCase()}</span>
+                                </div>
+                                <div className="card__text">
+                                  <h3 className="card__title">{sig.symbol}</h3>
+                                  <p className="card__description" style={{ fontSize: '10px', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {sig.details.recommendation}
+                                  </p>
+                                  <p className="card__description" style={{ fontSize: '9px', opacity: 0.6, marginTop: '2px' }}>
+                                    Entry: {sig.details.entryCondition}
+                                  </p>
+                                </div>
+                                <div className="card__footer">
+                                  <span className="card__price">{(sig.confidence * 100).toFixed(0)}% CONF</span>
+                                  <div className="card__button">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                  </div>
+                                </div>
                               </div>
-                              <p className="row-rec">{sig.details.recommendation}</p>
-                              <p className="row-entry">Entry: {sig.details.entryCondition}</p>
                             </div>
                           );
                         })}
