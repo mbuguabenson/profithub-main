@@ -287,7 +287,7 @@ const isSignalAligned = (
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const Scanner = observer(() => {
+const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: boolean; isEmbed?: boolean }) => {
     const { client, dashboard, run_panel, summary_card, transactions } = useStore();
     const { isDesktop } = useDevice();
     const { active_tab } = dashboard;
@@ -373,7 +373,7 @@ const Scanner = observer(() => {
     useEffect(() => { confirmedSignalRef.current = confirmedSignal; }, [confirmedSignal]);
 
     const currency = client.currency || 'USD';
-    const showScanner = active_tab === DBOT_TABS.SCANNER;
+    const showScanner = forceShow || active_tab === DBOT_TABS.SCANNER;
     const isCoveredByMobileRunPanel = !isDesktop && run_panel.is_drawer_open;
     const selectedMarket = MARKETS.find(m => m.symbol === selectedSymbol) ?? MARKETS[0];
     const latestTick = ticks[ticks.length - 1];
@@ -890,6 +890,349 @@ const Scanner = observer(() => {
     if (!showScanner) return null;
 
     // ── Render ───────────────────────────────────────────────────────────────
+    if (isEmbed) {
+        return (
+            <div className="scanner-embed-wrap">
+                {/* Sub-tabs */}
+                <div className='scanner-tabs' style={{ position: 'sticky', top: 0, zIndex: 30, background: 'var(--general-main-1, #0f172a)', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                    <button
+                        type='button'
+                        className={`scanner-tab${activeTab === 'scanner' ? ' scanner-tab--active' : ''}`}
+                        onClick={() => setActiveTab('scanner')}
+                    >
+                        🔍 Scanner
+                    </button>
+                    <button
+                        type='button'
+                        className={`scanner-tab${activeTab === 'stats' ? ' scanner-tab--active' : ''}`}
+                        onClick={() => setActiveTab('stats')}
+                    >
+                        📊 Signal Stats {signalStats.length > 0 && <span className='scanner-tab__badge'>{signalStats.length}</span>}
+                    </button>
+                </div>
+
+                {/* ── SCANNER TAB ── */}
+                {activeTab === 'scanner' && (
+                    <div className='container' style={{ width: '100%', maxWidth: '100%', border: 'none', boxShadow: 'none', background: 'transparent', padding: '10px 0 20px' }}>
+                        <h1>⚡ Signal Analyzer</h1>
+
+                        {/* Strategy chips — 2 columns */}
+                        <label>Select Strategy</label>
+                        <div className='strategy-chips'>
+                            {STRATEGIES.map(s => (
+                                <button
+                                    key={s}
+                                    type='button'
+                                    className={`strategy-chip${strategy === s ? ' strategy-chip--active' : ''}`}
+                                    onClick={() => handleStrategyChange(s)}
+                                    disabled={isWorking}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Market selector */}
+                        <label htmlFor='market'>Select Market</label>
+                        <select
+                            id='market'
+                            className='dropdown'
+                            value={selectedSymbol}
+                            onChange={e => handleMarketChange(e.target.value)}
+                            disabled={isWorking}
+                        >
+                            {MARKET_GROUPS.map(grp => (
+                                <optgroup key={grp} label={`${grp} Indices`}>
+                                    {MARKETS.filter(m => m.group === grp).map(m => (
+                                        <option key={m.symbol} value={m.symbol}>{m.label}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+
+                        {/* Market Info bar */}
+                        <div className='market-info-bar'>
+                            <span className='market-info-bar__name'>{selectedMarket.label}</span>
+                            <span className='market-info-bar__sep'>│</span>
+                            <span>Price: <strong className='digit-highlight'>{latestTick ? latestTick.quote.toFixed(selectedMarket.symbol.startsWith('1HZ') ? 3 : 2) : '—'}</strong></span>
+                            <span className='market-info-bar__sep'>│</span>
+                            <span>Digit: <strong className='digit-highlight'>{latestDigit !== null ? latestDigit : '—'}</strong></span>
+                            <span className='market-info-bar__sep'>│</span>
+                            <span>Candle: <span className={candleDirection === 1 ? 'col-green' : candleDirection === -1 ? 'col-red' : 'col-gray'}>{candleLabel}</span></span>
+                            <span className='market-info-bar__sep'>│</span>
+                            <span>Accuracy: <strong className='accuracy-highlight'>{accuracy}%</strong></span>
+                        </div>
+
+                        {/* Scanning Progress bar */}
+                        <div className='tick-progress'>
+                            <div className='tick-progress__bar' style={{ width: `${tickProgress}%` }} />
+                            <span className='tick-progress__label'>
+                                {ticks.length < SCAN_WINDOW
+                                    ? `Buffering data: ${ticks.length}/${SCAN_WINDOW} ticks`
+                                    : `Scanning 120-tick sliding window: ${ticks.length}/${SCAN_WINDOW} ticks`}
+                            </span>
+                        </div>
+
+                        {/* Confirmed Signal Notification */}
+                        {confirmedSignal && (
+                            <div className='signal-badge'>
+                                <span className='signal-badge__icon'>✅</span>
+                                <span className='signal-badge__label'>{confirmedSignal.label}</span>
+                                <span className='signal-badge__conf'>{confirmedSignal.confidence}% confidence</span>
+                                <span className='signal-badge__layers'>3/3 layers aligned</span>
+                            </div>
+                        )}
+
+                        {/* Post-scan trading controls */}
+                        <div className='trading-controls'>
+                            <div className='trading-controls__row'>
+                                <div className='trading-controls__field'>
+                                    <label htmlFor='stake'>Stake</label>
+                                    <input
+                                        id='stake'
+                                        className='dropdown'
+                                        type='text'
+                                        value={stakeInput}
+                                        onChange={e => setStakeInput(cleanMoneyInput(e.target.value))}
+                                        disabled={isWorking}
+                                    />
+                                </div>
+                                <div className='trading-controls__field'>
+                                    <label htmlFor='tp'>Take Profit</label>
+                                    <input
+                                        id='tp'
+                                        className='dropdown'
+                                        type='text'
+                                        value={takeProfitInput}
+                                        onChange={e => setTakeProfitInput(cleanMoneyInput(e.target.value))}
+                                        disabled={isWorking}
+                                    />
+                                </div>
+                            </div>
+                            <div className='trading-controls__row'>
+                                <div className='trading-controls__field'>
+                                    <label htmlFor='sl'>Stop Loss</label>
+                                    <input
+                                        id='sl'
+                                        className='dropdown'
+                                        type='text'
+                                        value={stopLossInput}
+                                        onChange={e => setStopLossInput(cleanMoneyInput(e.target.value))}
+                                        disabled={isWorking}
+                                    />
+                                </div>
+                                <div className='trading-controls__field'>
+                                    <label htmlFor='martingale'>Martingale</label>
+                                    <select
+                                        id='martingale'
+                                        className='dropdown'
+                                        value={martingale}
+                                        onChange={e => setMartingale(Number(e.target.value) as TMartingale)}
+                                        disabled={isWorking}
+                                    >
+                                        {MARTINGALE_OPTIONS.map(opt => (
+                                            <option key={opt} value={opt}>{opt}x</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Alternate strategy toggle */}
+                            <div className='trading-controls__alternate'>
+                                <label className='trading-controls__check-label'>
+                                    <input
+                                        type='checkbox'
+                                        checked={alternateEnabled}
+                                        onChange={e => setAlternateEnabled(e.target.checked)}
+                                        disabled={isWorking}
+                                    />
+                                    &nbsp;Switch strategy after&nbsp;
+                                    <input
+                                        className='trading-controls__loss-count'
+                                        type='number'
+                                        min={1}
+                                        max={20}
+                                        value={alternateAfterLosses}
+                                        onChange={e => setAlternateAfterLosses(e.target.value)}
+                                        disabled={!alternateEnabled || isWorking}
+                                    />
+                                    &nbsp;losses
+                                </label>
+                                {alternateEnabled && (
+                                    <select
+                                        className='dropdown'
+                                        value={alternateStrategy}
+                                        onChange={e => setAlternateStrategy(e.target.value as TScannerStrategy)}
+                                        disabled={isWorking}
+                                    >
+                                        {STRATEGIES.filter(s => s !== strategy).map(s => (
+                                            <option key={s} value={s}>{s}</option>
+                                        ))}
+                                    </select>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Live stats strip */}
+                        <div className='contain'>
+                            <div className='latest-tick'>
+                                P/L: <span className={sessionProfit >= 0 ? 'col-green' : 'col-red'}>
+                                    {sessionProfit >= 0 ? '+' : ''}{sessionProfit.toFixed(2)} {currency}
+                                </span>
+                            </div>
+                            {isWorking && (
+                                <div className={`latest-tick ${isPaused ? 'col-yellow' : 'col-green'}`}>
+                                    {isPaused ? '⏸ Market power shift — paused' : '▶ Trading active — monitoring…'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className='buttons'>
+                            <button
+                                id='scanner-scan-btn'
+                                className='btn btn-scan'
+                                type='button'
+                                onClick={handleScan}
+                                disabled={!canScan || isWorking}
+                            >
+                                🔍 Scan
+                            </button>
+                            <button
+                                id='scanner-build-btn'
+                                className='btn btn-build'
+                                type='button'
+                                onClick={handleAutoBuildBot}
+                                disabled={isWorking}
+                            >
+                                🤖 Build Bot
+                            </button>
+                            {!isWorking ? (
+                                <button
+                                    id='scanner-trade-btn'
+                                    className='btn btn-trade'
+                                    type='button'
+                                    onClick={handleAutoTrade}
+                                    disabled={!canScan}
+                                >
+                                    ▶ Auto Trade
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        id='scanner-pause-btn'
+                                        className={`btn ${isPaused ? 'btn-resume' : 'btn-pause'}`}
+                                        type='button'
+                                        onClick={handlePauseResume}
+                                    >
+                                        {isPaused ? '▶ Resume' : '⏸ Pause'}
+                                    </button>
+                                    <button
+                                        id='scanner-stop-btn'
+                                        className='btn btn-stop'
+                                        type='button'
+                                        onClick={stopTrading}
+                                    >
+                                        ⏹ Stop
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* ── SIGNAL STATS TAB ── */}
+                {activeTab === 'stats' && (
+                    <div className='container container--stats' style={{ width: '100%', maxWidth: '100%', border: 'none', boxShadow: 'none', background: 'transparent', padding: '10px 0 20px' }}>
+                        <h1>📊 Signal Stats</h1>
+
+                        {/* Volatility market overview */}
+                        <div className='stats-overview-label'>Monitored Volatility Markets</div>
+                        <div className='stats-market-grid'>
+                            {MARKETS.map(m => (
+                                <div
+                                    key={m.symbol}
+                                    className={`stats-market-card${selectedSymbol === m.symbol ? ' stats-market-card--active' : ''}`}
+                                    onClick={() => handleMarketChange(m.symbol)}
+                                    role='button'
+                                    tabIndex={0}
+                                    onKeyDown={e => e.key === 'Enter' && handleMarketChange(m.symbol)}
+                                >
+                                    <span className='stats-market-card__label'>
+                                        {m.label.replace('Volatility ', 'Vol ').replace(' Index', '')}
+                                    </span>
+                                    <span className='stats-market-card__group'>{m.group}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Signal log */}
+                        <div className='stats-header'>
+                            <span>Signal Log ({signalStats.length})</span>
+                            {signalStats.length > 0 && (
+                                <button className='btn-clear' type='button' onClick={() => setSignalStats([])}>Clear</button>
+                            )}
+                        </div>
+                        <div className='stats-table-wrap'>
+                            <table className='stats-table'>
+                                <thead>
+                                    <tr>
+                                        <th>Market</th>
+                                        <th>Strategy</th>
+                                        <th>Signal</th>
+                                        <th>Confidence</th>
+                                        <th>Time</th>
+                                        <th>Outcome</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {signalStats.map(s => (
+                                        <tr key={s.id}>
+                                            <td className='font-mono'>{s.market}</td>
+                                            <td>{s.strategy}</td>
+                                            <td className='font-mono'>{s.signal}</td>
+                                            <td className='font-mono'>{s.confidence}%</td>
+                                            <td className='font-mono'>{new Date(s.timestamp).toLocaleTimeString()}</td>
+                                            <td>
+                                                <span className={`outcome-badge outcome-badge--${s.outcome.toLowerCase()}`}>
+                                                    {s.outcome}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {signalStats.length === 0 && (
+                                        <tr>
+                                            <td colSpan={6} style={{ textAlign: 'center', color: '#999' }}>No signals recorded yet.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Virtual Terminal Popup ── */}
+                {popupOpen && (
+                    <div className='terminal-popup'>
+                        <div className='terminal-popup__header'>
+                            <span className='terminal-popup__title'>🤖 Replicator Terminal</span>
+                            <button className='terminal-popup__close' type='button' onClick={handleClosePopup}>✕</button>
+                        </div>
+                        <div className='terminal-popup__body'>
+                            {terminalDashboard.map((line, i) => (
+                                <p className={(line ?? '').startsWith('Error') ? 'red' : 'green'} key={`dash-${i}`}>{line ?? ''}</p>
+                            ))}
+                            <div className='terminal-popup__divider' />
+                            {terminalBody.map((line, i) => (
+                                <p className={(line ?? '').startsWith('Error') ? 'red' : 'green'} key={`body-${i}`}>{line ?? ''}</p>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
         <div className={`scanner-page${isCoveredByMobileRunPanel ? ' scanner-page--run-panel-open' : ''}`}>
             {/* Matrix background */}
