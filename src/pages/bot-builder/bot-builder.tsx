@@ -14,6 +14,13 @@ import WorkspaceWrapper from './workspace-wrapper';
 import { DBOT_TABS } from '@/constants/bot-contents';
 
 import Signals from '@/pages/signals/signals';
+import SmartTrading from '@/pages/smart-trading';
+import AutoTrades from '@/pages/auto-trades/auto-trades';
+import BestBots from '@/pages/best-bots/best-bots';
+import BotIdeas from '@/pages/bot-ideas/bot-ideas';
+import ManualTrading from '@/pages/manual-trading';
+import Accumilatoirs from '@/pages/accumilatoirs/accumilatoirs';
+import Hyperbot from '@/pages/hyperbot/hyperbot';
 import MobileFullPageModal from '@/components/shared_ui/mobile-full-page-modal';
 
 const BotBuilder = observer(() => {
@@ -27,6 +34,7 @@ const BotBuilder = observer(() => {
     const { isDesktop } = useDevice();
     const { onMount, onUnmount } = app;
     const el_ref = React.useRef<HTMLInputElement | null>(null);
+    const [activeAssistantTab, setActiveAssistantTab] = React.useState<'signals' | 'smart' | 'auto' | 'hyperbot' | 'bestbots' | 'botideas' | 'manual' | 'accumulators'>('signals');
 
     // TODO: fix
     // const isMounted = useIsMounted();
@@ -195,8 +203,8 @@ const BotBuilder = observer(() => {
                             zIndex: 10
                         }}
                     >
-                        <div 
-                            className='protool-assistant-sidebar__header'
+                        <div
+                            className="assistant-sidebar-header"
                             style={{
                                 display: 'flex',
                                 alignItems: 'center',
@@ -207,7 +215,7 @@ const BotBuilder = observer(() => {
                             }}
                         >
                             <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-prominent)', margin: 0 }}>
-                                {localize('Premium AI Signals Engine')}
+                                {localize('Trading Tools & Assistants')}
                             </h3>
                             <button
                                 onClick={() => dashboard.setProToolAssistantVisibility(false)}
@@ -223,9 +231,46 @@ const BotBuilder = observer(() => {
                                 ✕
                             </button>
                         </div>
-                        <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <React.Suspense fallback={<div>Loading Premium Signals...</div>}>
-                                <Signals />
+                        <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-normal)', background: 'var(--general-section-1)', whiteSpace: 'nowrap', padding: '0 8px' }}>
+                            {[
+                                { id: 'signals', label: 'Signals' },
+                                { id: 'smart', label: 'Smart Trading' },
+                                { id: 'auto', label: 'Auto Trades' },
+                                { id: 'hyperbot', label: 'Hyperbot' },
+                                { id: 'bestbots', label: 'Best Bots' },
+                                { id: 'botideas', label: 'Bot Ideas' },
+                                { id: 'manual', label: 'Manual Trading' },
+                                { id: 'accumulators', label: 'Accumulators' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveAssistantTab(tab.id as any)}
+                                    style={{
+                                        padding: '10px 16px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        borderBottom: activeAssistantTab === tab.id ? '2px solid var(--text-prominent)' : '2px solid transparent',
+                                        color: activeAssistantTab === tab.id ? 'var(--text-prominent)' : 'var(--text-less-prominent)',
+                                        fontWeight: activeAssistantTab === tab.id ? 600 : 400,
+                                        cursor: 'pointer',
+                                        fontSize: '1.2rem',
+                                        flexShrink: 0
+                                    }}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                            <React.Suspense fallback={<div>Loading...</div>}>
+                                {activeAssistantTab === 'signals' && <Signals />}
+                                {activeAssistantTab === 'smart' && <div style={{ overflowY: 'auto', height: '100%' }}><SmartTrading /></div>}
+                                {activeAssistantTab === 'auto' && <AutoTrades isModal={true} />}
+                                {activeAssistantTab === 'hyperbot' && <div style={{ overflowY: 'auto', height: '100%' }}><Hyperbot /></div>}
+                                {activeAssistantTab === 'bestbots' && <div style={{ overflowY: 'auto', height: '100%' }}><BestBots /></div>}
+                                {activeAssistantTab === 'botideas' && <div style={{ overflowY: 'auto', height: '100%' }}><BotIdeas /></div>}
+                                {activeAssistantTab === 'manual' && <div style={{ overflowY: 'auto', height: '100%' }}><ManualTrading /></div>}
+                                {activeAssistantTab === 'accumulators' && <div style={{ overflowY: 'auto', height: '100%' }}><Accumilatoirs /></div>}
                             </React.Suspense>
                         </div>
                     </div>
@@ -239,13 +284,50 @@ const BotBuilder = observer(() => {
             {showSidebar && !isDesktop && (
                 <MobileFullPageModal
                     is_modal_open={showSidebar}
-                    header={localize('Premium AI Signals Engine')}
+                    header={localize('Trading Tools & Assistants')}
                     onClickClose={() => dashboard.setProToolAssistantVisibility(false)}
                     height_offset='80px'
                 >
-                    <div className='protool-ai-modal-body'>
-                        <React.Suspense fallback={<div>Loading Premium Signals...</div>}>
-                            <Signals />
+                    <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-normal)', background: 'var(--general-section-1)', whiteSpace: 'nowrap', padding: '0 8px' }}>
+                        {[
+                            { id: 'signals', label: 'Signals' },
+                            { id: 'smart', label: 'Smart Trading' },
+                            { id: 'auto', label: 'Auto Trades' },
+                            { id: 'hyperbot', label: 'Hyperbot' },
+                            { id: 'bestbots', label: 'Best Bots' },
+                            { id: 'botideas', label: 'Bot Ideas' },
+                            { id: 'manual', label: 'Manual Trading' },
+                            { id: 'accumulators', label: 'Accumulators' }
+                        ].map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveAssistantTab(tab.id as any)}
+                                style={{
+                                    padding: '10px 16px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderBottom: activeAssistantTab === tab.id ? '2px solid var(--text-prominent)' : '2px solid transparent',
+                                    color: activeAssistantTab === tab.id ? 'var(--text-prominent)' : 'var(--text-less-prominent)',
+                                    fontWeight: activeAssistantTab === tab.id ? 600 : 400,
+                                    cursor: 'pointer',
+                                    fontSize: '1.2rem',
+                                    flexShrink: 0
+                                }}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                    <div className='protool-ai-modal-body' style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                        <React.Suspense fallback={<div>Loading...</div>}>
+                            {activeAssistantTab === 'signals' && <Signals />}
+                            {activeAssistantTab === 'smart' && <div style={{ overflowY: 'auto', height: '100%' }}><SmartTrading /></div>}
+                            {activeAssistantTab === 'auto' && <AutoTrades isModal={true} />}
+                            {activeAssistantTab === 'hyperbot' && <div style={{ overflowY: 'auto', height: '100%' }}><Hyperbot /></div>}
+                            {activeAssistantTab === 'bestbots' && <div style={{ overflowY: 'auto', height: '100%' }}><BestBots /></div>}
+                            {activeAssistantTab === 'botideas' && <div style={{ overflowY: 'auto', height: '100%' }}><BotIdeas /></div>}
+                            {activeAssistantTab === 'manual' && <div style={{ overflowY: 'auto', height: '100%' }}><ManualTrading /></div>}
+                            {activeAssistantTab === 'accumulators' && <div style={{ overflowY: 'auto', height: '100%' }}><Accumilatoirs /></div>}
                         </React.Suspense>
                     </div>
                 </MobileFullPageModal>
