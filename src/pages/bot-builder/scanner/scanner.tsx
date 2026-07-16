@@ -7,6 +7,97 @@ import { api_base } from '@/external/bot-skeleton';
 import classNames from 'classnames';
 import './scanner.scss';
 
+const getStatsForStrategy = (analysis: any, strategy: string) => {
+  if (!analysis) return { strength: 0, text: '-', details: {} as any };
+
+  const lastDigits = analysis.lastDigits || [];
+  const totalTicks = analysis.totalTicks || lastDigits.length || 1;
+
+  if (strategy === 'even_odd') {
+    const evenPct = analysis.evenPercentage;
+    const oddPct = analysis.oddPercentage;
+    const strength = Math.max(evenPct, oddPct);
+    const bias = evenPct >= oddPct ? 'even' : 'odd';
+    return {
+      strength,
+      text: `Even ${evenPct.toFixed(0)}% / Odd ${oddPct.toFixed(0)}%`,
+      details: { bias }
+    };
+  }
+
+  if (strategy === 'over_under') {
+    const pctOver1 = (lastDigits.filter((d: number) => d > 1).length / totalTicks) * 100;
+    const pctOver2 = (lastDigits.filter((d: number) => d > 2).length / totalTicks) * 100;
+    const pctOver3 = (lastDigits.filter((d: number) => d > 3).length / totalTicks) * 100;
+
+    const pctUnder6 = (lastDigits.filter((d: number) => d < 6).length / totalTicks) * 100;
+    const pctUnder7 = (lastDigits.filter((d: number) => d < 7).length / totalTicks) * 100;
+    const pctUnder8 = (lastDigits.filter((d: number) => d < 8).length / totalTicks) * 100;
+
+    const maxOver = Math.max(pctOver1, pctOver2, pctOver3);
+    const maxUnder = Math.max(pctUnder6, pctUnder7, pctUnder8);
+
+    const isOver = maxOver >= maxUnder;
+    const strength = isOver ? maxOver : maxUnder;
+    
+    let targetDigit = 1;
+    if (isOver) {
+      if (pctOver3 === maxOver) targetDigit = 3;
+      else if (pctOver2 === maxOver) targetDigit = 2;
+    } else {
+      if (pctUnder6 === maxUnder) targetDigit = 6;
+      else if (pctUnder7 === maxUnder) targetDigit = 7;
+      else targetDigit = 8;
+    }
+
+    return {
+      strength,
+      text: isOver ? `Over ${targetDigit}: ${strength.toFixed(0)}%` : `Under ${targetDigit}: ${strength.toFixed(0)}%`,
+      details: { bias: isOver ? 'high' : 'low', targetDigit }
+    };
+  }
+
+  if (strategy === 'differs') {
+    const weakestDigit = analysis.powerIndex.weakest;
+    const weakestPct = analysis.digitFrequencies[weakestDigit]?.percentage || 0;
+    const strength = 100 - weakestPct;
+    return {
+      strength,
+      text: `Differs ${weakestDigit}: ${strength.toFixed(0)}%`,
+      details: { targetDigit: weakestDigit }
+    };
+  }
+
+  if (strategy === 'matches') {
+    const strongestDigit = analysis.powerIndex.strongest;
+    const strongestPct = analysis.digitFrequencies[strongestDigit]?.percentage || 0;
+    const strength = strongestPct;
+    return {
+      strength,
+      text: `Matches ${strongestDigit}: ${strength.toFixed(0)}%`,
+      details: { targetDigit: strongestDigit }
+    };
+  }
+
+  if (strategy === 'rise_fall') {
+    if (lastDigits.length >= 10) {
+      const last10 = lastDigits.slice(-10);
+      const firstTickValue = last10[0];
+      const lastTickValue = last10[last10.length - 1];
+      const trend = lastTickValue - firstTickValue;
+      const direction = trend > 0 ? 'rise' : 'fall';
+      const strength = Math.min(60 + Math.abs(trend) * 100, 75);
+      return {
+        strength,
+        text: `${direction === 'rise' ? 'Rise' : 'Fall'}: ${strength.toFixed(0)}%`,
+        details: { bias: direction === 'rise' ? 'high' : 'low' }
+      };
+    }
+  }
+
+  return { strength: 0, text: '-', details: {} as any };
+};
+
 const Scanner = observer(() => {
   const { scanner } = useStore();
   const {
@@ -33,6 +124,7 @@ const Scanner = observer(() => {
 
   const [available_symbols, setAvailableSymbols] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'scanner' | 'stats'>('scanner');
+  const [statsStrategy, setStatsStrategy] = useState<'even_odd' | 'over_under' | 'differs' | 'rise_fall' | 'matches'>('even_odd');
 
   useEffect(() => {
     if (api_base.active_symbols && api_base.active_symbols.length > 0) {
@@ -50,6 +142,32 @@ const Scanner = observer(() => {
       }
     }
   }, []);
+
+  const handleLoadBotFromStats = (sym: any, strategy: string, statsData: any, analysis: any) => {
+    const symbolKey = sym.symbol || sym.underlying_symbol;
+    
+    scanner.current_signal = {
+      symbol: symbolKey,
+      strategy: strategy as any,
+      confidence: statsData.strength / 100,
+      timestamp: Date.now(),
+      details: {
+        type: strategy as any,
+        status: 'TRADE NOW',
+        probability: statsData.strength / 100,
+        recommendation: statsData.text,
+        entryCondition: `Manual trigger from stats tab`,
+        targetDigit: statsData.details.targetDigit,
+        signalDetails: {
+          bias: statsData.details.bias
+        }
+      },
+      analysisResult: analysis
+    };
+    
+    scanner.is_manual_selection = true;
+    scanner.loadBotWithStrategy();
+  };
 
   const strategyOptions: { value: string; label: string }[] = [
     { value: 'even_odd', label: 'Even/Odd' },
@@ -285,37 +403,19 @@ const Scanner = observer(() => {
                           return (
                             <div
                               key={idx}
-                              className={classNames('card', { active: isSelected })}
+                              className={classNames('signal-row-item', { active: isSelected, strong: isStrong })}
                               onClick={() => {
                                 scanner.current_signal = sig;
                                 scanner.is_manual_selection = true;
                               }}
                             >
-                              <div className="card__shine"></div>
-                              <div className="card__glow"></div>
-                              <div className="card__badge">{isStrong ? localize('STRONG') : localize('SIGNAL')}</div>
-                              <div className="card__content">
-                                <div className="card__image">
-                                  <span className="card-image-strategy">{sig.strategy.replace('_', ' ').toUpperCase()}</span>
-                                </div>
-                                <div className="card__text">
-                                  <h3 className="card__title">{sig.symbol}</h3>
-                                  <p className="card__description" style={{ fontSize: '10px', height: '36px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    {sig.details.recommendation}
-                                  </p>
-                                  <p className="card__description" style={{ fontSize: '9px', opacity: 0.6, marginTop: '2px' }}>
-                                    Entry: {sig.details.entryCondition}
-                                  </p>
-                                </div>
-                                <div className="card__footer">
-                                  <span className="card__price">{(sig.confidence * 100).toFixed(0)}% CONF</span>
-                                  <div className="card__button">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                      <polyline points="9 18 15 12 9 6"></polyline>
-                                    </svg>
-                                  </div>
-                                </div>
+                              <div className="row-header">
+                                <span className="row-symbol">{sig.symbol}</span>
+                                <span className="row-strategy">{sig.strategy.replace('_', ' ').toUpperCase()}</span>
+                                <span className="row-pct">{(sig.confidence * 100).toFixed(0)}%</span>
                               </div>
+                              <p className="row-rec">{sig.details.recommendation}</p>
+                              <p className="row-entry">Entry: {sig.details.entryCondition}</p>
                             </div>
                           );
                         })}
@@ -329,6 +429,37 @@ const Scanner = observer(() => {
                   <span className="section-title" style={{ marginBottom: '8px', display: 'block' }}>
                     {localize('Market Stats (Volatility & Last Digits)')}
                   </span>
+                  
+                  {/* Strategy Selector Buttons for Stats Tab */}
+                  <div className="stats-strategy-selector" style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                    {[
+                      { key: 'even_odd', label: localize('Even Odd') },
+                      { key: 'over_under', label: localize('Over Under') },
+                      { key: 'differs', label: localize('Differs') },
+                      { key: 'rise_fall', label: localize('Rise/Fall') },
+                      { key: 'matches', label: localize('Matches') },
+                    ].map(btn => (
+                      <button
+                        key={btn.key}
+                        onClick={() => setStatsStrategy(btn.key as any)}
+                        style={{
+                          background: statsStrategy === btn.key ? 'var(--brand-red-1, #ff444f)' : 'rgba(255, 255, 255, 0.05)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '4px 10px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div style={{ flex: 1, overflowY: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
                       <thead>
@@ -337,14 +468,24 @@ const Scanner = observer(() => {
                           <th style={{ padding: '6px 4px' }}>{localize('Last Price')}</th>
                           <th style={{ padding: '6px 4px', textAlign: 'center' }}>{localize('Digit')}</th>
                           <th style={{ padding: '6px 4px', textAlign: 'right' }}>{localize('Stats')}</th>
+                          <th style={{ padding: '6px 4px', textAlign: 'right' }}>{localize('Action')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {available_symbols.map((sym: any) => {
+                        {[...available_symbols].map((sym: any) => {
                           const symbolKey = sym.symbol || sym.underlying_symbol;
-                          const signal = scanner.signals.find(s => s.symbol === symbolKey);
-                          const analysis = signal?.analysisResult;
+                          const analysis = scanner.symbol_analysis[symbolKey];
+                          const statsData = getStatsForStrategy(analysis, statsStrategy);
 
+                          return {
+                            sym,
+                            symbolKey,
+                            analysis,
+                            statsData
+                          };
+                        })
+                        .sort((a, b) => b.statsData.strength - a.statsData.strength)
+                        .map(({ sym, symbolKey, analysis, statsData }) => {
                           return (
                             <tr key={symbolKey} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                               <td style={{ padding: '8px 4px', fontWeight: 600, color: '#cbd5e1' }}>
@@ -367,10 +508,38 @@ const Scanner = observer(() => {
                                   </span>
                                 ) : '-'}
                               </td>
-                              <td style={{ padding: '8px 4px', textAlign: 'right', color: '#10b981' }}>
+                              <td style={{ padding: '8px 4px', textAlign: 'right', color: '#10b981', fontWeight: 700 }}>
+                                {statsData.text}
+                              </td>
+                              <td style={{ padding: '8px 4px', textAlign: 'right' }}>
                                 {analysis ? (
-                                  `Even ${analysis.evenPercentage.toFixed(0)}% / Odd ${analysis.oddPercentage.toFixed(0)}%`
-                                ) : '-'}
+                                  <button
+                                    onClick={() => handleLoadBotFromStats(sym, statsStrategy, statsData, analysis)}
+                                    style={{
+                                      background: 'rgba(16, 185, 129, 0.15)',
+                                      color: '#10b981',
+                                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                                      borderRadius: '4px',
+                                      padding: '2px 6px',
+                                      fontSize: '9px',
+                                      cursor: 'pointer',
+                                      fontWeight: 600,
+                                      transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.background = '#10b981';
+                                      e.currentTarget.style.color = '#fff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+                                      e.currentTarget.style.color = '#10b981';
+                                    }}
+                                  >
+                                    {localize('Load Bot')}
+                                  </button>
+                                ) : (
+                                  <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>-</span>
+                                )}
                               </td>
                             </tr>
                           );

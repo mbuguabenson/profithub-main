@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Cookies from 'js-cookie';
+import classNames from 'classnames';
 import { useStore } from '@/hooks/useStore';
 import { DBOT_TABS } from '@/constants/bot-contents';
 import { localize } from '@deriv-com/translations';
@@ -17,8 +18,10 @@ const TYPING_WORDS = [
     'Market Analysis'
 ];
 
-export const UltimateWelcomePage = observer(({ handleTabChange }: { handleTabChange: (active_number: number) => void }) => {
-    const { dashboard, load_modal, quick_strategy, client } = useStore();
+export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange }: { handleTabChange: (active_number: number) => void }) => {
+    const store = useStore();
+    if (!store) return null;
+    const { dashboard, load_modal, quick_strategy, client, scanner } = store;
     const { toggleLoadModal, setActiveTabIndex } = load_modal;
     const { setActiveTab } = dashboard;
     const { setFormVisibility } = quick_strategy;
@@ -31,7 +34,6 @@ export const UltimateWelcomePage = observer(({ handleTabChange }: { handleTabCha
     const [isDeleting, setIsDeleting] = useState(false);
     const [activeMarketsCount, setActiveMarketsCount] = useState(0);
     const [botTemplatesCount, setBotTemplatesCount] = useState(0);
-    const [showAssistantBubble, setShowAssistantBubble] = useState(false);
     const [activityIndex, setActivityIndex] = useState(0);
 
     const activityLogs = [
@@ -175,117 +177,213 @@ export const UltimateWelcomePage = observer(({ handleTabChange }: { handleTabCha
 
 
 
-            {/* Hero Main Header Section */}
-            <div className='ultimate-landing__hero'>
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, ease: 'easeOut' }}
-                    className='ultimate-landing__welcome'
-                >
-                    <h2 className='welcome-greeting'>
-                        {localize('Good')} {greeting} {userName} 👋
-                    </h2>
-                    <h3 className='welcome-subtitle'>{localize('Welcome back to Ultimate Traders.')}</h3>
-                    <p className='welcome-tagline'>{localize('Your AI trading workspace is ready. Let\'s build smarter strategies today.')}</p>
-                </motion.div>
+            {/* Redesigned Premium Two-Column Layout Grid */}
+            <div className='ultimate-landing__layout-grid'>
+                {/* Left Column: Welcome & Action Cards */}
+                <div className='ultimate-landing__left-col'>
+                    <div className='ultimate-landing__hero' style={{ textAlign: 'left', marginTop: '0px' }}>
+                        <motion.div
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                            className='ultimate-landing__welcome'
+                            style={{ marginBottom: '16px' }}
+                        >
+                            <h2 className='welcome-greeting' style={{ fontSize: '1.4rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                                {localize('Good')} {greeting} {userName} 👋
+                            </h2>
+                            <h3 className='welcome-subtitle' style={{ fontSize: '2.4rem', fontWeight: 800, margin: '6px 0' }}>
+                                {localize('Welcome back to Ultimate Traders.')}
+                            </h3>
+                        </motion.div>
 
-                {/* Animated Typing Title */}
-                <motion.h1 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className='ultimate-landing__title'
-                >
-                    {localize('Build Intelligent Trading Bots')}
-                    <span className='typing-text'> {typedText}</span>
-                    <span className='typing-cursor'>|</span>
-                </motion.h1>
+                        {/* Animated Typing Title */}
+                        <motion.h1 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className='ultimate-landing__title'
+                            style={{ fontSize: '2.1rem', fontWeight: 800, marginBottom: '12px' }}
+                        >
+                            {localize('Build Intelligent')}
+                            <span className='typing-text' style={{ color: 'var(--brand-red-1, #ff444f)' }}> {typedText}</span>
+                            <span className='typing-cursor'>|</span>
+                        </motion.h1>
 
-                <p className='ultimate-landing__subtitle'>
-                    {localize('Import an existing bot, create one from scratch, or launch an intelligent strategy powered by AI.')}
-                </p>
-            </div>
-
-            {/* Centered Bot Action Cards Row */}
-            <div className='ultimate-landing__cards-container'>
-                <div className='ultimate-landing__cards-grid'>
-                    {/* Card 1: Local Computer Import */}
-                    <motion.div
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        className='ultimate-landing__card card--blue'
-                        onClick={openFileLoader}
-                    >
-                        <div className='card__icon'>📂</div>
-                        <h3 className='card__title'>{localize('My Computer')}</h3>
-                        <p className='card__description'>
-                            {localize('Import saved trading bots from your local computer.')}
+                        <p className='ultimate-landing__subtitle' style={{ fontSize: '0.95rem', color: 'rgba(255, 255, 255, 0.5)', maxWidth: '640px', margin: '0 0 20px' }}>
+                            {localize('Import an existing bot, create one from scratch, or launch an intelligent strategy powered by AI.')}
                         </p>
-                        <div className='card__arrow'>→</div>
-                        <div className='card__glow' />
-                    </motion.div>
+                    </div>
 
-                    {/* Card 2: Google Drive Import */}
-                    <motion.div
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        className='ultimate-landing__card card--green'
-                        onClick={openGoogleDriveDialog}
-                    >
-                        <div className='card__icon'>☁️</div>
-                        <h3 className='card__title'>{localize('Google Drive')}</h3>
-                        <p className='card__description'>
-                            {localize('Open bots stored securely inside Google Drive.')}
-                        </p>
-                        <div className='card__arrow'>→</div>
-                        <div className='card__glow' />
-                    </motion.div>
+                    {/* Bot Action Cards Grid */}
+                    <div className='ultimate-landing__cards-container' style={{ margin: '0 auto 20px', width: '100%' }}>
+                        <div className='ultimate-landing__cards-grid'>
+                            {/* Card 1: Local Computer Import */}
+                            <motion.div
+                                whileHover={{ y: -6, scale: 1.01 }}
+                                className='ultimate-landing__card card--blue'
+                                onClick={openFileLoader}
+                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                            >
+                                <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>📂</div>
+                                <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('My Computer')}</h3>
+                                <p className='card__description' style={{ fontSize: '12px', margin: '0 0 16px' }}>
+                                    {localize('Import saved trading bots from your local computer.')}
+                                </p>
+                                <div className='card__arrow'>→</div>
+                                <div className='card__glow' />
+                            </motion.div>
 
-                    {/* Card 3: Bot Builder */}
-                    <motion.div
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        className='ultimate-landing__card card--emerald'
-                        onClick={openBotBuilder}
-                    >
-                        {/* Custom circuit board background pattern for AI themed card */}
-                        <div className='card__circuit-glow' />
-                        <div className='card__icon'>🤖</div>
-                        <h3 className='card__title'>{localize('Bot Builder')}</h3>
-                        <p className='card__description'>
-                            {localize('Create powerful automated trading bots visually.')}
-                        </p>
-                        <div className='card__arrow'>→</div>
-                        <div className='card__glow' />
-                    </motion.div>
+                            {/* Card 2: Google Drive Import */}
+                            <motion.div
+                                whileHover={{ y: -6, scale: 1.01 }}
+                                className='ultimate-landing__card card--green'
+                                onClick={openGoogleDriveDialog}
+                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                            >
+                                <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>☁️</div>
+                                <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('Google Drive')}</h3>
+                                <p className='card__description' style={{ fontSize: '12px', margin: '0 0 16px' }}>
+                                    {localize('Open bots stored securely inside Google Drive.')}
+                                </p>
+                                <div className='card__arrow'>→</div>
+                                <div className='card__glow' />
+                            </motion.div>
 
-                    {/* Card 4: Quick Strategy */}
-                    <motion.div
-                        whileHover={{ y: -8, scale: 1.02 }}
-                        className='ultimate-landing__card card--purple'
-                        onClick={openQuickStrategy}
-                    >
-                        <div className='card__icon'>⚡</div>
-                        <h3 className='card__title'>{localize('Quick Strategy')}</h3>
-                        <p className='card__description'>
-                            {localize('Launch ready-made trading strategies instantly.')}
-                        </p>
-                        <div className='card__arrow'>→</div>
-                        <div className='card__glow' />
-                    </motion.div>
+                            {/* Card 3: Bot Builder */}
+                            <motion.div
+                                whileHover={{ y: -6, scale: 1.01 }}
+                                className='ultimate-landing__card card--emerald'
+                                onClick={openBotBuilder}
+                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                            >
+                                <div className='card__circuit-glow' />
+                                <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>🤖</div>
+                                <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('Bot Builder')}</h3>
+                                <p className='card__description' style={{ fontSize: '12px', margin: '0 0 16px' }}>
+                                    {localize('Create powerful automated trading bots visually.')}
+                                </p>
+                                <div className='card__arrow'>→</div>
+                                <div className='card__glow' />
+                            </motion.div>
+
+                            {/* Card 4: Quick Strategy */}
+                            <motion.div
+                                whileHover={{ y: -6, scale: 1.01 }}
+                                className='ultimate-landing__card card--purple'
+                                onClick={openQuickStrategy}
+                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                            >
+                                <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>⚡</div>
+                                <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('Quick Strategy')}</h3>
+                                <p className='card__description' style={{ fontSize: '12px', margin: '0 0 16px' }}>
+                                    {localize('Launch ready-made trading strategies instantly.')}
+                                </p>
+                                <div className='card__arrow'>→</div>
+                                <div className='card__glow' />
+                            </motion.div>
+                        </div>
+                    </div>
+
+                    {/* Premium CTA Buttons */}
+                    <div className='ultimate-landing__cta' style={{ display: 'flex', gap: '12px', marginBottom: '30px' }}>
+                        <motion.button
+                            whileHover={{ scale: 1.03 }}
+                            onClick={openBotBuilder}
+                            className='cta-btn cta-btn--primary'
+                            style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px' }}
+                        >
+                            {localize('Start Trading')} <span className='arrow'>→</span>
+                        </motion.button>
+                        <button 
+                            onClick={openQuickStrategy} 
+                            className='cta-btn cta-btn--secondary'
+                            style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px' }}
+                        >
+                            {localize('Explore Features')}
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {/* Premium CTA Buttons */}
-            <div className='ultimate-landing__cta'>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    onClick={openBotBuilder}
-                    className='cta-btn cta-btn--primary'
-                >
-                    {localize('Start Trading')} <span className='arrow'>→</span>
-                </motion.button>
-                <button onClick={openQuickStrategy} className='cta-btn cta-btn--secondary'>
-                    {localize('Explore Features')}
-                </button>
+                {/* Right Column: Live AI Feed & Account Command Center */}
+                <div className='ultimate-landing__right-col'>
+                    {/* Live Account Status Widget */}
+                    <div className='ultimate-landing__right-widget widget--account'>
+                        <h4 className='widget-title'>👤 {localize('Account Command Center')}</h4>
+                        <div className='account-center-info'>
+                          <div className='info-item'>
+                            <span className='info-label'>{localize('Account Balance')}</span>
+                            <span className='info-value'>
+                              {client.is_logged_in 
+                                ? `${client.balance} ${client.currency || 'USD'}`
+                                : '0.00 USD'}
+                            </span>
+                          </div>
+                          <div className='info-item'>
+                            <span className='info-label'>{localize('Account Type')}</span>
+                            <span className='info-value info-value--type'>
+                              {client.is_logged_in 
+                                ? (client.is_virtual ? 'Demo (Virtual)' : 'Real Account')
+                                : 'Not Logged In'}
+                            </span>
+                          </div>
+                        </div>
+                    </div>
+
+                    {/* Live AI Market Scanner Widget */}
+                    <div className='ultimate-landing__right-widget widget--scanner'>
+                        <div className='widget-header'>
+                          <h4 className='widget-title'>⚡ {localize('Live AI Scanner Feed')}</h4>
+                          <span className={classNames('scanner-status-dot', { active: scanner.is_scanning })} />
+                        </div>
+
+                        <div className='scanner-feed-actions' style={{ marginBottom: '12px' }}>
+                          {!scanner.is_scanning ? (
+                            <button 
+                              onClick={() => scanner.startScanning()}
+                              className='scanner-control-btn scanner-control-btn--start'
+                            >
+                              🚀 Start AI Market Scanner
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => scanner.stopScanning()}
+                              className='scanner-control-btn scanner-control-btn--stop'
+                            >
+                              🛑 Stop Scanner (Scanning Live)
+                            </button>
+                          )}
+                        </div>
+
+                        <div className='welcome-signals-list'>
+                          {scanner.signals.length === 0 ? (
+                            <p className='scanner-empty-text'>
+                              {scanner.is_scanning 
+                                ? localize('Scanning markets for setups...') 
+                                : localize('Start the scanner to stream setups in real-time.')}
+                            </p>
+                          ) : (
+                            scanner.signals.slice(0, 3).map((sig, idx) => (
+                              <div key={idx} className='welcome-signal-card' onClick={() => {
+                                scanner.current_signal = sig;
+                                scanner.is_manual_selection = true;
+                                scanner.loadBotWithStrategy();
+                              }}>
+                                <div className='welcome-signal-card__header'>
+                                  <span className='welcome-signal-card__symbol'>{sig.symbol}</span>
+                                  <span className='welcome-signal-card__strategy'>{sig.strategy.replace('_', ' ').toUpperCase()}</span>
+                                </div>
+                                <p className='welcome-signal-card__rec'>{sig.details.recommendation}</p>
+                                <div className='welcome-signal-card__footer'>
+                                  <span className='welcome-signal-card__pct'>{(sig.confidence * 100).toFixed(0)}% CONF</span>
+                                  <span className='welcome-signal-card__action'>Load Setup →</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Trading Statistics Strip */}
@@ -312,51 +410,6 @@ export const UltimateWelcomePage = observer(({ handleTabChange }: { handleTabCha
                         </div>
                         <div className='stat-card__label'>{localize('System Status')}</div>
                     </div>
-                </div>
-            </div>
-
-            {/* Recent Activity Log (Bottom Left) */}
-            <div className='ultimate-landing__activity'>
-                <div className='activity-card'>
-                    <h4 className='activity-card__title'>{localize('Latest Activity')}</h4>
-                    <div className='activity-card__list'>
-                        {activityLogs.slice(0, activityIndex + 1).map((log, idx) => (
-                            <motion.div 
-                                key={idx}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3 }}
-                                className='activity-card__item'
-                            >
-                                <span className='check'>✓</span> {log}
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Floating AI Orb Assistant Widget (Bottom Right) */}
-            <div 
-                className='ultimate-landing__assistant'
-                onMouseEnter={() => setShowAssistantBubble(true)}
-                onMouseLeave={() => setShowAssistantBubble(false)}
-            >
-                <AnimatePresence>
-                    {showAssistantBubble && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                            className='assistant-bubble'
-                        >
-                            <p className='bubble-title'>{localize('Need help?')}</p>
-                            <p className='bubble-desc'>{localize('Ask Ultimate AI.')}</p>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                <div className='assistant-orb'>
-                    <div className='assistant-orb__inner' />
-                    <div className='assistant-orb__pulse' />
                 </div>
             </div>
 

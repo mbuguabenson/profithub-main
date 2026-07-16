@@ -276,3 +276,22 @@
         width: 31.2rem !important;
     }
 }
+
+.animation__run-button--ai-active {
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%) !important;
+    border-color: #8b5cf6 !important;
+    color: #fff !important;
+    &:hover {
+        background: linear-gradient(135deg, #c084fc 0%, #8b5cf6 100%) !important;
+        box-shadow: 0 0 10px rgba(139, 92, 246, 0.4) !important;
+    }
+}
+.animation__stop-button--ai-active {
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
+    border-color: #f472b6 !important;
+    color: #fff !important;
+    &:hover {
+        background: linear-gradient(135deg, #f472b6 0%, #ec4899 100%) !important;
+        box-shadow: 0 0 10px rgba(236, 72, 153, 0.4) !important;
+    }
+}

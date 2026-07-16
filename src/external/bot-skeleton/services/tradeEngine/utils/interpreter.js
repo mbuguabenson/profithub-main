@@ -140,8 +140,18 @@ const Interpreter = () => {
         js_interpreter.setProperty(
             scope,
             'watch',
-            createAsync(js_interpreter, watchName => {
+            createAsync(js_interpreter, async watchName => {
                 const { watch } = bot.getInterface();
+
+                if (watchName === 'before' && typeof window !== 'undefined' && window.is_bot_paused) {
+                    await new Promise(resolve => {
+                        const onResume = () => {
+                            globalObserver.unregister('bot.resume', onResume);
+                            resolve();
+                        };
+                        globalObserver.register('bot.resume', onResume);
+                    });
+                }
 
                 if (timeMachineEnabled(bot)) {
                     const snapshot = interpreter.takeStateSnapshot();

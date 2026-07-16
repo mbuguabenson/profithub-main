@@ -26,7 +26,7 @@ type TTradeAnimation = {
 };
 
 const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnimation) => {
-    const { dashboard, run_panel, summary_card, blockly_store } = useStore();
+    const { dashboard, run_panel, summary_card, blockly_store, scanner } = useStore();
     const { active_tab } = dashboard;
     const { has_active_bot, has_saved_bots } = blockly_store;
     const { isMobile } = useDevice();
@@ -121,18 +121,30 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
         if (is_stop_button_visible && !is_stop_button_disabled) {
             return {
                 id: 'db-animation__stop-button',
-                class: 'animation__stop-button',
-                text: <Localize i18n_default_text='Stop' />,
+                class: classNames('animation__stop-button', {
+                    'animation__stop-button--ai-active': scanner?.is_auto_trading,
+                }),
+                text: scanner?.is_auto_trading ? (
+                    <Localize i18n_default_text='AI Stop' />
+                ) : (
+                    <Localize i18n_default_text='Stop' />
+                ),
                 icon: <LabelPairedSquareLgFillIcon fill='#fff' />,
             };
         }
         return {
             id: 'db-animation__run-button',
-            class: 'animation__run-button',
-            text: <Localize i18n_default_text='Run' />,
+            class: classNames('animation__run-button', {
+                'animation__run-button--ai-active': scanner?.is_auto_trading,
+            }),
+            text: scanner?.is_auto_trading ? (
+                <Localize i18n_default_text='AI Run' />
+            ) : (
+                <Localize i18n_default_text='Run' />
+            ),
             icon: <LabelPairedPlayLgFillIcon fill='#fff' />,
         };
-    }, [is_stop_button_visible, is_stop_button_disabled]);
+    }, [is_stop_button_visible, is_stop_button_disabled, scanner?.is_auto_trading]);
     const show_overlay = should_show_overlay && is_contract_completed;
 
     // Fix TypeScript error by ensuring active_tab is a number

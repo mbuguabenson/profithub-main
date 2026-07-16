@@ -1,6 +1,7 @@
 import { action, makeObservable, observable } from 'mobx';
 import { api_base } from '@/external/bot-skeleton';
 import RootStore from './root-store';
+import { getLastDigitFromQuote } from '@/utils/market-data';
 
 export type TStrategyType = 'even_odd' | 'over_under' | 'matches' | 'differs' | 'rise_fall' | 'pro_even_odd' | 'pro_over_under' | 'pro_differs' | 'under_7' | 'over_2' | 'super' | '';
 export type TSignalStatus = "TRADE NOW" | "WAIT" | "NEUTRAL";
@@ -101,6 +102,7 @@ export default class ScannerStore implements IScannerStore {
   single_market_symbol: string = 'R_100';
   ticks_counter: number = 0;
   is_manual_selection = false;
+  symbol_analysis: Record<string, TAnalysisResult> = {};
 
   // Automation parameters & state
   stake = 1;
@@ -128,6 +130,7 @@ export default class ScannerStore implements IScannerStore {
       single_market_symbol: observable,
       ticks_counter: observable,
       is_manual_selection: observable,
+      symbol_analysis: observable,
       stake: observable,
       take_profit: observable,
       stop_loss: observable,
@@ -149,6 +152,8 @@ export default class ScannerStore implements IScannerStore {
       setScanMarketMode: action,
       setSingleMarketSymbol: action,
       setTicksCounter: action,
+      setSymbolAnalysis: action,
+      setAutoTrading: action,
     });
 
     this.root_store = root_store;
@@ -176,6 +181,13 @@ export default class ScannerStore implements IScannerStore {
 
   setTicksCounter = (count: number) => {
     this.ticks_counter = count;
+  };
+
+  setSymbolAnalysis = (symbol: string, analysis: TAnalysisResult) => {
+    this.symbol_analysis = {
+      ...this.symbol_analysis,
+      [symbol]: analysis,
+    };
   };
 
   setScannerVisibility = (is_open?: boolean | any) => {
@@ -225,6 +237,7 @@ export default class ScannerStore implements IScannerStore {
     this.is_scanning = true;
     this.ticks_counter = 0;
     this.is_manual_selection = false;
+    this.symbol_analysis = {};
 
     try {
       await this.analyzeMarkets();
@@ -235,7 +248,7 @@ export default class ScannerStore implements IScannerStore {
     }
   };
 
-  stopScanning = () => {
+  stopScanning = async () => {
     this.is_scanning = false;
     if (this.scanning_timeout) {
       clearTimeout(this.scanning_timeout);
@@ -248,13 +261,14 @@ export default class ScannerStore implements IScannerStore {
     this.signals = [];
     this.current_signal = null;
     this.ticks_counter = 0;
+    this.symbol_analysis = {};
   };
 
   private setupContinuousScanning = () => {
     if (this.is_scanning) {
       this.scanning_timeout = setTimeout(async () => {
         try {
-          if (this.ticks_counter >= 25) {
+          if (this.ticks_counter >= 5) {
             this.ticks_counter = 0;
             await this.analyzeMarkets();
           } else {
@@ -270,18 +284,18 @@ export default class ScannerStore implements IScannerStore {
   };
 
   // Helper: Extract last digit from quote
-  private extractLastDigit = (quote: number): number => {
-    return Math.floor(quote * 10) % 10;
+  private extractLastDigit = (quote: number, symbol: string): number => {
+    return getLastDigitFromQuote(quote, symbol);
   };
 
   // Step 1: Analyze ticks
-  analyzeTicks = (ticks: any[]): TAnalysisResult => {
+  analyzeTicks = (ticks: any[], symbol: string): TAnalysisResult => {
     if (!ticks || ticks.length === 0) {
       throw new Error('No ticks to analyze');
     }
 
     const totalTicks = ticks.length;
-    const lastDigits = ticks.map(t => this.extractLastDigit(t.quote));
+    const lastDigits = ticks.map(t => this.extractLastDigit(t.quote, symbol));
     const digitCounts = Array(10).fill(0);
     let evenCount = 0, oddCount = 0, highCount = 0, lowCount = 0;
 
@@ -367,66 +381,111 @@ export default class ScannerStore implements IScannerStore {
   };
 
   // Step 4: Generate all standard signals
-  generateAllSignals = (analysis: TAnalysisResult): Map<TStrategyType, TSignal> => {
+  generateAllSignals = (analysis: TAnalysisResult, symbol: string): Map<TStrategyType, TSignal> => {
     const signals = new Map<TStrategyType, TSignal>();
+    const prevAnalysis = this.symbol_analysis[symbol];
 
     // Even/Odd Signal
     const maxEvenOdd = Math.max(analysis.evenPercentage, analysis.oddPercentage);
     const isEvenBias = analysis.evenPercentage > analysis.oddPercentage;
-    if (maxEvenOdd >= 60) {
-      signals.set('even_odd', {
-        type: 'even_odd',
-        status: 'TRADE NOW',
-        probability: maxEvenOdd / 100,
-        recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%`,
-        entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
-        signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
-      });
-    } else if (maxEvenOdd >= 55) {
-      signals.set('even_odd', {
-        type: 'even_odd',
-        status: 'WAIT',
-        probability: maxEvenOdd / 100,
-        recommendation: `Moderate ${isEvenBias ? 'even' : 'odd'} bias at ${maxEvenOdd.toFixed(1)}%`,
-        entryCondition: 'Monitor for stronger signal'
-      });
+
+    let isEvenOddIncreasing = true;
+    if (prevAnalysis) {
+      const prevPct = isEvenBias ? prevAnalysis.evenPercentage : prevAnalysis.oddPercentage;
+      isEvenOddIncreasing = maxEvenOdd > prevPct;
+    }
+
+    const evenOddConditionMet = maxEvenOdd >= 55 && isEvenOddIncreasing;
+
+    if (evenOddConditionMet) {
+      if (maxEvenOdd >= 60) {
+        signals.set('even_odd', {
+          type: 'even_odd',
+          status: 'TRADE NOW',
+          probability: maxEvenOdd / 100,
+          recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%`,
+          entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
+          signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
+        });
+      } else {
+        signals.set('even_odd', {
+          type: 'even_odd',
+          status: 'WAIT',
+          probability: maxEvenOdd / 100,
+          recommendation: `Moderate ${isEvenBias ? 'even' : 'odd'} bias at ${maxEvenOdd.toFixed(1)}%`,
+          entryCondition: 'Monitor for stronger signal'
+        });
+      }
     } else {
       signals.set('even_odd', {
         type: 'even_odd',
         status: 'NEUTRAL',
         probability: 0,
-        recommendation: 'No clear pattern',
+        recommendation: 'No clear pattern or not increasing',
         entryCondition: ''
       });
     }
 
-    // Over/Under (Over/Under 4.5)
-    const maxHighLow = Math.max(analysis.highPercentage, analysis.lowPercentage);
-    const isHighBias = analysis.highPercentage > analysis.lowPercentage;
-    if (maxHighLow >= 62 && analysis.powerIndex.gap >= 15) {
+    // Over/Under (restricted to Over 1,2,3 and Under 6,7,8 only)
+    const isOverDominant = analysis.highPercentage >= analysis.lowPercentage;
+    const currentOverUnderPct = isOverDominant ? analysis.highPercentage : analysis.lowPercentage;
+    
+    let isOverUnderIncreasing = true;
+    if (prevAnalysis) {
+      const prevOverUnderPct = isOverDominant ? prevAnalysis.highPercentage : prevAnalysis.lowPercentage;
+      isOverUnderIncreasing = currentOverUnderPct > prevOverUnderPct;
+    }
+
+    const overUnderConditionMet = currentOverUnderPct >= 55 && isOverUnderIncreasing;
+
+    const pctOver1 = (analysis.lastDigits.filter(d => d > 1).length / analysis.totalTicks) * 100;
+    const pctOver2 = (analysis.lastDigits.filter(d => d > 2).length / analysis.totalTicks) * 100;
+    const pctOver3 = (analysis.lastDigits.filter(d => d > 3).length / analysis.totalTicks) * 100;
+
+    const pctUnder6 = (analysis.lastDigits.filter(d => d < 6).length / analysis.totalTicks) * 100;
+    const pctUnder7 = (analysis.lastDigits.filter(d => d < 7).length / analysis.totalTicks) * 100;
+    const pctUnder8 = (analysis.lastDigits.filter(d => d < 8).length / analysis.totalTicks) * 100;
+
+    const THRESHOLD = 65;
+    const WAIT_THRESHOLD = 58;
+
+    let bestOverDigit: number | null = null;
+    let maxOverPct = 0;
+    if (pctOver1 >= WAIT_THRESHOLD) { bestOverDigit = 1; maxOverPct = pctOver1; }
+    if (pctOver2 >= WAIT_THRESHOLD && pctOver2 > maxOverPct) { bestOverDigit = 2; maxOverPct = pctOver2; }
+    if (pctOver3 >= WAIT_THRESHOLD && pctOver3 > maxOverPct) { bestOverDigit = 3; maxOverPct = pctOver3; }
+
+    let bestUnderDigit: number | null = null;
+    let maxUnderPct = 0;
+    if (pctUnder8 >= WAIT_THRESHOLD) { bestUnderDigit = 8; maxUnderPct = pctUnder8; }
+    if (pctUnder7 >= WAIT_THRESHOLD && pctUnder7 > maxUnderPct) { bestUnderDigit = 7; maxUnderPct = pctUnder7; }
+    if (pctUnder6 >= WAIT_THRESHOLD && pctUnder6 > maxUnderPct) { bestUnderDigit = 6; maxUnderPct = pctUnder6; }
+
+    if (overUnderConditionMet && (bestOverDigit !== null || bestUnderDigit !== null)) {
+      const isOver = (maxOverPct >= maxUnderPct);
+      const targetDigit = isOver ? bestOverDigit! : bestUnderDigit!;
+      const prob = isOver ? maxOverPct : maxUnderPct;
+      const status = prob >= THRESHOLD ? 'TRADE NOW' : 'WAIT';
+
       signals.set('over_under', {
         type: 'over_under',
-        status: 'TRADE NOW',
-        probability: maxHighLow / 100,
-        recommendation: `Strong ${isHighBias ? 'high (Over)' : 'low (Under)'} bias at ${maxHighLow.toFixed(1)}%`,
-        entryCondition: `Trade when strongest digit appears (digit ${analysis.powerIndex.strongest})`,
-        targetDigit: analysis.powerIndex.strongest,
-        signalDetails: { bias: isHighBias ? 'high' : 'low' }
-      });
-    } else if (maxHighLow >= 58) {
-      signals.set('over_under', {
-        type: 'over_under',
-        status: 'WAIT',
-        probability: maxHighLow / 100,
-        recommendation: `Moderate ${isHighBias ? 'high' : 'low'} bias at ${maxHighLow.toFixed(1)}%`,
-        entryCondition: 'Wait for power gap to increase'
+        status,
+        probability: prob / 100,
+        recommendation: isOver 
+          ? `${status === 'TRADE NOW' ? 'Strong' : 'Moderate'} bias: Over ${targetDigit} at ${prob.toFixed(1)}%`
+          : `${status === 'TRADE NOW' ? 'Strong' : 'Moderate'} bias: Under ${targetDigit} at ${prob.toFixed(1)}%`,
+        entryCondition: isOver 
+          ? `Wait for a digit <= ${targetDigit}, then enter Over ${targetDigit}`
+          : `Wait for a digit >= ${targetDigit}, then enter Under ${targetDigit}`,
+        targetDigit,
+        signalDetails: { bias: isOver ? 'high' : 'low' }
       });
     } else {
       signals.set('over_under', {
         type: 'over_under',
         status: 'NEUTRAL',
         probability: 0,
-        recommendation: 'No clear pattern',
+        recommendation: 'No clear pattern or not increasing',
         entryCondition: ''
       });
     }
@@ -622,6 +681,8 @@ export default class ScannerStore implements IScannerStore {
           probability: pctGt1 / 100,
           recommendation: 'OVER 1 STRATEGY: Strong signal - 90%+ win rate detected!',
           entryCondition: 'Wait for 1+ UNDER digits, then enter OVER 1 immediately',
+          targetDigit: 1,
+          signalDetails: { bias: 'high' }
         });
       }
     }
@@ -648,6 +709,8 @@ export default class ScannerStore implements IScannerStore {
             probability: pctLt8 / 100,
             recommendation: 'UNDER 8 STRATEGY: Strong signal - 90%+ win rate detected!',
             entryCondition: 'Wait for 1+ OVER digits, then enter UNDER 8 immediately',
+            targetDigit: 8,
+            signalDetails: { bias: 'low' }
           });
         }
       }
@@ -708,9 +771,9 @@ export default class ScannerStore implements IScannerStore {
   };
 
   // Step 6: Generate Super Signals (Real-Time Monitoring)
-  generateSuperSignals = (analysis: TAnalysisResult): TSignal[] => {
+  generateSuperSignals = (analysis: TAnalysisResult, symbol: string): TSignal[] => {
     const activeSuperSignals: TSignal[] = [];
-    const allStd = this.generateAllSignals(analysis);
+    const allStd = this.generateAllSignals(analysis, symbol);
     const allPro = this.generateProSignals(analysis);
 
     const allMerged = new Map<TStrategyType, TSignal>();
@@ -754,12 +817,12 @@ export default class ScannerStore implements IScannerStore {
   fetchCandleDirection = async (symbol: string): Promise<'up' | 'down' | 'neutral'> => {
     try {
       if (!api_base.api) return 'neutral';
-      const response = await api_base.api.send({
+      const response = await (api_base.api as any).send({
         ticks_history: symbol,
         granularity: 1800, // 30 mins
         count: 2,
         style: 'candles',
-      });
+      }) as any;
       if (response && response.candles && response.candles.length > 0) {
         const candles = response.candles;
         const latestCandle = candles[candles.length - 1];
@@ -884,58 +947,104 @@ export default class ScannerStore implements IScannerStore {
       if (run_panel.is_running && run_panel.is_paused) {
         console.log(`[ScannerStore] Market power aligned (confidence: ${activeSignal.confidence}). Resuming bot...`);
         run_panel.onResumeFromPause();
+      } else if (!run_panel.is_running) {
+        console.log(`[ScannerStore] Strong signal detected (confidence: ${activeSignal.confidence}). Loading and starting bot...`);
+        this.loadBotWithStrategy().then(() => {
+          setTimeout(() => {
+            run_panel.onRunButtonClick();
+          }, 1500);
+        });
       }
     }
   };
 
-  private analyzeMarkets = async () => {
-    const TicksService = (await import('@/external/bot-skeleton/services/api/ticks_service')).default;
-    const ticksService = new TicksService();
+  setAutoTrading = (is_auto: boolean) => {
+    this.is_auto_trading = is_auto;
+  };
 
-    // Clear old signals
-    this.signals = [];
-    if (!this.is_manual_selection) {
-      this.current_signal = null;
+  private analyzeMarkets = async () => {
+    if (!api_base.api) {
+      console.warn('[ScannerStore] Deriv API client not initialized.');
+      return;
     }
+
+    // Start with a copy of existing signals
+    let updatedSignals = [...this.signals];
 
     const symbolsToScan = this.scan_market_mode === 'single'
       ? [this.single_market_symbol]
       : this.selected_symbols;
 
-    for (const symbol of symbolsToScan) {
-      try {
-        const ticks = await ticksService.request({
-          symbol,
-          count: 120 // Updated to scan 120 ticks
-        });
+    await Promise.all(
+      symbolsToScan.map(async (symbol) => {
+        try {
+          const r = await Promise.race([
+            (api_base.api as any).send({
+              ticks_history: symbol,
+              end: 'latest',
+              count: 120,
+              style: 'ticks',
+            }),
+            new Promise<any>((_, reject) =>
+              setTimeout(() => reject(new Error('Scanner request timeout')), 2500)
+            ),
+          ]);
 
-        if (ticks && ticks.length > 0) {
-          const analysisResult = this.analyzeTicks(ticks);
-          const allStd = this.generateAllSignals(analysisResult);
-          const allPro = this.generateProSignals(analysisResult);
-          
-          for (const strat of this.selected_strategies) {
-            if (strat === 'super') {
-              const superSignals = this.generateSuperSignals(analysisResult);
-              for (const signal of superSignals) {
-                const isConfirmed = await this.checkSignalConfirmation(symbol, signal.type, signal, analysisResult);
-                if (isConfirmed) {
-                  const scanSignal: TScanSignal = {
-                    symbol,
-                    strategy: signal.type,
-                    confidence: signal.probability,
-                    timestamp: Date.now(),
-                    details: signal,
-                    analysisResult
-                  };
-                  this.addSignal(scanSignal);
+          const ticks: { epoch: number; quote: number }[] = [];
+          if (r && r.history && r.history.prices) {
+            const { prices, times } = r.history;
+            for (let i = 0; i < prices.length; i++) {
+              ticks.push({
+                epoch: Number(times[i]),
+                quote: Number(prices[i]),
+              });
+            }
+          }
+
+          if (ticks && ticks.length > 0) {
+            const analysisResult = this.analyzeTicks(ticks, symbol);
+            this.setSymbolAnalysis(symbol, analysisResult);
+
+            const allStd = this.generateAllSignals(analysisResult, symbol);
+            const allPro = this.generateProSignals(analysisResult);
+
+            for (const strat of this.selected_strategies) {
+              if (strat === 'super') {
+                const superSignals = this.generateSuperSignals(analysisResult, symbol);
+
+                for (const signal of superSignals) {
+                  const isConfirmed = await this.checkSignalConfirmation(symbol, signal.type, signal, analysisResult);
+                  const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === signal.type);
+
+                  if (isConfirmed) {
+                    const scanSignal: TScanSignal = {
+                      symbol,
+                      strategy: signal.type,
+                      confidence: signal.probability,
+                      timestamp: Date.now(),
+                      details: signal,
+                      analysisResult
+                    };
+                    if (idx > -1) {
+                      updatedSignals[idx] = scanSignal;
+                    } else {
+                      updatedSignals.push(scanSignal);
+                    }
+                  } else {
+                    if (idx > -1) {
+                      updatedSignals.splice(idx, 1);
+                    }
+                  }
                 }
-              }
-            } else {
-              const signal = allStd.get(strat) || allPro.get(strat);
-              if (signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT')) {
-                const isConfirmed = await this.checkSignalConfirmation(symbol, strat, signal, analysisResult);
-                if (isConfirmed) {
+              } else {
+                const signal = allStd.get(strat) || allPro.get(strat);
+                const isConfirmed = signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT')
+                  ? await this.checkSignalConfirmation(symbol, strat, signal, analysisResult)
+                  : false;
+
+                const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === strat);
+
+                if (signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT') && isConfirmed) {
                   const scanSignal: TScanSignal = {
                     symbol,
                     strategy: strat,
@@ -944,14 +1053,43 @@ export default class ScannerStore implements IScannerStore {
                     details: signal,
                     analysisResult
                   };
-                  this.addSignal(scanSignal);
+                  if (idx > -1) {
+                    updatedSignals[idx] = scanSignal;
+                  } else {
+                    updatedSignals.push(scanSignal);
+                  }
+                } else {
+                  // Remove from active signals since the signal power changed to NEUTRAL or failed confirmation
+                  if (idx > -1) {
+                    updatedSignals.splice(idx, 1);
+                  }
                 }
               }
             }
           }
+        } catch (error) {
+          console.error(`[ScannerStore] Error analyzing symbol ${symbol}:`, error);
         }
-      } catch (error) {
-        console.error(`[ScannerStore] Error analyzing symbol ${symbol}:`, error);
+      })
+    );
+
+    // Keep unique signals and sort by confidence
+    const uniqueSignals = new Map<string, TScanSignal>();
+    for (const sig of updatedSignals) {
+      const key = `${sig.symbol}-${sig.strategy}`;
+      uniqueSignals.set(key, sig);
+    }
+    
+    this.signals = Array.from(uniqueSignals.values())
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 20);
+
+    // Update current signal if not manually selected
+    if (!this.is_manual_selection) {
+      if (this.signals.length > 0) {
+        this.current_signal = this.signals[0];
+      } else {
+        this.current_signal = null;
       }
     }
 
@@ -997,11 +1135,24 @@ export default class ScannerStore implements IScannerStore {
       formData.prediction = this.current_signal.details.targetDigit.toString();
     }
 
-    const bias = this.current_signal.details.signalDetails?.bias;
-    if (bias === 'even') formData.type = 'DIGITEVEN';
-    else if (bias === 'odd') formData.type = 'DIGITODD';
-    else if (bias === 'high') formData.type = 'DIGITOVER';
-    else if (bias === 'low') formData.type = 'DIGITUNDER';
+    const strategy = this.current_signal.strategy;
+    if (strategy === 'matches') {
+      formData.type = 'DIGITMATCH';
+    } else if (strategy === 'differs' || strategy === 'pro_differs') {
+      formData.type = 'DIGITDIFF';
+    } else if (strategy === 'under_7') {
+      formData.type = 'DIGITUNDER';
+      formData.prediction = '7';
+    } else if (strategy === 'over_2') {
+      formData.type = 'DIGITOVER';
+      formData.prediction = '2';
+    } else {
+      const bias = this.current_signal.details.signalDetails?.bias;
+      if (bias === 'even') formData.type = 'DIGITEVEN';
+      else if (bias === 'odd') formData.type = 'DIGITODD';
+      else if (bias === 'high') formData.type = 'DIGITOVER';
+      else if (bias === 'low') formData.type = 'DIGITUNDER';
+    }
 
     await quick_strategy.onSubmit(formData);
   };

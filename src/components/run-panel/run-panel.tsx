@@ -257,7 +257,7 @@ const StatisticsInfoModal = ({
 };
 
 const RunPanel = observer(() => {
-    const { run_panel, dashboard, transactions } = useStore();
+    const { run_panel, dashboard, transactions, scanner } = useStore();
     const { client } = useStore();
     const { isDesktop } = useDevice();
     const { currency } = client;
@@ -363,6 +363,74 @@ const RunPanel = observer(() => {
                     width={366}
                     zIndex={popover_zindex.RUN_PANEL}
                 >
+                    <div className='ai-automation-panel' style={{
+                      background: 'rgba(255, 68, 79, 0.05)',
+                      borderBottom: '1px solid rgba(255, 68, 79, 0.15)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      flexShrink: 0
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', color: '#fff' }}>
+                          🤖 {localize('AI Full Automation')}
+                        </span>
+                        <button
+                          onClick={() => scanner.setAutoTrading(!scanner.is_auto_trading)}
+                          style={{
+                            background: scanner.is_auto_trading ? '#10b981' : 'rgba(255, 255, 255, 0.1)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '20px',
+                            padding: '4px 12px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {scanner.is_auto_trading ? localize('ACTIVE') : localize('INACTIVE')}
+                        </button>
+                      </div>
+
+                      {scanner.is_auto_trading && (
+                        <div style={{
+                          background: 'rgba(255, 255, 255, 0.02)',
+                          border: '1px solid rgba(255, 255, 255, 0.05)',
+                          borderRadius: '8px',
+                          padding: '10px',
+                          fontSize: '11px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          color: '#cbd5e1'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Active Setup')}:</span>
+                            <span style={{ fontWeight: 700, color: '#4f8fff' }}>
+                              {scanner.current_signal 
+                                ? `${scanner.current_signal.symbol} (${scanner.current_signal.strategy.replace('_', ' ').toUpperCase()})`
+                                : localize('Waiting for signal...')}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Confidence Score')}:</span>
+                            <span style={{ fontWeight: 700, color: '#10b981' }}>
+                              {scanner.current_signal 
+                                ? `${(scanner.current_signal.confidence * 100).toFixed(0)}%`
+                                : '-'}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Auto-Pause Protection')}:</span>
+                            <span style={{ fontWeight: 700, color: '#ff444f' }}>
+                              {localize('Smart Scan Active (< 60% pause)')}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     {content}
                 </Drawer>
                 {!isDesktop && <MobileDrawerFooter />}

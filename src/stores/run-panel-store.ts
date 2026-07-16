@@ -212,6 +212,10 @@ export default class RunPanelStore {
         );
         runInAction(() => {
             this.setIsRunning(true);
+            this.is_paused = false;
+            if (typeof window !== 'undefined') {
+                (window as any).is_bot_paused = false;
+            }
             ui.setPromptHandler(true);
             this.toggleDrawer(true);
             this.run_id = `run-${Date.now()}`;
@@ -250,6 +254,9 @@ export default class RunPanelStore {
         runInAction(() => {
             this.setIsRunning(true);
             this.is_paused = false;
+            if (typeof window !== 'undefined') {
+                (window as any).is_bot_paused = false;
+            }
             ui.setPromptHandler(true);
             this.toggleDrawer(true);
             this.setContractStage(contract_stages.STARTING);
@@ -263,6 +270,9 @@ export default class RunPanelStore {
     onPauseButtonClick = () => {
         runInAction(() => {
             this.is_paused = true;
+            if (typeof window !== 'undefined') {
+                (window as any).is_bot_paused = true;
+            }
         });
     };
 
@@ -270,8 +280,18 @@ export default class RunPanelStore {
     onResumeFromPause = () => {
         runInAction(() => {
             this.is_paused = false;
+            if (typeof window !== 'undefined') {
+                (window as any).is_bot_paused = false;
+            }
         });
         try {
+            observer.emit('bot.resume');
+            
+            // If the interpreter loop is active, emitting bot.resume is sufficient.
+            if (this.dbot?.interpreter) {
+                return;
+            }
+
             const tradeEngine = this.dbot?.interpreter?.bot?.tradeEngine;
             if (tradeEngine) {
                 // If trade engine is present, trigger start with saved options to resume loop
@@ -283,7 +303,7 @@ export default class RunPanelStore {
             // Fallback: re-run the bot if options or engine not present
             this.dbot.runBot();
         } catch (e) {
-            console.warn('Direct resume failed, falling back to runBot:', e);
+            console.error('[RunPanelStore] Failed to resume bot:', e);
             this.dbot.runBot();
         }
     };
