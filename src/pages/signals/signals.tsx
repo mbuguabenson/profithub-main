@@ -1,19 +1,20 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
-import { tickSubscriber } from './engine/TickSubscriber';
+import { tickSubscriber, SignalWithSymbol, EngineState } from './engine/TickSubscriber';
 import { SignalCard } from './components/SignalCard';
-import { AnalysisResult, Signal } from './engine/SignalEngine';
+import { AnalysisResult } from './engine/SignalEngine';
 import './signals.scss';
 
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 
 const Signals = observer(() => {
-    const [market, setMarket] = useState('R_100');
+    const [market, setMarket] = useState('ALL');
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-    const [standard, setStandard] = useState<Signal[]>([]);
-    const [pro, setPro] = useState<Signal[]>([]);
-    const [superSignals, setSuperSignals] = useState<Signal[]>([]);
+    const [standard, setStandard] = useState<SignalWithSymbol[]>([]);
+    const [pro, setPro] = useState<SignalWithSymbol[]>([]);
+    const [superSignals, setSuperSignals] = useState<SignalWithSymbol[]>([]);
     const [availableMarkets, setAvailableMarkets] = useState<{value: string, label: string}[]>([
+        { value: 'ALL', label: 'All Markets (Multi-Scan)' },
         { value: 'R_100', label: 'Volatility 100 Index' }
     ]);
 
@@ -33,17 +34,20 @@ const Signals = observer(() => {
                 }));
             
             if (symbols.length > 0) {
-                setAvailableMarkets(symbols);
+                setAvailableMarkets([
+                    { value: 'ALL', label: 'All Markets (Multi-Scan)' },
+                    ...symbols
+                ]);
             }
         }
     }, [api_base.active_symbols]);
 
     useEffect(() => {
-        const handleState = (state: { analysis: AnalysisResult | null, standard: Signal[], pro: Signal[], super: Signal[] }) => {
+        const handleState = (state: EngineState) => {
             setAnalysis(state.analysis);
-            setStandard(state.standard.filter(s => s.status !== 'NEUTRAL'));
-            setPro(state.pro.filter(s => s.status !== 'NEUTRAL'));
-            setSuperSignals(state.super);
+            setStandard(state.standard.filter(s => s.status !== 'NEUTRAL').slice(0, 50));
+            setPro(state.pro.filter(s => s.status !== 'NEUTRAL').slice(0, 50));
+            setSuperSignals(state.super.slice(0, 50));
         };
 
         tickSubscriber.subscribe(handleState);

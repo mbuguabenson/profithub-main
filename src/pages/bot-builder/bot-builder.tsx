@@ -13,7 +13,7 @@ import QuickStrategy1 from './quick-strategy';
 import WorkspaceWrapper from './workspace-wrapper';
 import { DBOT_TABS } from '@/constants/bot-contents';
 
-import AutoTrades from '@/pages/auto-trades/auto-trades';
+import Signals from '@/pages/signals/signals';
 import MobileFullPageModal from '@/components/shared_ui/mobile-full-page-modal';
 
 const BotBuilder = observer(() => {
@@ -207,7 +207,7 @@ const BotBuilder = observer(() => {
                             }}
                         >
                             <h3 style={{ fontSize: '1.4rem', fontWeight: 600, color: 'var(--text-prominent)', margin: 0 }}>
-                                {localize('ProTool AI Workspace Assistant')}
+                                {localize('Premium AI Signals Engine')}
                             </h3>
                             <button
                                 onClick={() => dashboard.setProToolAssistantVisibility(false)}
@@ -224,8 +224,8 @@ const BotBuilder = observer(() => {
                             </button>
                         </div>
                         <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <React.Suspense fallback={<div>Loading ProTool AI...</div>}>
-                                <AutoTrades isModal={true} />
+                            <React.Suspense fallback={<div>Loading Premium Signals...</div>}>
+                                <Signals />
                             </React.Suspense>
                         </div>
                     </div>
@@ -239,13 +239,13 @@ const BotBuilder = observer(() => {
             {showSidebar && !isDesktop && (
                 <MobileFullPageModal
                     is_modal_open={showSidebar}
-                    header={localize('ProTool AI')}
+                    header={localize('Premium AI Signals Engine')}
                     onClickClose={() => dashboard.setProToolAssistantVisibility(false)}
                     height_offset='80px'
                 >
                     <div className='protool-ai-modal-body'>
-                        <React.Suspense fallback={<div>Loading ProTool AI...</div>}>
-                            <AutoTrades isModal={true} />
+                        <React.Suspense fallback={<div>Loading Premium Signals...</div>}>
+                            <Signals />
                         </React.Suspense>
                     </div>
                 </MobileFullPageModal>

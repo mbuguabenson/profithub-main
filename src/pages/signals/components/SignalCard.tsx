@@ -1,10 +1,11 @@
 import React from 'react';
 import clsx from 'clsx';
-import { Signal, SignalStatus } from '../engine/SignalEngine';
+import { SignalStatus } from '../engine/SignalEngine';
+import { SignalWithSymbol } from '../engine/TickSubscriber';
 import './SignalCard.scss';
 
 interface SignalCardProps {
-    signal: Signal;
+    signal: SignalWithSymbol;
     isSuper?: boolean;
 }
 
@@ -33,7 +34,14 @@ export const SignalCard: React.FC<SignalCardProps> = ({ signal, isSuper = false 
     return (
         <div className={clsx('signal-card', isSuper && 'super-signal', getStatusClass(signal.status))}>
             <div className="signal-card__header">
-                <h3 className="signal-card__title">{formatType(signal.type)}</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <h3 className="signal-card__title">{formatType(signal.type)}</h3>
+                    {signal.symbol && (
+                        <span style={{ fontSize: '0.75rem', color: '#f5c542', fontWeight: 600 }}>
+                            {signal.symbol.toUpperCase()}
+                        </span>
+                    )}
+                </div>
                 <span className={clsx('signal-card__badge', getStatusClass(signal.status))}>
                     {signal.status}
                 </span>
