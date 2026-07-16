@@ -19,6 +19,15 @@ import ToolboxStore from './toolbox-store';
 import TransactionsStore from './transactions-store';
 import UiStore from './ui-store';
 import ScannerStore from './scanner-store';
+import AccountFlipperStore from './account-flipper-store';
+import AutoTraderStore from './auto-trader-store';
+import DigitCrackerStore from './digit-cracker-store';
+import MarketkillerStore from './marketkiller-store';
+import OverUnderStore from './over-under-store';
+import SmartAutoStore from './smart-auto-store';
+import SmartTradingStore from './smart-trading-store';
+import CopyTraderStore from './copy-trader-store';
+import FreeBotsStore from './free-bots-store';
 
 // TODO: need to write types for the individual classes and convert them to ts
 export default class RootStore {
@@ -39,6 +48,16 @@ export default class RootStore {
     public scanner: ScannerStore;
 
     public dashboard: DashboardStore;
+
+    public account_flipper: AccountFlipperStore;
+    public auto_trader: AutoTraderStore;
+    public digit_cracker: DigitCrackerStore;
+    public marketkiller: MarketkillerStore;
+    public over_under: OverUnderStore;
+    public smart_auto: SmartAutoStore;
+    public smart_trading: SmartTradingStore;
+    public copy_trader: CopyTraderStore;
+    public free_bots: FreeBotsStore;
 
     public chart_store: ChartStore;
     public blockly_store: BlocklyStore;
@@ -79,6 +98,16 @@ export default class RootStore {
         this.toolbox = new ToolboxStore(this, this.core);
         this.quick_strategy = new QuickStrategyStore(this);
         this.scanner = new ScannerStore(this);
+
+        this.account_flipper = new AccountFlipperStore(this);
+        this.auto_trader = new AutoTraderStore(this);
+        this.digit_cracker = new DigitCrackerStore(this);
+        this.marketkiller = new MarketkillerStore(this);
+        this.over_under = new OverUnderStore(this);
+        this.smart_auto = new SmartAutoStore(this);
+        this.smart_trading = new SmartTradingStore(this);
+        this.copy_trader = new CopyTraderStore(this);
+        this.free_bots = new FreeBotsStore(this);
 
         this.dashboard = new DashboardStore(this, this.core);
 

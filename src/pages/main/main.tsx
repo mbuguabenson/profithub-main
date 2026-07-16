@@ -24,6 +24,8 @@ import {
     LabelPairedChartLineCaptionRegularIcon,
     LabelPairedObjectsColumnCaptionRegularIcon,
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
+    LabelPairedLightbulbCaptionRegularIcon,
+    LabelPairedSignalCaptionRegularIcon,
 } from '@deriv/quill-icons/LabelPaired';
 import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@deriv/quill-icons/Legacy';
 import { Localize, localize } from '@deriv-com/translations';
@@ -36,6 +38,63 @@ import Scanner from '../bot-builder/scanner/scanner';
 import Tutorials from '../tutorials';
 import './main.scss';
 
+const Quantum24hAutoTraderIcon = () => (
+    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg' style={{ marginRight: '8px' }}>
+        <circle cx='12' cy='12' r='10' fill='url(#quantum-gradient1)' />
+        <path d='M12 5V19M5 12H19' stroke='url(#quantum-gradient2)' strokeWidth='2' strokeLinecap='round' />
+        <circle cx='12' cy='12' r='3' fill='url(#quantum-gradient3)' />
+        <defs>
+            <radialGradient id='quantum-gradient1'>
+                <stop stopColor='#00ff88' offset='0%' />
+                <stop stopColor='#00ccff' offset='100%' />
+            </radialGradient>
+            <linearGradient id='quantum-gradient2' x1='0%' y1='0%' x2='100%' y2='100%'>
+                <stop stopColor='#ff00ff' offset='0%' />
+                <stop stopColor='#00ffff' offset='100%' />
+            </linearGradient>
+            <radialGradient id='quantum-gradient3'>
+                <stop stopColor='#ffff00' />
+                <stop stopColor='#ff00ff' offset='100%' />
+            </radialGradient>
+        </defs>
+    </svg>
+);
+
+const TradingEngineIcon = () => (
+    <svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg' style={{ marginRight: '8px' }}>
+        <g fill='url(#engine-gradient1)'>
+            <rect x='2' y='2' width='8' height='8' rx='2' />
+        </g>
+        <g fill='url(#engine-gradient2)'>
+            <rect x='14' y='2' width='8' height='8' rx='2' />
+        </g>
+        <g fill='url(#engine-gradient3)'>
+            <rect x='2' y='14' width='8' height='8' rx='2' />
+        </g>
+        <g fill='url(#engine-gradient4)'>
+            <rect x='14' y='14' width='8' height='8' rx='2' />
+        </g>
+        <defs>
+            <linearGradient id='engine-gradient1' x1='2' y1='2' x2='10' y2='10' gradientUnits='userSpaceOnUse'>
+                <stop stopColor='#FF6B6B' />
+                <stop offset='1' stopColor='#FF8E8E' />
+            </linearGradient>
+            <linearGradient id='engine-gradient2' x1='14' y1='2' x2='22' y2='10' gradientUnits='userSpaceOnUse'>
+                <stop stopColor='#4ECDC4' />
+                <stop offset='1' stopColor='#6EE7DF' />
+            </linearGradient>
+            <linearGradient id='engine-gradient3' x1='2' y1='14' x2='10' y2='22' gradientUnits='userSpaceOnUse'>
+                <stop stopColor='#45B7D1' />
+                <stop offset='1' stopColor='#6BC9E3' />
+            </linearGradient>
+            <linearGradient id='engine-gradient4' x1='14' y1='14' x2='22' y2='22' gradientUnits='userSpaceOnUse'>
+                <stop stopColor='#F9CA24' />
+                <stop offset='1' stopColor='#FDD835' />
+            </linearGradient>
+        </defs>
+    </svg>
+);
+
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 
 const TradingView = lazy(() => import('../tradingview'));
@@ -45,6 +104,19 @@ const Signals = lazy(() => import('../signals'));
 const AutoTrades = lazy(() => import('../auto-trades/auto-trades'));
 const ScannerPage = lazy(() => import('../scanner/scanner'));
 import TradingBots from '../free-bots/trading-bots';
+
+const AccountFlipper = lazy(() => import('../account-flipper'));
+const AutoTrader = lazy(() => import('../auto-trader'));
+const CirclesAnalysis = lazy(() => import('../circles-analysis'));
+const DigitCracker = lazy(() => import('../digit-cracker'));
+const EasyTool = lazy(() => import('../easy-tool'));
+const Marketkiller = lazy(() => import('../marketkiller'));
+const MultiTrader = lazy(() => import('../multi-trader'));
+const OverUnderAnalysisPage = lazy(() => import('../over-under'));
+const Quantum24h = lazy(() => import('../quantum-24h'));
+const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
+const Toolhub = lazy(() => import('../toolhub/toolhub'));
+const TradingEngine = lazy(() => import('../trading-engine'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -90,6 +162,18 @@ const AppWrapper = observer(() => {
         'signals',
         'auto_trades',
         'scanner',
+        'account_flipper',
+        'auto_trader',
+        'circles_analysis',
+        'digit_cracker',
+        'easy_tool',
+        'marketkiller',
+        'multi_trader',
+        'over_under_analysis',
+        'quantum_24h',
+        'smart_trading',
+        'toolhub',
+        'trading_engine',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -476,6 +560,174 @@ const AppWrapper = observer(() => {
                                     fallback={<ChunkLoader message={localize('Please wait, loading Scanner...')} />}
                                 >
                                     <ScannerPage />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Account Flipper' />
+                                    </>
+                                }
+                                id='id-account-flipper'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Account Flipper...')} />}>
+                                    <AccountFlipper />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Auto Trader' />
+                                    </>
+                                }
+                                id='id-auto-trader'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Auto Trader...')} />}>
+                                    <AutoTrader />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Circle Analysis' />
+                                    </>
+                                }
+                                id='id-circles-analysis'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Circle Analysis...')} />}>
+                                    <CirclesAnalysis />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Digit Cracker' />
+                                    </>
+                                }
+                                id='id-digit-cracker'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Digit Cracker...')} />}>
+                                    <DigitCracker />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Easytool' />
+                                    </>
+                                }
+                                id='id-easy-tool'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Easy Tool...')} />}>
+                                    <EasyTool />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Marketkiller' />
+                                    </>
+                                }
+                                id='id-marketkiller'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Marketkiller...')} />}>
+                                    <Marketkiller />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedObjectsColumnCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Multitrader' />
+                                    </>
+                                }
+                                id='id-multi-trader'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Multi Trader...')} />}>
+                                    <MultiTrader />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Over Under' />
+                                    </>
+                                }
+                                id='id-over-under'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Over/Under Analysis...')} />}>
+                                    <OverUnderAnalysisPage />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <Quantum24hAutoTraderIcon />
+                                        <Localize i18n_default_text='Quantum 24H' />
+                                    </>
+                                }
+                                id='id-quantum-24h'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Quantum 24H Auto Trader...')} />}>
+                                    <Quantum24h />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedSignalCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Smarttrading' />
+                                    </>
+                                }
+                                id='id-smart-trading'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Smart Trading...')} />}>
+                                    <SignalCentrePage />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedLightbulbCaptionRegularIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Toolhub' />
+                                    </>
+                                }
+                                id='id-toolhub'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Toolhub...')} />}>
+                                    <Toolhub />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <TradingEngineIcon />
+                                        <Localize i18n_default_text='Trading Engine' />
+                                    </>
+                                }
+                                id='id-trading-engine'
+                            >
+                                <Suspense fallback={<ChunkLoader message={localize('Loading Trading Engine...')} />}>
+                                    <TradingEngine />
                                 </Suspense>
                             </div>
                         </Tabs>
