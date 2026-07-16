@@ -1,5 +1,6 @@
-import { clearCodeVerifier, getCodeVerifier, isProduction } from '@/components/shared';
+import { clearCodeVerifier, getDomainConfig, getCodeVerifier, isProduction } from '@/components/shared';
 import { ErrorLogger } from '@/utils/error-logger';
+import { isDemoAccount } from '@/utils/account-helpers';
 import brandConfig from '../../brand.config.json';
 
 /**
@@ -15,8 +16,10 @@ interface TokenExchangeResponse {
     error_description?: string;
 }
 
+const AUTH_INFO_KEY = 'auth_info';
+
 /**
- * Authentication information stored in sessionStorage
+ * Authentication information stored in localStorage so login survives browser restarts.
  */
 interface AuthInfo {
     access_token: string;
@@ -40,13 +43,19 @@ export class OAuthTokenExchangeService {
         return brandConfig.platform.auth2_url[environment];
     }
 
+    private static storeAuthInfo(authInfo: AuthInfo): void {
+        const payload = JSON.stringify(authInfo);
+        localStorage.setItem(AUTH_INFO_KEY, payload);
+        sessionStorage.setItem(AUTH_INFO_KEY, payload);
+    }
+
     /**
-     * Get stored authentication info from sessionStorage
+     * Get stored authentication info from localStorage with sessionStorage fallback.
      * @returns AuthInfo object or null if not found or expired
      */
-    static getAuthInfo(): AuthInfo | null {
+    static getAuthInfo({ allowExpiredWithRefresh = false } = {}): AuthInfo | null {
         try {
-            const authInfoStr = sessionStorage.getItem('auth_info');
+            const authInfoStr = localStorage.getItem(AUTH_INFO_KEY) || sessionStorage.getItem(AUTH_INFO_KEY);
             if (!authInfoStr) {
                 return null;
             }
@@ -55,6 +64,9 @@ export class OAuthTokenExchangeService {
 
             // Check if token is expired
             if (authInfo.expires_at && Date.now() >= authInfo.expires_at) {
+                if (allowExpiredWithRefresh && authInfo.refresh_token) {
+                    return authInfo;
+                }
                 this.clearAuthInfo();
                 return null;
             }
@@ -67,10 +79,11 @@ export class OAuthTokenExchangeService {
     }
 
     /**
-     * Clear authentication info from sessionStorage
+     * Clear authentication info from storage
      */
     static clearAuthInfo(): void {
-        sessionStorage.removeItem('auth_info');
+        localStorage.removeItem(AUTH_INFO_KEY);
+        sessionStorage.removeItem(AUTH_INFO_KEY);
     }
 
     /**
@@ -130,20 +143,24 @@ export class OAuthTokenExchangeService {
             // - grant_type: 'authorization_code'
             // - code: the authorization code
             // - redirect_uri: must match the one used in authorization request
-            // - client_id: your OAuth2 client ID
+            // - client_id: your OAuth2 client ID (MUST match the one used in generateOAuthURL)
             // - code_verifier: the PKCE code verifier (proves we initiated the auth flow)
 
-            const clientId = process.env.CLIENT_ID;
+            // Get clientId from domain config (same source as generateOAuthURL to ensure consistency)
+            const { clientId } = getDomainConfig();
             if (!clientId) {
-                ErrorLogger.error('OAuth', 'CLIENT_ID environment variable is not set');
+                ErrorLogger.error('OAuth', 'CLIENT_ID not configured in getDomainConfig()');
                 return {
                     error: 'invalid_client',
-                    error_description: 'CLIENT_ID is not configured. Please set the CLIENT_ID environment variable.',
+                    error_description: 'CLIENT_ID is not configured. Please check DOMAIN_CONFIG.',
                 };
             }
 
-            // Build redirect URL - dynamic to support both local development and production
-            const redirectUrl = window.location.origin;
+            // Must exactly match the redirect_uri used in the authorization request.
+            // getDomainConfig() picks the correct registered URI from DOMAIN_CONFIG
+            // based on the current hostname, so it always matches regardless of
+            // which domain the user is visiting from.
+            const redirectUrl = getDomainConfig().redirectUri;
 
             const requestBody = new URLSearchParams({
                 grant_type: 'authorization_code',
@@ -195,8 +212,7 @@ export class OAuthTokenExchangeService {
                     authInfo.refresh_token = data.refresh_token;
                 }
 
-                // Store as JSON string
-                sessionStorage.setItem('auth_info', JSON.stringify(authInfo));
+                this.storeAuthInfo(authInfo);
 
                 // Immediately fetch accounts and initialize WebSocket after token exchange
                 try {
@@ -214,8 +230,7 @@ export class OAuthTokenExchangeService {
                         localStorage.setItem('active_loginid', firstAccount.account_id);
 
                         // Set account type
-                        const isDemo =
-                            firstAccount.account_id.startsWith('VRT') || firstAccount.account_id.startsWith('VRTC');
+                        const isDemo = isDemoAccount(firstAccount.account_id);
                         localStorage.setItem('account_type', isDemo ? 'demo' : 'real');
 
                         ErrorLogger.info('OAuth', 'Accounts fetched and stored', {
@@ -313,14 +328,13 @@ export class OAuthTokenExchangeService {
                     authInfo.refresh_token = data.refresh_token;
                 } else {
                     // Keep the existing refresh token if new one not provided
-                    const existingAuth = this.getAuthInfo();
+                    const existingAuth = this.getAuthInfo({ allowExpiredWithRefresh: true });
                     if (existingAuth?.refresh_token) {
                         authInfo.refresh_token = existingAuth.refresh_token;
                     }
                 }
 
-                // Store updated auth info
-                sessionStorage.setItem('auth_info', JSON.stringify(authInfo));
+                this.storeAuthInfo(authInfo);
             }
 
             return data;
