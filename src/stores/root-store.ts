@@ -28,6 +28,7 @@ import SmartAutoStore from './smart-auto-store';
 import SmartTradingStore from './smart-trading-store';
 import CopyTraderStore from './copy-trader-store';
 import FreeBotsStore from './free-bots-store';
+import DollarflipperStore from './dollarflipper-store';
 
 // TODO: need to write types for the individual classes and convert them to ts
 export default class RootStore {
@@ -58,6 +59,7 @@ export default class RootStore {
     public smart_trading: SmartTradingStore;
     public copy_trader: CopyTraderStore;
     public free_bots: FreeBotsStore;
+    public dollarflipper: DollarflipperStore;
 
     public chart_store: ChartStore;
     public blockly_store: BlocklyStore;
@@ -98,8 +100,10 @@ export default class RootStore {
         this.toolbox = new ToolboxStore(this, this.core);
         this.quick_strategy = new QuickStrategyStore(this);
         this.scanner = new ScannerStore(this);
+        this.dollarflipper = new DollarflipperStore(this);
 
         this.account_flipper = new AccountFlipperStore(this);
+        this.dashboard = new DashboardStore(this);
         this.auto_trader = new AutoTraderStore(this);
         this.digit_cracker = new DigitCrackerStore(this);
         this.marketkiller = new MarketkillerStore(this);

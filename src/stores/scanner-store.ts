@@ -69,8 +69,10 @@ interface IScannerStore {
   alternate_after_losses: boolean;
   loss_threshold: number;
   is_auto_trading: boolean;
+  is_full_ai_automation: boolean;
   consecutive_losses: number;
   last_trade_result: 'WIN' | 'LOSS' | null;
+  signal_sequence_id: string | null;
 
   setScannerVisibility: (is_open?: boolean) => void;
   setSelectedStrategy: (strategy: TStrategyType) => void;
@@ -83,6 +85,7 @@ interface IScannerStore {
   setScanMarketMode: (mode: 'single' | 'multi') => void;
   setSingleMarketSymbol: (symbol: string) => void;
   setTicksCounter: (count: number) => void;
+  setFullAiAutomation: (is_full: boolean) => void;
 }
 
 export default class ScannerStore implements IScannerStore {
@@ -110,12 +113,21 @@ export default class ScannerStore implements IScannerStore {
   stop_loss = 10;
   martingale_multiplier = 2.0;
   alternate_after_losses = false;
-  loss_threshold = 3;
+  loss_threshold = 1;
   is_auto_trading = false;
+  is_full_ai_automation = false;
   consecutive_losses = 0;
   last_trade_result: 'WIN' | 'LOSS' | null = null;
+  signal_sequence_id: string | null = null;
   current_strategy_index = 0;
   selected_trade_type = 'both';
+
+  private ticks_cache: Map<string, { epoch: number; quote: number }[]> = new Map();
+  private tick_subscriptions: Map<string, string> = new Map();
+  private is_subscribed_to_messages = false;
+  private message_subscription: any = null;
+  private candle_cache: Map<string, { direction: 'up' | 'down' | 'neutral'; timestamp: number }> = new Map();
+  private is_bot_loading = false;
 
   constructor(root_store: RootStore) {
     makeObservable(this, {
@@ -139,8 +151,10 @@ export default class ScannerStore implements IScannerStore {
       alternate_after_losses: observable,
       loss_threshold: observable,
       is_auto_trading: observable,
+      is_full_ai_automation: observable,
       consecutive_losses: observable,
       last_trade_result: observable,
+      signal_sequence_id: observable,
       selected_trade_type: observable,
       setScannerVisibility: action,
       setSelectedStrategy: action,
@@ -156,11 +170,24 @@ export default class ScannerStore implements IScannerStore {
       setTicksCounter: action,
       setSymbolAnalysis: action,
       setAutoTrading: action,
+      setFullAiAutomation: action,
     });
 
     this.root_store = root_store;
     this.setupAutomationListeners();
   }
+
+  setFullAiAutomation = (is_full: boolean) => {
+    this.is_full_ai_automation = is_full;
+    if (is_full) {
+      // If full AI is enabled, ensure auto trading is enabled
+      this.is_auto_trading = true;
+      this.setupAutomationListeners();
+    } else {
+      // If disabled, turn off auto trading
+      this.is_auto_trading = false;
+    }
+  };
 
   toggleStrategy = (strategy: TStrategyType) => {
     const existingIndex = this.selected_strategies.indexOf(strategy);
@@ -186,10 +213,7 @@ export default class ScannerStore implements IScannerStore {
   };
 
   setSymbolAnalysis = (symbol: string, analysis: TAnalysisResult) => {
-    this.symbol_analysis = {
-      ...this.symbol_analysis,
-      [symbol]: analysis,
-    };
+    this.symbol_analysis[symbol] = analysis;
   };
 
   setScannerVisibility = (is_open?: boolean | any) => {
@@ -242,7 +266,11 @@ export default class ScannerStore implements IScannerStore {
     this.is_manual_selection = false;
     this.symbol_analysis = {};
 
+    this.setupMessageListener();
+    this.unsubscribeAllTicks();
+
     try {
+      await this.initMarketSubscriptions();
       await this.analyzeMarkets();
       this.setupContinuousScanning();
     } catch (error) {
@@ -257,6 +285,7 @@ export default class ScannerStore implements IScannerStore {
       clearTimeout(this.scanning_timeout);
       this.scanning_timeout = null;
     }
+    this.unsubscribeAllTicks();
   };
 
   resetScanner = () => {
@@ -265,6 +294,74 @@ export default class ScannerStore implements IScannerStore {
     this.current_signal = null;
     this.ticks_counter = 0;
     this.symbol_analysis = {};
+  };
+
+  private setupMessageListener = () => {
+    if (!this.is_subscribed_to_messages && api_base.api) {
+      this.message_subscription = api_base.api.onMessage().subscribe((msg: any) => {
+        const data = msg.data || msg;
+        if (data.msg_type === 'tick' && data.tick) {
+          const tick = data.tick;
+          const symbol = tick.symbol;
+          if (this.ticks_cache.has(symbol)) {
+            const ticks = this.ticks_cache.get(symbol)!;
+            ticks.push({ epoch: tick.epoch, quote: tick.quote });
+            if (ticks.length > 120) {
+              ticks.shift();
+            }
+          }
+        }
+      });
+      this.is_subscribed_to_messages = true;
+    }
+  };
+
+  private initMarketSubscriptions = async () => {
+    const symbolsToScan = this.scan_market_mode === 'single'
+      ? [this.single_market_symbol]
+      : this.selected_symbols;
+
+    await Promise.all(symbolsToScan.map(async (symbol) => {
+      try {
+        const response = await (api_base.api as any).send({
+          ticks_history: symbol,
+          end: 'latest',
+          count: 120,
+          style: 'ticks',
+          subscribe: 1
+        });
+        
+        if (response && response.history && response.history.prices) {
+          const { prices, times } = response.history;
+          const ticks = [];
+          for (let i = 0; i < prices.length; i++) {
+            ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
+          }
+          this.ticks_cache.set(symbol, ticks);
+          
+          if (response.subscription && response.subscription.id) {
+             this.tick_subscriptions.set(symbol, response.subscription.id);
+          }
+        }
+      } catch (e) {
+        console.warn(`[ScannerStore] Failed to subscribe to ${symbol}:`, e);
+      }
+    }));
+  };
+
+  private unsubscribeAllTicks = () => {
+    if (!api_base.api) return;
+    this.tick_subscriptions.forEach((id) => {
+       (api_base.api as any).send({ forget: id }).catch(() => {});
+    });
+    this.tick_subscriptions.clear();
+    this.ticks_cache.clear();
+
+    if (this.message_subscription) {
+      this.message_subscription.unsubscribe();
+      this.message_subscription = null;
+      this.is_subscribed_to_messages = false;
+    }
   };
 
   private setupContinuousScanning = () => {
@@ -282,7 +379,7 @@ export default class ScannerStore implements IScannerStore {
           console.error('[ScannerStore] Continuous scanning error:', error);
           this.setupContinuousScanning();
         }
-      }, 200); // 200ms per tick evaluation
+      }, 2000); // 2 seconds delay to prevent overly aggressive polling
     }
   };
 
@@ -818,6 +915,12 @@ export default class ScannerStore implements IScannerStore {
   };
 
   fetchCandleDirection = async (symbol: string): Promise<'up' | 'down' | 'neutral'> => {
+    const now = Date.now();
+    const cached = this.candle_cache.get(symbol);
+    if (cached && now - cached.timestamp < 60000) {
+      return cached.direction;
+    }
+
     try {
       if (!api_base.api) return 'neutral';
       const response = await (api_base.api as any).send({
@@ -829,8 +932,12 @@ export default class ScannerStore implements IScannerStore {
       if (response && response.candles && response.candles.length > 0) {
         const candles = response.candles;
         const latestCandle = candles[candles.length - 1];
-        if (latestCandle.close > latestCandle.open) return 'up';
-        if (latestCandle.close < latestCandle.open) return 'down';
+        let direction: 'up' | 'down' | 'neutral' = 'neutral';
+        if (latestCandle.close > latestCandle.open) direction = 'up';
+        else if (latestCandle.close < latestCandle.open) direction = 'down';
+
+        this.candle_cache.set(symbol, { direction, timestamp: now });
+        return direction;
       }
       return 'neutral';
     } catch (e) {
@@ -950,12 +1057,16 @@ export default class ScannerStore implements IScannerStore {
       if (run_panel.is_running && run_panel.is_paused) {
         console.log(`[ScannerStore] Market power aligned (confidence: ${activeSignal.confidence}). Resuming bot...`);
         run_panel.onResumeFromPause();
-      } else if (!run_panel.is_running) {
+      } else if (!run_panel.is_running && !this.is_bot_loading) {
+        this.is_bot_loading = true;
         console.log(`[ScannerStore] Strong signal detected (confidence: ${activeSignal.confidence}). Loading and starting bot...`);
         this.loadBotWithStrategy().then(() => {
           setTimeout(() => {
             run_panel.onRunButtonClick();
+            this.is_bot_loading = false;
           }, 1500);
+        }).catch(() => {
+          this.is_bot_loading = false;
         });
       }
     }
@@ -978,103 +1089,79 @@ export default class ScannerStore implements IScannerStore {
       ? [this.single_market_symbol]
       : this.selected_symbols;
 
-    await Promise.all(
-      symbolsToScan.map(async (symbol) => {
-        try {
-          const r = await Promise.race([
-            (api_base.api as any).send({
-              ticks_history: symbol,
-              end: 'latest',
-              count: 120,
-              style: 'ticks',
-            }),
-            new Promise<any>((_, reject) =>
-              setTimeout(() => reject(new Error('Scanner request timeout')), 2500)
-            ),
-          ]);
+    for (const symbol of symbolsToScan) {
+      try {
+        const ticks = this.ticks_cache.get(symbol);
+        if (!ticks || ticks.length < 50) continue; // Skip if not enough ticks yet
 
-          const ticks: { epoch: number; quote: number }[] = [];
-          if (r && r.history && r.history.prices) {
-            const { prices, times } = r.history;
-            for (let i = 0; i < prices.length; i++) {
-              ticks.push({
-                epoch: Number(times[i]),
-                quote: Number(prices[i]),
-              });
-            }
-          }
+        const analysisResult = this.analyzeTicks(ticks, symbol);
+        this.setSymbolAnalysis(symbol, analysisResult);
 
-          if (ticks && ticks.length > 0) {
-            const analysisResult = this.analyzeTicks(ticks, symbol);
-            this.setSymbolAnalysis(symbol, analysisResult);
+        const allStd = this.generateAllSignals(analysisResult, symbol);
+        const allPro = this.generateProSignals(analysisResult);
 
-            const allStd = this.generateAllSignals(analysisResult, symbol);
-            const allPro = this.generateProSignals(analysisResult);
+        for (const strat of this.selected_strategies) {
+          if (strat === 'super') {
+            const superSignals = this.generateSuperSignals(analysisResult, symbol);
 
-            for (const strat of this.selected_strategies) {
-              if (strat === 'super') {
-                const superSignals = this.generateSuperSignals(analysisResult, symbol);
+            for (const signal of superSignals) {
+              const isConfirmed = await this.checkSignalConfirmation(symbol, signal.type, signal, analysisResult);
+              const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === signal.type);
 
-                for (const signal of superSignals) {
-                  const isConfirmed = await this.checkSignalConfirmation(symbol, signal.type, signal, analysisResult);
-                  const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === signal.type);
-
-                  if (isConfirmed) {
-                    const scanSignal: TScanSignal = {
-                      symbol,
-                      strategy: signal.type,
-                      confidence: signal.probability,
-                      timestamp: Date.now(),
-                      details: signal,
-                      analysisResult
-                    };
-                    if (idx > -1) {
-                      updatedSignals[idx] = scanSignal;
-                    } else {
-                      updatedSignals.push(scanSignal);
-                    }
-                  } else {
-                    if (idx > -1) {
-                      updatedSignals.splice(idx, 1);
-                    }
-                  }
+              if (isConfirmed) {
+                const scanSignal: TScanSignal = {
+                  symbol,
+                  strategy: signal.type,
+                  confidence: signal.probability,
+                  timestamp: Date.now(),
+                  details: signal,
+                  analysisResult
+                };
+                if (idx > -1) {
+                  updatedSignals[idx] = scanSignal;
+                } else {
+                  updatedSignals.push(scanSignal);
                 }
               } else {
-                const signal = allStd.get(strat) || allPro.get(strat);
-                const isConfirmed = signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT')
-                  ? await this.checkSignalConfirmation(symbol, strat, signal, analysisResult)
-                  : false;
-
-                const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === strat);
-
-                if (signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT') && isConfirmed) {
-                  const scanSignal: TScanSignal = {
-                    symbol,
-                    strategy: strat,
-                    confidence: signal.probability,
-                    timestamp: Date.now(),
-                    details: signal,
-                    analysisResult
-                  };
-                  if (idx > -1) {
-                    updatedSignals[idx] = scanSignal;
-                  } else {
-                    updatedSignals.push(scanSignal);
-                  }
-                } else {
-                  // Remove from active signals since the signal power changed to NEUTRAL or failed confirmation
-                  if (idx > -1) {
-                    updatedSignals.splice(idx, 1);
-                  }
+                if (idx > -1) {
+                  updatedSignals.splice(idx, 1);
                 }
               }
             }
+          } else {
+            const signal = allStd.get(strat) || allPro.get(strat);
+            const isConfirmed = signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT')
+              ? await this.checkSignalConfirmation(symbol, strat, signal, analysisResult)
+              : false;
+
+            const idx = updatedSignals.findIndex(s => s.symbol === symbol && s.strategy === strat);
+
+            if (signal && (signal.status === 'TRADE NOW' || signal.status === 'WAIT') && isConfirmed) {
+              const scanSignal: TScanSignal = {
+                symbol,
+                strategy: strat,
+                confidence: signal.probability,
+                timestamp: Date.now(),
+                details: signal,
+                analysisResult
+              };
+              if (idx > -1) {
+                updatedSignals[idx] = scanSignal;
+              } else {
+                updatedSignals.push(scanSignal);
+              }
+            } else {
+              // Remove from active signals since the signal power changed to NEUTRAL or failed confirmation
+              if (idx > -1) {
+                updatedSignals.splice(idx, 1);
+              }
+            }
           }
-        } catch (error) {
-          console.error(`[ScannerStore] Error analyzing symbol ${symbol}:`, error);
         }
-      })
-    );
+      } catch (error) {
+        console.error(`[ScannerStore] Error analyzing symbol ${symbol}:`, error);
+      }
+    }
 
     // Keep unique signals and sort by confidence
     const uniqueSignals = new Map<string, TScanSignal>();
@@ -1157,27 +1244,6 @@ export default class ScannerStore implements IScannerStore {
       else if (bias === 'low') formData.type = 'DIGITUNDER';
     }
 
-    // Apply user selected trade type override if specified
-    if (this.selected_trade_type && this.selected_trade_type !== 'both') {
-      const tradeTypeToCategoryMap: Record<string, string> = {
-        DIGITEVEN: 'evenodd',
-        DIGITODD: 'evenodd',
-        DIGITOVER: 'overunder',
-        DIGITUNDER: 'overunder',
-        DIGITMATCH: 'matchesdiffers',
-        DIGITDIFF: 'matchesdiffers',
-      };
-      
-      formData.type = this.selected_trade_type;
-      formData.tradetype = tradeTypeToCategoryMap[this.selected_trade_type] || formData.tradetype;
-      
-      // Auto-populate default predictions if not already set by signal details
-      if (formData.type === 'DIGITOVER' && formData.prediction === undefined) {
-        formData.prediction = '5';
-      } else if (formData.type === 'DIGITUNDER' && formData.prediction === undefined) {
-        formData.prediction = '4';
-      }
-    }
 
     await quick_strategy.onSubmit(formData);
   };

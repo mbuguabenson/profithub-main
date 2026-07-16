@@ -17,7 +17,7 @@ export const getSymbolDisplayName = async (underlying_symbol: string): Promise<s
         for (const market of trading_times.markets || []) {
             for (const submarket of market.submarkets || []) {
                 for (const symbol of submarket.symbols || []) {
-                    if (symbol.underlying_symbol === underlying_symbol || symbol.symbol === underlying_symbol) {
+                    if ((symbol as any).underlying_symbol === underlying_symbol || symbol.symbol === underlying_symbol) {
                         return symbol.display_name || underlying_symbol;
                     }
                 }
@@ -49,12 +49,9 @@ export const getSymbolDisplayNameSync = (underlying_symbol: string): string => {
         R_75: 'Volatility 75 Index',
         R_100: 'Volatility 100 Index',
         '1HZ10V': 'Volatility 10 (1s) Index',
-        '1HZ15V': 'Volatility 15 (1s) Index',
         '1HZ25V': 'Volatility 25 (1s) Index',
-        '1HZ30V': 'Volatility 30 (1s) Index',
         '1HZ50V': 'Volatility 50 (1s) Index',
         '1HZ75V': 'Volatility 75 (1s) Index',
-        '1HZ90V': 'Volatility 90 (1s) Index',
         '1HZ100V': 'Volatility 100 (1s) Index',
         '1HZ150V': 'Volatility 150 (1s) Index',
         '1HZ200V': 'Volatility 200 (1s) Index',

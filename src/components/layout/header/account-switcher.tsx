@@ -38,12 +38,6 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
         return () => window.removeEventListener('currency_changed', handleSync);
     }, []);
 
-    const toggleDisplayCurrency = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const next = displayCurrency === 'USD' ? 'KES' : 'USD';
-        localStorage.setItem('converter_display_currency', next);
-        window.dispatchEvent(new Event('currency_changed'));
-    };
 
     const is_bot_running = run_panel?.is_running || api_base.is_running;
     const isSingleAccount = !accountList || accountList.length <= 1;
@@ -88,7 +82,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
         setResetMessage(null);
 
         try {
-            const response = await api_base.api.send({ topup_virtual: 1 });
+            const response = await api_base.api.send({ topup_virtual: 1 }) as any;
             if (response?.error) {
                 setResetMessage({
                     type: 'error',

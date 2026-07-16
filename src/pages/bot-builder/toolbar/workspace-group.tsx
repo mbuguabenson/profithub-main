@@ -168,6 +168,7 @@ const WorkspaceGroup = observer(() => {
                             </span>
                         }
                     />
+
                 </>
                 <div className='vertical-divider' />
                 <ToolbarIcon

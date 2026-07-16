@@ -99,7 +99,8 @@ const getStatsForStrategy = (analysis: any, strategy: string) => {
 };
 
 const Scanner = observer(() => {
-  const { scanner } = useStore();
+  const store = useStore();
+  const { scanner } = store;
   const {
     is_open,
     is_scanning,
@@ -123,7 +124,7 @@ const Scanner = observer(() => {
   } = scanner;
 
   const [available_symbols, setAvailableSymbols] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'scanner' | 'stats'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'stats' | 'dollarflipper'>('scanner');
   const [statsStrategy, setStatsStrategy] = useState<'even_odd' | 'over_under' | 'differs' | 'rise_fall' | 'matches'>('even_odd');
 
   useEffect(() => {
@@ -214,6 +215,13 @@ const Scanner = observer(() => {
                 style={{ flex: 1, padding: '8px 12px', background: activeTab === 'stats' ? 'rgba(79, 143, 255, 0.12)' : 'transparent', color: activeTab === 'stats' ? '#4f8fff' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
               >
                 {localize('Signals Stats')}
+              </button>
+              <button 
+                className={classNames('tab-btn', { active: activeTab === 'dollarflipper' })} 
+                onClick={() => setActiveTab('dollarflipper')}
+                style={{ flex: 1, padding: '8px 12px', background: activeTab === 'dollarflipper' ? 'rgba(79, 143, 255, 0.12)' : 'transparent', color: activeTab === 'dollarflipper' ? '#4f8fff' : 'rgba(255,255,255,0.6)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '12px' }}
+              >
+                {localize('Dollarflipper')}
               </button>
             </div>
 
@@ -326,6 +334,19 @@ const Scanner = observer(() => {
                           style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
                         />
                       </div>
+                      <div style={{ gridColumn: '1 / span 2', marginTop: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{localize('Trade Type')}</label>
+                        <select
+                          value={scanner.selected_trade_type}
+                          onChange={(e) => scanner.selected_trade_type = e.target.value}
+                          style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
+                        >
+                          <option value="both">{localize('All Trade Types')}</option>
+                          <option value="over_under">{localize('Over/Under Only')}</option>
+                          <option value="even_odd">{localize('Even/Odd Only')}</option>
+                          <option value="matches_differs">{localize('Matches/Differs Only')}</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '10px' }}>
@@ -352,20 +373,57 @@ const Scanner = observer(() => {
                         </div>
                       )}
 
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#cbd5e1', cursor: 'pointer', marginTop: '2px' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={scanner.is_auto_trading} 
-                          onChange={(e) => {
-                            scanner.is_auto_trading = e.target.checked;
-                            if (e.target.checked) {
-                              scanner.setupAutomationListeners();
-                            }
-                          }}
-                          style={{ width: '14px', height: '14px', accentColor: '#4f8fff' }}
-                        />
-                        <span style={{ color: '#4f8fff', fontWeight: 700 }}>{localize('Enable Auto-Trading & Shift Power Guard')}</span>
-                      </label>
+                      {/* AI Full Automation Integration */}
+                      <div style={{
+                        background: scanner.is_auto_trading ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)',
+                        border: `1px solid ${scanner.is_auto_trading ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.05)'}`,
+                        borderRadius: '8px',
+                        padding: '10px',
+                        fontSize: '11px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        color: '#cbd5e1',
+                        marginTop: '4px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', color: '#fff' }}>
+                            🤖 {localize('AI Full Automation')}
+                          </span>
+                          <button
+                            onClick={() => scanner.setFullAiAutomation(!scanner.is_full_ai_automation)}
+                            style={{
+                              color: scanner.is_full_ai_automation ? '#fff' : '#cbd5e1',
+                              fontWeight: 700,
+                              fontSize: '10px',
+                              background: scanner.is_full_ai_automation ? '#10b981' : 'rgba(255, 255, 255, 0.1)',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {scanner.is_full_ai_automation ? localize('ACTIVE') : localize('INACTIVE (Click to Enable)')}
+                          </button>
+                        </div>
+                        {scanner.is_full_ai_automation && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Auto-Pause Protection')}:</span>
+                              <span style={{ fontWeight: 700, color: '#ff444f' }}>
+                                {localize('Smart Scan Active (< 60% pause)')}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Trade Type Limitation')}:</span>
+                              <span style={{ fontWeight: 700, color: '#4f8fff' }}>
+                                {scanner.selected_trade_type === 'both' ? localize('Auto / Both') : scanner.selected_trade_type.replace('_', ' ').toUpperCase() + ' ONLY'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -424,7 +482,7 @@ const Scanner = observer(() => {
                     )}
                   </div>
                 </React.Fragment>
-              ) : (
+              ) : activeTab === 'stats' ? (
                 /* Signals Stats Sub Tab */
                 <div className="section-card" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                   <span className="section-title" style={{ marginBottom: '8px', display: 'block' }}>
@@ -548,6 +606,112 @@ const Scanner = observer(() => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              ) : (
+                /* Dollarflipper Sub Tab */
+                <div className="section-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span className="section-title" style={{ color: '#10b981', fontSize: '14px' }}>
+                      {localize('Dollarflipper Challenge')}
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#fff' }}>
+                      Balance: ${Number(store.client.balance || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{localize('Target Profit ($)')}</label>
+                      <input 
+                        type="number" 
+                        value={store.dollarflipper.target_profit} 
+                        onChange={(e) => store.dollarflipper.setTargetProfit(parseFloat(e.target.value) || 0)}
+                        style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{localize('Stake % of Capital')}</label>
+                      <select
+                        value={store.dollarflipper.stake_percentage}
+                        onChange={(e) => store.dollarflipper.setStakePercentage(parseFloat(e.target.value) || 2)}
+                        style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
+                      >
+                        <option value="2">2%</option>
+                        <option value="3">3%</option>
+                        <option value="4">4%</option>
+                        <option value="5">5%</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{localize('Challenge Days')}</label>
+                      <input 
+                        type="number" 
+                        value={store.dollarflipper.challenge_days} 
+                        onChange={(e) => store.dollarflipper.setChallengeDays(parseInt(e.target.value) || 1)}
+                        style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>{localize('Sessions / Day')}</label>
+                      <select
+                        value={store.dollarflipper.sessions_per_day}
+                        onChange={(e) => store.dollarflipper.setSessionsPerDay(parseInt(e.target.value) || 1)}
+                        style={{ width: '100%', padding: '6px 8px', background: 'var(--general-section-1, #0f172a)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: '#fff', fontSize: '12px' }}
+                      >
+                        <option value="1">1 Session</option>
+                        <option value="2">2 Sessions</option>
+                        <option value="3">3 Sessions</option>
+                        <option value="4">4 Sessions</option>
+                        <option value="24">24hrs (Continuous)</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div style={{ padding: '10px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '8px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)' }}>{localize('Completed Sessions:')}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981' }}>
+                        {store.dollarflipper.completed_sessions} / {store.dollarflipper.challenge_days * store.dollarflipper.sessions_per_day}
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.4)', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div 
+                        style={{ 
+                          height: '100%', 
+                          background: '#10b981', 
+                          width: `${Math.min(100, (store.dollarflipper.completed_sessions / (store.dollarflipper.challenge_days * store.dollarflipper.sessions_per_day)) * 100)}%` 
+                        }} 
+                      />
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4, marginTop: 'auto' }}>
+                    {localize('Note: Dollarflipper automatically limits trades to Over (1,2,3) and Under (6,7,8) predictions to maintain high probability win rates.')}
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      if (store.dollarflipper.is_running) {
+                        store.dollarflipper.stopDollarflipper();
+                      } else {
+                        store.dollarflipper.startDollarflipper();
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: store.dollarflipper.is_running ? 'rgba(239, 68, 68, 0.15)' : '#10b981',
+                      color: store.dollarflipper.is_running ? '#ef4444' : '#fff',
+                      border: store.dollarflipper.is_running ? '1px solid #ef4444' : 'none',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      marginTop: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {store.dollarflipper.is_running ? localize('Stop Dollarflipper') : localize('Start Compounding Challenge')}
+                  </button>
                 </div>
               )}
             </div>

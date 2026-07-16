@@ -336,6 +336,7 @@ export default class RunPanelStore {
 
     stopBot = () => {
         const { ui } = this.core;
+        const { scanner, dollarflipper } = this.root_store;
 
         this.dbot.stopBot();
 
@@ -355,6 +356,17 @@ export default class RunPanelStore {
             this.unregisterBotListeners();
             ui.setAccountSwitcherDisabledMessage();
             this.setIsRunning(false);
+        }
+
+        // Halt automations & forget sequences when user explicitly stops the bot
+        if (scanner.is_full_ai_automation) {
+            scanner.setFullAiAutomation(false);
+        }
+        if (scanner.signal_sequence_id) {
+            scanner.signal_sequence_id = null;
+        }
+        if (dollarflipper?.is_running) {
+            dollarflipper.stopDollarflipper();
         }
 
         if (this.error_type) {

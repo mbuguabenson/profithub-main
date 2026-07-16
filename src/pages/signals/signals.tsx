@@ -5,15 +5,7 @@ import { SignalCard } from './components/SignalCard';
 import { AnalysisResult, Signal } from './engine/SignalEngine';
 import './signals.scss';
 
-const AVAILABLE_MARKETS = [
-    { value: 'R_100', label: 'Volatility 100 Index' },
-    { value: 'R_10', label: 'Volatility 10 Index' },
-    { value: 'R_25', label: 'Volatility 25 Index' },
-    { value: 'R_50', label: 'Volatility 50 Index' },
-    { value: 'R_75', label: 'Volatility 75 Index' },
-    { value: '1HZ100V', label: 'Volatility 100 (1s) Index' },
-    { value: '1HZ10V', label: 'Volatility 10 (1s) Index' },
-];
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 
 const Signals = observer(() => {
     const [market, setMarket] = useState('R_100');
@@ -21,6 +13,30 @@ const Signals = observer(() => {
     const [standard, setStandard] = useState<Signal[]>([]);
     const [pro, setPro] = useState<Signal[]>([]);
     const [superSignals, setSuperSignals] = useState<Signal[]>([]);
+    const [availableMarkets, setAvailableMarkets] = useState<{value: string, label: string}[]>([
+        { value: 'R_100', label: 'Volatility 100 Index' }
+    ]);
+
+    useEffect(() => {
+        if (api_base.active_symbols && api_base.active_symbols.length > 0) {
+            const symbols = api_base.active_symbols
+                .filter((s: any) => {
+                    if (!s.symbol && !s.underlying_symbol) return false;
+                    const sym = (s.symbol || s.underlying_symbol).toUpperCase();
+                    if (sym.includes('BOOM') || sym.includes('CRASH')) return false;
+                    if (sym.includes('1HZ15V') || sym.includes('1HZ30V') || sym.includes('1HZ90V')) return false;
+                    return sym.includes('1HZ') || sym.startsWith('R_') || sym.includes('JD') || sym.includes('JUMP');
+                })
+                .map((s: any) => ({
+                    value: s.symbol || s.underlying_symbol,
+                    label: s.display_name || s.symbol || s.underlying_symbol
+                }));
+            
+            if (symbols.length > 0) {
+                setAvailableMarkets(symbols);
+            }
+        }
+    }, [api_base.active_symbols]);
 
     useEffect(() => {
         const handleState = (state: { analysis: AnalysisResult | null, standard: Signal[], pro: Signal[], super: Signal[] }) => {
@@ -46,17 +62,19 @@ const Signals = observer(() => {
     return (
         <div className="signals-container">
             <div className="signals-header">
-                <div>
-                    <h2>Pro Signal Engine</h2>
-                    <p>Real-time analytics and trade opportunities</p>
+                <div className="header-text-glow">
+                    <h2>Premium AI Signals</h2>
+                    <p>Next-Generation Predictive Analytics & Trade Intelligence</p>
                 </div>
                 <div className="market-selector">
                     <label>Select Market:</label>
-                    <select value={market} onChange={handleMarketChange}>
-                        {AVAILABLE_MARKETS.map(m => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                        ))}
-                    </select>
+                    <div className="select-wrapper">
+                        <select value={market} onChange={handleMarketChange}>
+                            {availableMarkets.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 

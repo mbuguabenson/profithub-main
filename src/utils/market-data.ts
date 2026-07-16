@@ -1,9 +1,7 @@
 import { api_base } from '@/external/bot-skeleton';
 
 export const MARKET_PIP_SIZE: Record<string, number> = {
-    '1HZ15V': 3,
-    '1HZ30V': 3,
-    '1HZ90V': 3,
+
     '1HZ10V': 2,
     '1HZ25V': 2,
     '1HZ50V': 2,
