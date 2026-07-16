@@ -149,7 +149,7 @@ const WorkspaceGroup = observer(() => {
                         }
                     />
                     <ToolbarIcon
-                        popover_message={localize('Trading Tools & Assistants')}
+                        popover_message={localize('Premium Signals')}
                         icon={
                             <span
                                 className={classNames('toolbar__icon', {
