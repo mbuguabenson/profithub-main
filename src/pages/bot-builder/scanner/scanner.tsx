@@ -132,6 +132,7 @@ const Scanner = observer(() => {
       const symbols = api_base.active_symbols.filter((s: any) => {
         const symbolStr = (s.symbol || s.underlying_symbol || '').toUpperCase();
         if (symbolStr.includes('BOOM') || symbolStr.includes('CRASH')) return false;
+        if (symbolStr.includes('1HZ15V') || symbolStr.includes('1HZ30V') || symbolStr.includes('1HZ90V')) return false;
         return symbolStr.includes('1HZ') || symbolStr.startsWith('R_') || symbolStr.includes('JD') || symbolStr.includes('JUMP');
       });
       setAvailableSymbols(symbols.length > 0 ? symbols : api_base.active_symbols);

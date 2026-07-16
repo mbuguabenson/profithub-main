@@ -268,7 +268,6 @@ const RunPanel = observer(() => {
         is_clear_stat_disabled,
         onClearStatClick,
         onMount,
-        onRunButtonClick, // eslint-disable-line @typescript-eslint/no-unused-vars
         onUnmount,
         setActiveTabIndex,
         toggleDrawer,
@@ -395,18 +394,115 @@ const RunPanel = observer(() => {
                       </div>
 
                       {scanner.is_auto_trading && (
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid rgba(255, 255, 255, 0.05)',
-                          borderRadius: '8px',
-                          padding: '10px',
-                          fontSize: '11px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '6px',
-                          color: '#cbd5e1'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <>
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                            borderRadius: '8px',
+                            padding: '10px',
+                            fontSize: '11px',
+                            color: '#cbd5e1'
+                          }}>
+                            {/* Stake Control */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Stake ($)')}:</span>
+                              <input
+                                type='number'
+                                step='0.1'
+                                min='0.35'
+                                value={scanner.stake}
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value);
+                                  if (!isNaN(val)) scanner.stake = val;
+                                }}
+                                style={{
+                                  width: '80px',
+                                  background: 'rgba(0,0,0,0.3)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  borderRadius: '4px',
+                                  color: '#fff',
+                                  padding: '2px 6px',
+                                  textAlign: 'right',
+                                  fontSize: '11px',
+                                  fontWeight: 700
+                                }}
+                              />
+                            </div>
+
+                            {/* Strategy Control */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Strategy')}:</span>
+                              <select
+                                value={scanner.selected_strategies[0] || 'even_odd'}
+                                onChange={(e) => {
+                                  const strat = e.target.value as any;
+                                  scanner.selected_strategies = [strat];
+                                }}
+                                style={{
+                                  width: '120px',
+                                  background: 'rgba(0,0,0,0.3)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  borderRadius: '4px',
+                                  color: '#fff',
+                                  padding: '2px 4px',
+                                  fontSize: '11px',
+                                  fontWeight: 600
+                                }}
+                              >
+                                <option value='even_odd'>{localize('Even/Odd')}</option>
+                                <option value='over_under'>{localize('Over/Under')}</option>
+                                <option value='matches'>{localize('Matches')}</option>
+                                <option value='differs'>{localize('Differs')}</option>
+                                <option value='rise_fall'>{localize('Rise/Fall')}</option>
+                                <option value='super'>{localize('Super Strategy')}</option>
+                              </select>
+                            </div>
+
+                            {/* Trade Type Control */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Trade Type')}:</span>
+                              <select
+                                value={scanner.selected_trade_type || 'both'}
+                                onChange={(e) => {
+                                  scanner.selected_trade_type = e.target.value;
+                                }}
+                                style={{
+                                  width: '120px',
+                                  background: 'rgba(0,0,0,0.3)',
+                                  border: '1px solid rgba(255,255,255,0.1)',
+                                  borderRadius: '4px',
+                                  color: '#fff',
+                                  padding: '2px 4px',
+                                  fontSize: '11px',
+                                  fontWeight: 600
+                                }}
+                              >
+                                <option value='both'>{localize('Auto / Both')}</option>
+                                <option value='DIGITEVEN'>{localize('Even Only')}</option>
+                                <option value='DIGITODD'>{localize('Odd Only')}</option>
+                                <option value='DIGITOVER'>{localize('Over Only')}</option>
+                                <option value='DIGITUNDER'>{localize('Under Only')}</option>
+                                <option value='DIGITMATCH'>{localize('Matches Only')}</option>
+                                <option value='DIGITDIFF'>{localize('Differs Only')}</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            background: 'rgba(255, 255, 255, 0.02)',
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                            borderRadius: '8px',
+                            padding: '10px',
+                            fontSize: '11px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            color: '#cbd5e1'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: 'rgba(255, 255, 255, 0.5)' }}>{localize('Active Setup')}:</span>
                             <span style={{ fontWeight: 700, color: '#4f8fff' }}>
                               {scanner.current_signal 
@@ -429,6 +525,7 @@ const RunPanel = observer(() => {
                             </span>
                           </div>
                         </div>
+                        </>
                       )}
                     </div>
                     {content}

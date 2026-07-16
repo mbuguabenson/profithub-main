@@ -115,6 +115,7 @@ export default class ScannerStore implements IScannerStore {
   consecutive_losses = 0;
   last_trade_result: 'WIN' | 'LOSS' | null = null;
   current_strategy_index = 0;
+  selected_trade_type = 'both';
 
   constructor(root_store: RootStore) {
     makeObservable(this, {
@@ -140,6 +141,7 @@ export default class ScannerStore implements IScannerStore {
       is_auto_trading: observable,
       consecutive_losses: observable,
       last_trade_result: observable,
+      selected_trade_type: observable,
       setScannerVisibility: action,
       setSelectedStrategy: action,
       setSelectedSymbols: action,
@@ -225,6 +227,7 @@ export default class ScannerStore implements IScannerStore {
             if (!sym) return false;
             const s = sym.toUpperCase();
             if (s.includes('BOOM') || s.includes('CRASH')) return false;
+            if (s.includes('1HZ15V') || s.includes('1HZ30V') || s.includes('1HZ90V')) return false;
             return s.includes('1HZ') || s.startsWith('R_') || s.includes('JD') || s.includes('JUMP');
           });
         this.selected_symbols = allSymbols;
@@ -1152,6 +1155,28 @@ export default class ScannerStore implements IScannerStore {
       else if (bias === 'odd') formData.type = 'DIGITODD';
       else if (bias === 'high') formData.type = 'DIGITOVER';
       else if (bias === 'low') formData.type = 'DIGITUNDER';
+    }
+
+    // Apply user selected trade type override if specified
+    if (this.selected_trade_type && this.selected_trade_type !== 'both') {
+      const tradeTypeToCategoryMap: Record<string, string> = {
+        DIGITEVEN: 'evenodd',
+        DIGITODD: 'evenodd',
+        DIGITOVER: 'overunder',
+        DIGITUNDER: 'overunder',
+        DIGITMATCH: 'matchesdiffers',
+        DIGITDIFF: 'matchesdiffers',
+      };
+      
+      formData.type = this.selected_trade_type;
+      formData.tradetype = tradeTypeToCategoryMap[this.selected_trade_type] || formData.tradetype;
+      
+      // Auto-populate default predictions if not already set by signal details
+      if (formData.type === 'DIGITOVER' && formData.prediction === undefined) {
+        formData.prediction = '5';
+      } else if (formData.type === 'DIGITUNDER' && formData.prediction === undefined) {
+        formData.prediction = '4';
+      }
     }
 
     await quick_strategy.onSubmit(formData);
