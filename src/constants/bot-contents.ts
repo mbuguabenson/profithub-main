@@ -23,6 +23,7 @@ export const DBOT_TABS: TDashboardTabIndex = Object.freeze({
     SIGNALS: 8,
     AUTO_TRADES: 9,
     SCANNER: 10,
+    SMART_TRADING: 11,
 });
 
 export const MAX_STRATEGIES = 10;
@@ -39,6 +40,7 @@ export const TAB_IDS = [
     'id-signals',
     'id-auto-trades',
     'id-scanner',
+    'id-smart-trading',
 ];
 
 export const DEBOUNCE_INTERVAL_TIME = 500;
