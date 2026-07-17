@@ -873,19 +873,26 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
                     try {
                         // Map strategy to tradetype and type
                         let tradetype = 'risefall';
-                        let type = 'both';
+                        let type = 'CALL'; // default
+
                         if (strategy === 'Matches & Differs') {
                             tradetype = 'matchesdiffers';
+                            type = confirmedSignal ? confirmedSignal.contractType : 'DIGITDIFF';
                         } else if (strategy === 'Even & Odd') {
                             tradetype = 'evenodd';
+                            type = confirmedSignal ? confirmedSignal.contractType : 'DIGITEVEN';
                         } else if (strategy === 'Over & Under') {
                             tradetype = 'overunder';
+                            type = confirmedSignal ? confirmedSignal.contractType : 'DIGITUNDER';
                         } else if (strategy === 'Only Ups') {
                             tradetype = 'risefall';
                             type = 'CALL';
                         } else if (strategy === 'Only Downs') {
                             tradetype = 'risefall';
                             type = 'PUT';
+                        } else if (strategy === 'Rise & Fall') {
+                            tradetype = 'risefall';
+                            type = confirmedSignal ? confirmedSignal.contractType : 'CALL';
                         }
 
                         // Configure strategy store parameters
