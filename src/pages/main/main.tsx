@@ -107,6 +107,7 @@ import TradingBots from '../free-bots/trading-bots';
 
 const AccountFlipper = lazy(() => import('../account-flipper'));
 const SmartTrading = lazy(() => import('../smart-trading'));
+const ManualTrading = lazy(() => import('../manual-trading'));
 const CirclesAnalysis = lazy(() => import('../circles-analysis'));
 const DigitCracker = lazy(() => import('../digit-cracker'));
 const EasyTool = lazy(() => import('../easy-tool'));
@@ -163,6 +164,7 @@ const AppWrapper = observer(() => {
         'auto_trades',
         'scanner',
         'smart_trading',
+        'manual_trading',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -565,6 +567,22 @@ const AppWrapper = observer(() => {
                                     fallback={<ChunkLoader message={localize('Please wait, loading Smart Trading...')} />}
                                 >
                                     <SmartTrading />
+                                </Suspense>
+                            </div>
+
+                            <div
+                                label={
+                                    <>
+                                        <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                                        <Localize i18n_default_text='Manual Trading' />
+                                    </>
+                                }
+                                id='id-manual-trading'
+                            >
+                                <Suspense
+                                    fallback={<ChunkLoader message={localize('Please wait, loading Manual Trading...')} />}
+                                >
+                                    <ManualTrading />
                                 </Suspense>
                             </div>
                         </Tabs>
