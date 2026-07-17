@@ -850,61 +850,82 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
             `Market: ${selectedMarket.label}`,
             `Stake: ${stakeInput} ${currency} | TP: ${takeProfitInput} | SL: ${stopLossInput}`,
             `Martingale: ${martingale}× | Alternate: ${alternateEnabled ? `${alternateStrategy} after ${alternateAfterLosses} losses` : 'disabled'}`,
-            '→ Building bot and loading into workspace...',
+            '→ Switching to Bot Builder and initializing workspace...',
         ]);
         setPopupOpen(true);
 
         try {
-            // Map strategy to tradetype and type
-            let tradetype = 'risefall';
-            let type = 'both';
-            if (strategy === 'Matches & Differs') {
-                tradetype = 'matchesdiffers';
-            } else if (strategy === 'Even & Odd') {
-                tradetype = 'evenodd';
-            } else if (strategy === 'Over & Under') {
-                tradetype = 'overunder';
-            } else if (strategy === 'Only Ups') {
-                tradetype = 'risefall';
-                type = 'CALL';
-            } else if (strategy === 'Only Downs') {
-                tradetype = 'risefall';
-                type = 'PUT';
+            // Switch to Bot Builder tab first to mount the workspace
+            try {
+                dashboard.setActiveTab(DBOT_TABS.BOT_BUILDER);
+            } catch (e) {
+                console.error('[Scanner] Unable to switch to Bot Builder tab:', e);
             }
 
-            // Configure strategy store parameters
-            quick_strategy.setSelectedStrategy('MARTINGALE');
-            quick_strategy.setValue('symbol', selectedSymbol);
-            quick_strategy.setValue('tradetype', tradetype);
-            quick_strategy.setValue('type', type);
-            quick_strategy.setValue('stake', Number(stakeInput) || 1);
-            quick_strategy.setValue('size', Number(martingale) || 2);
-            quick_strategy.setValue('profit', Number(takeProfitInput) || 100);
-            quick_strategy.setValue('loss', Number(stopLossInput) || 50);
-            quick_strategy.setValue('durationtype', 't');
-            quick_strategy.setValue('duration', 1);
-            quick_strategy.setValue('action', 'BUILD');
+            // Wait for Blockly workspace to load and initialize
+            let attempts = 0;
+            const checkInterval = setInterval(() => {
+                attempts++;
+                const hasBlockly = typeof window !== 'undefined' && (window as any).Blockly?.derivWorkspace;
 
-            // Set prediction digit if applicable
-            if (confirmedSignal && confirmedSignal.barrier) {
-                quick_strategy.setValue('last_digit_prediction', Number(confirmedSignal.barrier));
-            } else if (strategy === 'Matches & Differs') {
-                quick_strategy.setValue('last_digit_prediction', 5);
-            } else if (strategy === 'Over & Under') {
-                quick_strategy.setValue('last_digit_prediction', 5);
-            }
+                if (hasBlockly) {
+                    clearInterval(checkInterval);
+                    try {
+                        // Map strategy to tradetype and type
+                        let tradetype = 'risefall';
+                        let type = 'both';
+                        if (strategy === 'Matches & Differs') {
+                            tradetype = 'matchesdiffers';
+                        } else if (strategy === 'Even & Odd') {
+                            tradetype = 'evenodd';
+                        } else if (strategy === 'Over & Under') {
+                            tradetype = 'overunder';
+                        } else if (strategy === 'Only Ups') {
+                            tradetype = 'risefall';
+                            type = 'CALL';
+                        } else if (strategy === 'Only Downs') {
+                            tradetype = 'risefall';
+                            type = 'PUT';
+                        }
 
-            // Build and import the bot XML DOM blocks directly to the Blockly canvas
-            void quick_strategy.onSubmit(quick_strategy.form_data);
+                        // Configure strategy store parameters
+                        quick_strategy.setSelectedStrategy('MARTINGALE');
+                        quick_strategy.setValue('symbol', selectedSymbol);
+                        quick_strategy.setValue('tradetype', tradetype);
+                        quick_strategy.setValue('type', type);
+                        quick_strategy.setValue('stake', Number(stakeInput) || 1);
+                        quick_strategy.setValue('size', Number(martingale) || 2);
+                        quick_strategy.setValue('profit', Number(takeProfitInput) || 100);
+                        quick_strategy.setValue('loss', Number(stopLossInput) || 50);
+                        quick_strategy.setValue('durationtype', 't');
+                        quick_strategy.setValue('duration', 1);
+                        quick_strategy.setValue('action', 'BUILD');
 
-            setTimeout(() => {
-                try {
-                    dashboard.setActiveTab(DBOT_TABS.BOT_BUILDER);
-                    setPopupOpen(false);
-                } catch (e) {
-                    console.error('[Scanner] Unable to switch to Bot Builder tab:', e);
+                        // Set prediction digit if applicable
+                        if (confirmedSignal && confirmedSignal.barrier) {
+                            quick_strategy.setValue('last_digit_prediction', Number(confirmedSignal.barrier));
+                        } else if (strategy === 'Matches & Differs') {
+                            quick_strategy.setValue('last_digit_prediction', 5);
+                        } else if (strategy === 'Over & Under') {
+                            quick_strategy.setValue('last_digit_prediction', 5);
+                        }
+
+                        // Build and import the bot XML DOM blocks directly to the Blockly canvas
+                        void quick_strategy.onSubmit(quick_strategy.form_data);
+
+                        setTerminalDashboard(prev => [...prev, '✅ Bot built and loaded successfully!']);
+                        setTimeout(() => {
+                            setPopupOpen(false);
+                        }, 1000);
+                    } catch (e) {
+                        console.error('[Scanner] Build error inside interval:', e);
+                        setTerminalDashboard(prev => [...prev, `❌ Error: ${e instanceof Error ? e.message : String(e)}`]);
+                    }
+                } else if (attempts >= 50) { // 5 seconds timeout
+                    clearInterval(checkInterval);
+                    setTerminalDashboard(prev => [...prev, '❌ Timeout waiting for Bot Builder workspace. Please load the Bot Builder manually first.']);
                 }
-            }, 2000);
+            }, 100);
 
         } catch (e) {
             console.error('[Scanner] Auto Build error:', e);

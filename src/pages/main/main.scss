@@ -72,6 +72,10 @@
         }
 
         .dc-tabs {
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+
             &__active-line {
                 background-color: #263d88 !important;
                 transition: none;
@@ -163,9 +167,13 @@
             }
 
             &__content {
+                flex: 1 !important;
+                overflow-y: auto !important;
+
                 @include mobile-or-tablet-screen {
                     width: 100%;
                     overflow-x: auto;
+                    overflow-y: auto !important;
 
                     &--no-result {
                         @include flex-center;
