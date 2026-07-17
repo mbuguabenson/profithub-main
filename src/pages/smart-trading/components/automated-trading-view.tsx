@@ -1148,6 +1148,37 @@ const AutomatedTradingView = observer(() => {
                 </div>
 
             </div>
+
+            <div className='smart-auto-controls' style={{ marginTop: '40px', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                <button
+                    className={`btn-speed-trade ${Object.values(configs).some(c => c.is_running) ? 'running' : ''}`}
+                    onClick={() => {
+                        const isAnyRunning = Object.values(configs).some(c => c.is_running);
+                        Object.keys(configs).forEach(key => {
+                            updateConfig(key, 'is_running', !isAnyRunning);
+                        });
+                    }}
+                    style={{
+                        width: '100%',
+                        maxWidth: '450px',
+                        padding: '20px 40px',
+                        fontSize: '18px',
+                        fontWeight: '900',
+                        letterSpacing: '2px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: '#fff',
+                        background: Object.values(configs).some(c => c.is_running)
+                            ? 'linear-gradient(135deg, #ef4444, #f43f5e)'
+                            : 'linear-gradient(135deg, #6366f1, #a855f7)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                        transition: 'all 0.3s ease'
+                    }}
+                >
+                    {Object.values(configs).some(c => c.is_running) ? 'STOP ALL STRATEGIES' : 'START ALL STRATEGIES'}
+                </button>
+            </div>
         </div>
     );
 });
