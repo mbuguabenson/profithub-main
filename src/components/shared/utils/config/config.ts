@@ -300,6 +300,42 @@ const createHostedDomainEntries = ({
 };
 
 export const DOMAIN_CONFIG: Record<string, DomainConfig> = {
+    ...createHostedDomainEntries({
+        primaryDomain: 'profithub.co.ke',
+        aliases: ['www.profithub.co.ke', 'staging.profithub.co.ke'],
+        clientId: '33Mmq9JHMrJaUKT2KIhKZ',
+        appId: '114292',
+        redirectUri: 'https://www.profithub.co.ke/',
+        includeLegacyAppIdInOAuth: true,
+        features: {
+            autoTrades: true,
+            manualTrading: true,
+            chart: true,
+        },
+        ui: createDomainShellUI('ProfitHub', {
+            primaryColor: '#3b82f6',
+            secondaryColor: '#64748b',
+            accentColor: '#8b5cf6',
+            headerBgColor: '#0f172a',
+            sidebarBgColor: '#1e293b',
+            navBg: '#1e293b',
+            navActive: '#3b82f6',
+            navHover: '#475569',
+            pageBg: '#0f172a',
+            pageBgLight: '#f8fafc',
+            sectionBg: '#1e293b',
+            sectionBg2: '#334155',
+            sectionMuted: '#475569',
+            sectionBorder: 'rgba(59, 130, 246, 0.34)',
+            panelBorder: '#3b82f6',
+            panelBorderSoft: 'rgba(59, 130, 246, 0.22)',
+            runButton: '#10b981',
+            runButtonHover: '#34d399',
+            authBlue: '#3b82f6',
+            authBorder: '#60a5fa',
+            gold: '#fbbf24',
+        }),
+    }),
     // ── Primary production domain ────────────────────────────────────────────
     // New OAuth app registered redirect: https://riskmanagers.site/ (trailing slash)
     ...createHostedDomainEntries({
@@ -790,8 +826,8 @@ export const getDomainConfig = (activeHostname = window.location.hostname): Doma
     }
     // Fallback — used on localhost and Replit dev domains
     return {
-        clientId: process.env.CLIENT_ID || '',
-        appId: process.env.APP_ID || '71937',
+        clientId: process.env.CLIENT_ID || '33Mmq9JHMrJaUKT2KIhKZ',
+        appId: process.env.APP_ID || '114292',
         redirectUri: process.env.REDIRECT_URI || `${window.location.origin}/`,
         botsFolder: process.env.BOTS_FOLDER || DEFAULT_BOTS_FOLDER,
         canonicalHost: hostname,
