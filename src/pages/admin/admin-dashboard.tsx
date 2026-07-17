@@ -1,0 +1,1351 @@
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
+import { useStore } from '@/hooks/useStore';
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from 'recharts';
+import {
+    getPendingRequestsForProvider, updateCopyRequestStatus, CopyRequest,
+    getSiteConfig, saveSiteConfig, SiteConfig, TabConfigItem, getDefaultTabConfig,
+    getChatSessions, getChatMessages, sendChatMessage, ChatMessage,
+    getUploadedBots, saveUploadedBot, deleteUploadedBot, UploadedBot,
+} from '@/utils/supabase-copy';
+import { getTradeLogs } from '@/pages/copy-trading/replicator';
+import { getAppId, isProduction } from '@/components/shared/utils/config/config';
+import './admin-dashboard.scss';
+
+// ─── Real Data Helpers ────────────────────────────────────────────────────────
+const getAccountsList = (): Record<string, string> => {
+    try { return JSON.parse(localStorage.getItem('accountsList') || '{}'); } catch { return {}; }
+};
+const getCopyTokensArray = (): string[] => {
+    try { return JSON.parse(localStorage.getItem('copyTokensArray') || '[]'); } catch { return []; }
+};
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+};
+
+// ─── Minimal SVG Icons ────────────────────────────────────────────────────────
+const Icons = {
+    Dashboard: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+        </svg>
+    ),
+    Users: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+    ),
+    Messages: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+    ),
+    Portfolio: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+    ),
+    MarketData: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+    ),
+    Trading: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+    ),
+    Analytics: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+        </svg>
+    ),
+    Transactions: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+    ),
+    SystemLogs: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+            <line x1="8" y1="21" x2="16" y2="21" />
+            <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+    ),
+    Account: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+        </svg>
+    ),
+    Notifications: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+    ),
+    Settings: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+    ),
+    ChevronLeft: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+        </svg>
+    ),
+    Menu: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+    ),
+    Search: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+    ),
+    External: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+        </svg>
+    ),
+    Sun: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    ),
+    Moon: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    ),
+    Palette: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>
+    ),
+    Upload: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    ),
+    ChevronUp: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+    ),
+    ChevronDown: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    ),
+    Trash: () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    ),
+};
+
+// ─── Admin Dashboard ──────────────────────────────────────────────────────────
+const AdminDashboard = observer(() => {
+    const navigate = useNavigate();
+    const location = useLocation();
+    useStore();
+
+    // Auth
+    const [isAuthenticated, setIsAuthenticated] = useState(() =>
+        localStorage.getItem('admin_authenticated') === 'true'
+    );
+    const [loginUsername, setLoginUsername] = useState('');
+    const [loginPassword, setLoginPassword] = useState('');
+    const [loginError, setLoginError] = useState('');
+
+    // Theme state
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        return (localStorage.getItem('admin_theme') as 'light' | 'dark') || 'dark';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('admin_theme', theme);
+    }, [theme]);
+
+    // Nav
+    const activeSubPage = useMemo(() => {
+        const p = location.pathname;
+        if (p.includes('/admin/users')) return 'users';
+        if (p.includes('/admin/messages')) return 'messages';
+        if (p.includes('/admin/website-editor')) return 'website-editor';
+        if (p.includes('/admin/portfolio')) return 'portfolio';
+        if (p.includes('/admin/market-data')) return 'market-data';
+        if (p.includes('/admin/trading')) return 'trading';
+        if (p.includes('/admin/analytics')) return 'analytics';
+        if (p.includes('/admin/transactions')) return 'transactions';
+        if (p.includes('/admin/system-logs')) return 'system-logs';
+        if (p.includes('/admin/account')) return 'account';
+        if (p.includes('/admin/notifications')) return 'notifications';
+        if (p.includes('/admin/settings')) return 'settings';
+        return 'dashboard';
+    }, [location.pathname]);
+
+    // Real data states
+    const [copyRequests, setCopyRequests] = useState<CopyRequest[]>([]);
+    const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [tradeLogs, setTradeLogs] = useState<any[]>([]);
+    const [totalBalance, setTotalBalance] = useState(0);
+    const [onlineUsers, setOnlineUsers] = useState(0);
+    const [platformPnL, setPlatformPnL] = useState(0);
+    const [tradingVolume, setTradingVolume] = useState(0);
+    const [chartData, setChartData] = useState<any[]>([]);
+    const [chartFilter, setChartFilter] = useState<'all' | 'real' | 'demo'>('all');
+    const [chartType, setChartType] = useState<'monotone' | 'linear' | 'step'>('monotone');
+    const [wsLatency, setWsLatency] = useState(0);
+    const [apiOperational, setApiOperational] = useState(true);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    // Settings
+    const [settings, setSettings] = useState({
+        minStake: 0.35, maxStake: 100, dailyLossLimit: 50,
+        hourlyLossLimit: 10, slackWebhook: '', enableAutoTrading: true,
+    });
+    const [saveSuccess, setSaveSuccess] = useState(false);
+
+    // ─── Website Editor State ─────────────────────────────────────────────────
+    const [siteConfig, setSiteConfigState] = useState<SiteConfig>(getSiteConfig());
+    const [editorSaveOk, setEditorSaveOk] = useState(false);
+    const [uploadedBots, setUploadedBots] = useState<UploadedBot[]>(getUploadedBots());
+    const [newBotName, setNewBotName] = useState('');
+    const [newBotDesc, setNewBotDesc] = useState('');
+    const logoInputRef = useRef<HTMLInputElement>(null);
+    const xmlInputRef = useRef<HTMLInputElement>(null);
+
+    const handleSiteConfigChange = (patch: Partial<SiteConfig>) => {
+        const updated = { ...siteConfig, ...patch };
+        setSiteConfigState(updated);
+    };
+    const handleSaveSiteConfig = () => {
+        saveSiteConfig(siteConfig);
+        setEditorSaveOk(true);
+        setTimeout(() => setEditorSaveOk(false), 3000);
+    };
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            handleSiteConfigChange({ logoBase64: reader.result as string });
+        };
+        reader.readAsDataURL(file);
+    };
+    const handleTabToggle = (key: string) => {
+        const tabs = siteConfig.tabConfig.map(t => t.key === key ? { ...t, enabled: !t.enabled } : t);
+        handleSiteConfigChange({ tabConfig: tabs });
+    };
+    const handleTabMove = (key: string, dir: -1 | 1) => {
+        const tabs = [...siteConfig.tabConfig].sort((a, b) => a.order - b.order);
+        const idx = tabs.findIndex(t => t.key === key);
+        if (idx < 0) return;
+        const swapIdx = idx + dir;
+        if (swapIdx < 0 || swapIdx >= tabs.length) return;
+        const tmpOrder = tabs[idx].order;
+        tabs[idx] = { ...tabs[idx], order: tabs[swapIdx].order };
+        tabs[swapIdx] = { ...tabs[swapIdx], order: tmpOrder };
+        handleSiteConfigChange({ tabConfig: tabs });
+    };
+    const handleResetTabs = () => {
+        handleSiteConfigChange({ tabConfig: getDefaultTabConfig() });
+    };
+    const handleXmlUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const xml = reader.result as string;
+            const name = newBotName.trim() || file.name.replace('.xml', '');
+            saveUploadedBot({ name, description: newBotDesc.trim() || `Custom bot: ${name}`, xml });
+            setUploadedBots(getUploadedBots());
+            setNewBotName('');
+            setNewBotDesc('');
+            if (xmlInputRef.current) xmlInputRef.current.value = '';
+        };
+        reader.readAsText(file);
+    };
+    const handleDeleteBot = (id: string) => {
+        deleteUploadedBot(id);
+        setUploadedBots(getUploadedBots());
+    };
+
+    // ─── Chat Hub State ───────────────────────────────────────────────────────
+    const [chatSessions, setChatSessions] = useState<string[]>([]);
+    const [activeChatUser, setActiveChatUser] = useState<string>('');
+    const [chatMsgs, setChatMsgs] = useState<ChatMessage[]>([]);
+    const [chatDraft, setChatDraft] = useState('');
+    const chatScrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (activeSubPage !== 'messages' || !isAuthenticated) return;
+        const refresh = () => {
+            const sessions = getChatSessions();
+            setChatSessions(sessions);
+            if (activeChatUser) setChatMsgs(getChatMessages(activeChatUser));
+        };
+        refresh();
+        const iv = setInterval(refresh, 3000);
+        return () => clearInterval(iv);
+    }, [activeSubPage, isAuthenticated, activeChatUser]);
+
+    useEffect(() => {
+        if (chatScrollRef.current) chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }, [chatMsgs]);
+
+    const handleAdminSend = () => {
+        const text = chatDraft.trim();
+        if (!text || !activeChatUser) return;
+        sendChatMessage({ sender: 'admin', loginid: activeChatUser, text, timestamp: Date.now() });
+        setChatDraft('');
+        setChatMsgs(getChatMessages(activeChatUser));
+    };
+
+    // ─── Fetch Copy Requests ──────────────────────────────────────────────────
+    const fetchRequests = useCallback(async () => {
+        setIsLoadingRequests(true);
+        try {
+            const reqs = await getPendingRequestsForProvider('Profithubadmin');
+            setCopyRequests(reqs);
+        } catch (e) { console.error('Failed to load copy requests:', e); }
+        finally { setIsLoadingRequests(false); }
+    }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        fetchRequests();
+        const iv = setInterval(fetchRequests, 15000);
+        return () => clearInterval(iv);
+    }, [isAuthenticated, fetchRequests]);
+
+    // ─── Poll Real Data ───────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const pollRealData = () => {
+            // Trade logs from replicator
+            const logs = getTradeLogs();
+            setTradeLogs(logs);
+
+            // Compute P&L from logs
+            let pnl = 0;
+            let vol = 0;
+            const chartPoints: any[] = [];
+            logs.forEach((log: any) => {
+                const amt = parseFloat(log.payload?.amount || 0);
+                vol += amt;
+                if (!log.error) pnl += amt * 0.15; // Estimate profit from successful trades
+                else pnl -= amt;
+                chartPoints.push({
+                    name: new Date(log.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    PnL: parseFloat(pnl.toFixed(2)),
+                    volume: vol,
+                });
+            });
+            setPlatformPnL(parseFloat(pnl.toFixed(2)));
+            setTradingVolume(parseFloat(vol.toFixed(2)));
+            if (chartPoints.length > 0) setChartData(chartPoints);
+
+            // Online users = accepted copy requests
+            const accepted = (copyRequests || []).filter(r => r.status === 'accepted').length;
+            setOnlineUsers(accepted);
+
+            // WS latency simulation from real ping
+            const start = performance.now();
+            fetch(`${isProduction() ? 'https://api.derivws.com' : 'https://staging-api.derivws.com'}/trading/v1/`, {
+                method: 'HEAD', mode: 'no-cors',
+            }).then(() => {
+                setWsLatency(Math.round(performance.now() - start));
+                setApiOperational(true);
+            }).catch(() => {
+                setWsLatency(0);
+                setApiOperational(false);
+            });
+        };
+
+        pollRealData();
+        const iv = setInterval(pollRealData, 5000);
+        return () => clearInterval(iv);
+    }, [isAuthenticated, copyRequests]);
+
+    // ─── Fetch Real Balances ──────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        const fetchBalances = async () => {
+            const tokens = getCopyTokensArray();
+            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+            const baseURL = isProduction()
+                ? 'https://api.derivws.com/trading/v1/'
+                : 'https://staging-api.derivws.com/trading/v1/';
+            let total = 0;
+
+            for (const token of tokens) {
+                try {
+                    const res = await fetch(`${baseURL}options/accounts`, {
+                        method: 'GET',
+                        headers: { Authorization: `Bearer ${token}`, 'Deriv-App-ID': appId },
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        const accounts = data?.data || [];
+                        for (const acc of accounts) {
+                            if (!acc.account_id?.startsWith('VR')) {
+                                total += parseFloat(acc.balance?.toString() || '0');
+                            }
+                        }
+                    }
+                } catch { /* skip */ }
+            }
+            setTotalBalance(total);
+        };
+        fetchBalances();
+        const iv = setInterval(fetchBalances, 30000);
+        return () => clearInterval(iv);
+    }, [isAuthenticated]);
+
+    // ─── Accept / Reject / Stop Requests ──────────────────────────────────────
+    const handleAcceptRequest = async (req: CopyRequest) => {
+        if (!req.id) return;
+        const ok = await updateCopyRequestStatus(req.id, 'accepted');
+        if (ok) {
+            let arr = getCopyTokensArray();
+            if (!arr.includes(req.requester_token)) {
+                arr.push(req.requester_token);
+                localStorage.setItem('copyTokensArray', JSON.stringify(arr));
+            }
+            fetchRequests();
+        }
+    };
+    const handleRejectRequest = async (req: CopyRequest) => {
+        if (!req.id) return;
+        await updateCopyRequestStatus(req.id, 'rejected');
+        fetchRequests();
+    };
+    const handleStopRequest = async (req: CopyRequest) => {
+        if (!req.id) return;
+        const ok = await updateCopyRequestStatus(req.id, 'stopped');
+        if (ok) {
+            let arr = getCopyTokensArray().filter(t => t !== req.requester_token);
+            localStorage.setItem('copyTokensArray', JSON.stringify(arr));
+            fetchRequests();
+        }
+    };
+
+    const filteredRequests = useMemo(() =>
+        copyRequests.filter(r => r.requester_loginid.toLowerCase().includes(searchQuery.toLowerCase())),
+    [copyRequests, searchQuery]);
+
+    // ─── Auth ─────────────────────────────────────────────────────────────────
+    const handleLoginSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (loginUsername === 'Admin_profithub' && loginPassword === 'Access@profithub2026') {
+            setIsAuthenticated(true);
+            localStorage.setItem('admin_authenticated', 'true');
+            setLoginError('');
+            navigate('/admin/dashboard');
+        } else {
+            setLoginError('Invalid username or password');
+        }
+    };
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        localStorage.removeItem('admin_authenticated');
+        navigate('/admin/login');
+    };
+
+    // ─── Login Screen ─────────────────────────────────────────────────────────
+    if (!isAuthenticated) {
+        return (
+            <div className='adm-login'>
+                <div className='adm-login__bg-orbs'>
+                    <div className='adm-login__orb adm-login__orb--1' />
+                    <div className='adm-login__orb adm-login__orb--2' />
+                </div>
+                <div className='adm-login__card'>
+                    <div className='adm-login__card-glow' />
+                    <div className='adm-login__header'>
+                        <div className='adm-login__icon-ring'>
+                            <img src='/logo_light.png' alt='ProfitHub' className='adm-login__logo' />
+                        </div>
+                        <h2 className='adm-login__title'>Admin Console 3.0</h2>
+                        <p className='adm-login__desc'>Secure access to ProfitHub platform management</p>
+                    </div>
+                    <form className='adm-login__form' onSubmit={handleLoginSubmit}>
+                        <div className='adm-login__field'>
+                            <label className='adm-login__label'>Username</label>
+                            <div className='adm-login__input-wrap'>
+                                <span className='adm-login__input-icon'>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                </span>
+                                <input type='text' className='adm-login__input' placeholder='Enter admin username'
+                                    value={loginUsername} onChange={e => setLoginUsername(e.target.value)} autoComplete='username' />
+                            </div>
+                        </div>
+                        <div className='adm-login__field'>
+                            <label className='adm-login__label'>Password</label>
+                            <div className='adm-login__input-wrap'>
+                                <span className='adm-login__input-icon'>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                </span>
+                                <input type='password' className='adm-login__input' placeholder='••••••••••••'
+                                    value={loginPassword} onChange={e => setLoginPassword(e.target.value)} autoComplete='current-password' />
+                            </div>
+                        </div>
+                        {loginError && <p className='adm-login__error'>⚠ {loginError}</p>}
+                        <button type='submit' className='adm-login__btn'>
+                            <span>Sign In to Dashboard</span>
+                            <span className='adm-login__btn-arrow'>→</span>
+                        </button>
+                    </form>
+                    <p className='adm-login__footer-text'>Protected by ProfitHub Security Layer</p>
+                </div>
+            </div>
+        );
+    }
+
+    // ─── Sidebar Items ────────────────────────────────────────────────────────
+    const sidebarGeneral = [
+        { key: 'dashboard', icon: <Icons.Dashboard />, label: 'Dashboard' },
+        { key: 'users', icon: <Icons.Users />, label: 'Users' },
+        { key: 'messages', icon: <Icons.Messages />, label: 'Messages' },
+        { key: 'website-editor', icon: <Icons.Palette />, label: 'Website Editor' },
+        { key: 'portfolio', icon: <Icons.Portfolio />, label: 'Portfolio' },
+        { key: 'market-data', icon: <Icons.MarketData />, label: 'Market Data' },
+        { key: 'trading', icon: <Icons.Trading />, label: 'Trading' },
+        { key: 'analytics', icon: <Icons.Analytics />, label: 'Analytics' },
+        { key: 'transactions', icon: <Icons.Transactions />, label: 'Transactions' },
+        { key: 'system-logs', icon: <Icons.SystemLogs />, label: 'System Logs' },
+    ];
+    const sidebarPrefs = [
+        { key: 'account', icon: <Icons.Account />, label: 'Account' },
+        { key: 'notifications', icon: <Icons.Notifications />, label: 'Notifications' },
+        { key: 'settings', icon: <Icons.Settings />, label: 'Settings' },
+    ];
+
+    const totalUsers = Object.keys(getAccountsList()).length + copyRequests.length;
+    const acceptedCount = copyRequests.filter(r => r.status === 'accepted').length;
+    const pendingCount = copyRequests.filter(r => r.status === 'pending').length;
+
+    return (
+        <div className={`adm-shell adm-shell--${theme} ${sidebarCollapsed ? 'adm-shell--collapsed' : ''}`}>
+            {/* ═══ SIDEBAR ═══ */}
+            <aside className='adm-sidebar'>
+                <div className='adm-sidebar__brand'>
+                    <div className='adm-sidebar__brand-icon'>
+                        <img src='/logo_light.png' alt='' style={{ width: 20, height: 20 }} />
+                    </div>
+                    {!sidebarCollapsed && <span className='adm-sidebar__brand-text'>RootAdmin</span>}
+                </div>
+
+                <div className='adm-sidebar__section-label'>GENERAL</div>
+                <nav className='adm-sidebar__nav'>
+                    {sidebarGeneral.map(item => (
+                        <button key={item.key}
+                            className={`adm-sidebar__item ${activeSubPage === item.key ? 'adm-sidebar__item--active' : ''}`}
+                            onClick={() => navigate(`/admin/${item.key === 'dashboard' ? 'dashboard' : item.key}`)}
+                        >
+                            <span className='adm-sidebar__item-icon'>{item.icon}</span>
+                            {!sidebarCollapsed && <span>{item.label}</span>}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className='adm-sidebar__section-label'>PREFERENCES</div>
+                <nav className='adm-sidebar__nav'>
+                    {sidebarPrefs.map(item => (
+                        <button key={item.key}
+                            className={`adm-sidebar__item ${activeSubPage === item.key ? 'adm-sidebar__item--active' : ''}`}
+                            onClick={() => navigate(`/admin/${item.key}`)}
+                        >
+                            <span className='adm-sidebar__item-icon'>{item.icon}</span>
+                            {!sidebarCollapsed && <span>{item.label}</span>}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className='adm-sidebar__section-label'>SITE</div>
+                <nav className='adm-sidebar__nav'>
+                    <button className='adm-sidebar__item' onClick={() => window.open('/', '_blank')}>
+                        <span className='adm-sidebar__item-icon'><Icons.External /></span>
+                        {!sidebarCollapsed && <span>Live Site</span>}
+                    </button>
+                </nav>
+
+                <div className='adm-sidebar__bottom'>
+                    <button className='adm-sidebar__logout' onClick={handleLogout}>
+                        <span className='adm-sidebar__item-icon'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        </span>
+                        {!sidebarCollapsed && <span style={{ marginLeft: 8 }}>Logout</span>}
+                    </button>
+                </div>
+            </aside>
+
+            {/* ═══ MAIN ═══ */}
+            <main className='adm-main'>
+                {/* ── Top Bar ── */}
+                <header className='adm-topbar'>
+                    <div className='adm-topbar__left'>
+                        <button className='adm-topbar__collapse' onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+                            {sidebarCollapsed ? <Icons.Menu /> : <Icons.ChevronLeft />}
+                        </button>
+                        <span className='adm-topbar__breadcrumb'>
+                            Main Menu / <strong>{activeSubPage.charAt(0).toUpperCase() + activeSubPage.slice(1).replace('-', ' ')}</strong>
+                        </span>
+                    </div>
+                    <div className='adm-topbar__right'>
+                        <div className='adm-topbar__search'>
+                            <span className='adm-topbar__search-icon'><Icons.Search /></span>
+                            <input type='text' placeholder='Quick Search...' />
+                            <kbd>Ctrl+K</kbd>
+                        </div>
+                        <span className='adm-topbar__divider' />
+                        <div className='adm-topbar__meta'>
+                            <span className='adm-topbar__label'>Admin Panel</span>
+                            <span className='adm-topbar__sublabel'>Master Root</span>
+                        </div>
+                        <span className='adm-topbar__bell'>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        </span>
+                        <button className='adm-topbar__theme-toggle' onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                            {theme === 'dark' ? <Icons.Sun /> : <Icons.Moon />}
+                        </button>
+                        <div className='adm-topbar__avatar'>A</div>
+                    </div>
+                </header>
+
+                {/* ── Content ── */}
+                <div className='adm-content'>
+
+                    {/* ═══════════════ DASHBOARD ═══════════════ */}
+                    {activeSubPage === 'dashboard' && (
+                        <>
+                            {/* Greeting Row */}
+                            <div className='adm-greeting-row'>
+                                <div>
+                                    <h1 className='adm-greeting'>{getGreeting()}, Admin</h1>
+                                    <p className='adm-greeting-sub'>Real-time platform performance overview.</p>
+                                </div>
+                                <div className='adm-status-pills'>
+                                    <div className='adm-status-pill'>
+                                        <span className={`adm-status-dot ${apiOperational ? 'adm-status-dot--green' : 'adm-status-dot--red'}`} />
+                                        <span className='adm-status-pill__label'>PLATFORM API</span>
+                                        <span className={`adm-status-pill__val ${apiOperational ? '' : 'adm-status-pill__val--red'}`}>
+                                            {apiOperational ? 'Operational' : 'Down'}
+                                        </span>
+                                    </div>
+                                    <div className='adm-status-pill'>
+                                        <span className='adm-status-pill__label'>WS LATENCY</span>
+                                        <span className='adm-status-pill__val'>
+                                            {wsLatency}ms <span className={`adm-tag-mini ${wsLatency < 100 ? 'adm-tag-mini--green' : 'adm-tag-mini--yellow'}`}>{wsLatency < 100 ? 'Optimal' : 'Slow'}</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* KPI Cards */}
+                            <div className='adm-kpi-grid'>
+                                <div className='adm-kpi adm-kpi--blue'>
+                                    <div className='adm-kpi__body'>
+                                        <span className='adm-kpi__label'>TOTAL ACTIVE USERS</span>
+                                        <h2 className='adm-kpi__value'>{totalUsers}</h2>
+                                        <span className='adm-kpi__sub'>{onlineUsers} ONLINE NOW</span>
+                                        <span className='adm-kpi__trend adm-kpi__trend--up'>+{pendingCount} pending</span>
+                                    </div>
+                                    <div className='adm-kpi__icon adm-kpi__icon--blue'>
+                                        <Icons.Users />
+                                    </div>
+                                </div>
+                                <div className='adm-kpi adm-kpi--green'>
+                                    <div className='adm-kpi__body'>
+                                        <span className='adm-kpi__label'>REAL BALANCE TOTAL</span>
+                                        <h2 className='adm-kpi__value'>${totalBalance.toFixed(2)}</h2>
+                                        <span className='adm-kpi__sub'>LIVE PLATFORM RESERVE</span>
+                                        <span className='adm-kpi__trend adm-kpi__trend--up'>{acceptedCount} active copiers</span>
+                                    </div>
+                                    <div className='adm-kpi__icon adm-kpi__icon--green'>
+                                        <Icons.Transactions />
+                                    </div>
+                                </div>
+                                <div className='adm-kpi adm-kpi--purple'>
+                                    <div className='adm-kpi__body'>
+                                        <span className='adm-kpi__label'>NET PERFORMANCE</span>
+                                        <h2 className='adm-kpi__value'>${platformPnL.toFixed(2)}</h2>
+                                        <span className='adm-kpi__sub'>TOTAL PLATFORM P/L</span>
+                                        <span className={`adm-kpi__trend ${platformPnL >= 0 ? 'adm-kpi__trend--up' : 'adm-kpi__trend--down'}`}>
+                                            {platformPnL >= 0 ? '▲' : '▼'} Aggregated P/L
+                                        </span>
+                                    </div>
+                                    <div className='adm-kpi__icon adm-kpi__icon--purple'>
+                                        <Icons.MarketData />
+                                    </div>
+                                </div>
+                                <div className='adm-kpi adm-kpi--red'>
+                                    <div className='adm-kpi__body'>
+                                        <span className='adm-kpi__label'>TRADING VOLUME</span>
+                                        <h2 className='adm-kpi__value'>${tradingVolume.toFixed(2)}</h2>
+                                        <span className='adm-kpi__sub'>TOTAL STAKE PROCESSED</span>
+                                        <span className='adm-kpi__trend adm-kpi__trend--up'>{tradeLogs.length} trades</span>
+                                    </div>
+                                    <div className='adm-kpi__icon adm-kpi__icon--red'>
+                                        <Icons.Trading />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Chart + Live Feed */}
+                            <div className='adm-duo-grid'>
+                                <div className='adm-card adm-card--chart'>
+                                    <div className='adm-card__header'>
+                                        <div>
+                                            <h3 className='adm-card__title'>Platform Performance</h3>
+                                            <p className='adm-card__subtitle'>Global trading activity overview</p>
+                                        </div>
+                                        <div className='adm-chart-filters'>
+                                            {(['all', 'real', 'demo'] as const).map(f => (
+                                                <button key={f} className={`adm-chip ${chartFilter === f ? 'adm-chip--active' : ''}`}
+                                                    onClick={() => setChartFilter(f)}>{f.charAt(0).toUpperCase() + f.slice(1)}</button>
+                                            ))}
+                                            <span className='adm-chip-sep' />
+                                            {(['monotone', 'linear', 'step'] as const).map(t => (
+                                                <button key={t} className={`adm-chip ${chartType === t ? 'adm-chip--filled' : ''}`}
+                                                    onClick={() => setChartType(t)}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className='adm-chart-container'>
+                                        {chartData.length === 0 ? (
+                                            <div className='adm-chart-empty'>
+                                                <div className='adm-chart-empty__pulse' />
+                                                <p>Waiting for platform activity...</p>
+                                                <span>Real-time analytics engine online</span>
+                                            </div>
+                                        ) : (
+                                            <ResponsiveContainer width='100%' height={220}>
+                                                <AreaChart data={chartData}>
+                                                    <defs>
+                                                        <linearGradient id='pnlGrad' x1='0' y1='0' x2='0' y2='1'>
+                                                            <stop offset='5%' stopColor='#3b82f6' stopOpacity={0.4} />
+                                                            <stop offset='95%' stopColor='#3b82f6' stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray='3 3' stroke='rgba(255,255,255,0.03)' />
+                                                    <XAxis dataKey='name' stroke='rgba(255,255,255,0.2)' fontSize={10} tickLine={false} />
+                                                    <YAxis stroke='rgba(255,255,255,0.2)' fontSize={10} tickLine={false} />
+                                                    <Tooltip contentStyle={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#fff', fontSize: 11 }} />
+                                                    <Area type={chartType} dataKey='PnL' stroke='#3b82f6' fill='url(#pnlGrad)' strokeWidth={2} dot={false} />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </div>
+
+                                    {/* Bottom Stats */}
+                                    <div className='adm-card__bottom-stats'>
+                                        <div className='adm-mini-stat'>
+                                            <span className='adm-mini-stat__label'>TOTAL PROFITS</span>
+                                            <span className='adm-mini-stat__value'>{platformPnL.toFixed(2)}</span>
+                                            <span className='adm-mini-stat__tag adm-mini-stat__tag--green'>▲ Aggregated P/L</span>
+                                        </div>
+                                        <div className='adm-mini-stat'>
+                                            <span className='adm-mini-stat__label'>ONLINE USERS</span>
+                                            <span className='adm-mini-stat__value'>{onlineUsers}</span>
+                                            <span className='adm-mini-stat__tag'>ACTIVE CONNECTIONS</span>
+                                        </div>
+                                        <div className='adm-mini-stat'>
+                                            <span className='adm-mini-stat__label'>PLATFORM VOLUME</span>
+                                            <span className='adm-mini-stat__value'>${tradingVolume.toFixed(0)}</span>
+                                            <span className='adm-mini-stat__tag adm-mini-stat__tag--blue'>PROCESSED STAKES</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Live Feed */}
+                                <div className='adm-card adm-card--feed'>
+                                    <div className='adm-card__header'>
+                                        <h3 className='adm-card__title'>Live Platform Activity</h3>
+                                        <span className='adm-live-badge'>● LIVE STREAM</span>
+                                    </div>
+                                    <div className='adm-feed-scroll'>
+                                        {tradeLogs.length === 0 ? (
+                                            <div className='adm-feed-empty'>
+                                                <span className='adm-feed-empty-icon'>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                                </span>
+                                                <p>Awaiting platform events…</p>
+                                            </div>
+                                        ) : (
+                                            tradeLogs.map((log, i) => (
+                                                <div key={i} className={`adm-feed-item ${log.error ? 'adm-feed-item--error' : 'adm-feed-item--ok'}`}>
+                                                    <span className='adm-feed-item__time'>{new Date(log.time).toLocaleTimeString()}</span>
+                                                    <span className='adm-feed-item__msg'>
+                                                        {log.error ? `❌ ${log.error}` : `✅ ${log.payload?.contract_type || 'Trade'} — $${log.payload?.amount || '?'}`}
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Admin Trading Console */}
+                            <div className='adm-card adm-card--console'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'>⚡ Admin Trading Console</h3>
+                                    <span className='adm-authorized-tag'>● AUTHORIZED ACCESS</span>
+                                </div>
+                                <div className='adm-console-info'>
+                                    <p>Copy trading engine is {localStorage.getItem('iscopyTrading') === 'true' ? '🟢 ACTIVE' : '⚪ STANDBY'}. 
+                                    &nbsp;{getCopyTokensArray().length} client tokens loaded. 
+                                    &nbsp;{acceptedCount} accepted followers.</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ═══════════════ USERS ═══════════════ */}
+                    {activeSubPage === 'users' && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'>
+                                <h3 className='adm-card__title'>👥 User Management — Copy Requests</h3>
+                                <input type='text' className='adm-search' placeholder='Search by login ID…'
+                                    value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                            </div>
+                            {isLoadingRequests ? (
+                                <div className='adm-loading'>Loading requests…</div>
+                            ) : filteredRequests.length === 0 ? (
+                                <div className='adm-empty'>No copy requests found.</div>
+                            ) : (
+                                <div className='adm-table-wrap'>
+                                    <table className='adm-table'>
+                                        <thead><tr>
+                                            <th>Login ID</th><th>Status</th><th>Provider</th><th>Token</th><th>Requested</th><th>Actions</th>
+                                        </tr></thead>
+                                        <tbody>
+                                            {filteredRequests.map(req => (
+                                                <tr key={req.id}>
+                                                    <td className='adm-table__user'>{req.requester_loginid}</td>
+                                                    <td><span className={`adm-tag adm-tag--${req.status}`}>{req.status}</span></td>
+                                                    <td>{req.provider_loginid}</td>
+                                                    <td><code className='adm-mono'>{req.requester_token.slice(0, 12)}…</code></td>
+                                                    <td>{req.created_at ? new Date(req.created_at).toLocaleDateString() : '—'}</td>
+                                                    <td>
+                                                        <div className='adm-actions'>
+                                                            {req.status === 'pending' && <>
+                                                                <button className='adm-act adm-act--green' onClick={() => handleAcceptRequest(req)}>Accept</button>
+                                                                <button className='adm-act adm-act--red' onClick={() => handleRejectRequest(req)}>Reject</button>
+                                                            </>}
+                                                            {req.status === 'accepted' && <button className='adm-act adm-act--orange' onClick={() => handleStopRequest(req)}>Stop</button>}
+                                                            {(req.status === 'stopped' || req.status === 'rejected') && <button className='adm-act adm-act--green' onClick={() => handleAcceptRequest(req)}>Re-enable</button>}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ═══════════════ TRADING ═══════════════ */}
+                    {activeSubPage === 'trading' && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'>
+                                <h3 className='adm-card__title'>⚡ Live Trading Activity</h3>
+                                <span className='adm-live-badge'>● LIVE</span>
+                            </div>
+                            <div className='adm-feed-scroll adm-feed-scroll--tall'>
+                                {tradeLogs.length === 0 ? (
+                                    <div className='adm-feed-empty'>
+                                        <span className='adm-feed-empty-icon'>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                        </span>
+                                        <p>No trades executed yet. Start the bot to see activity.</p>
+                                    </div>
+                                ) : tradeLogs.map((log, i) => (
+                                    <div key={i} className={`adm-feed-item ${log.error ? 'adm-feed-item--error' : 'adm-feed-item--ok'}`}>
+                                        <span className='adm-feed-item__time'>{new Date(log.time).toLocaleTimeString()}</span>
+                                        <span className='adm-feed-item__acct'>({log.accountId})</span>
+                                        <span className='adm-feed-item__msg'>
+                                            {log.error ? `❌ ${log.error}` : `✅ Bought ${log.payload?.contract_type || 'contract'} — $${log.payload?.amount || '?'}`}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ═══════════════ TRANSACTIONS ═══════════════ */}
+                    {activeSubPage === 'transactions' && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'>
+                                <h3 className='adm-card__title'>💰 Transaction & Copy Logs</h3>
+                            </div>
+                            {tradeLogs.length === 0 ? (
+                                <div className='adm-empty'>No transaction records yet. Activity will appear when trades are replicated.</div>
+                            ) : (
+                                <div className='adm-table-wrap'>
+                                    <table className='adm-table'>
+                                        <thead><tr><th>Time</th><th>Account</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+                                        <tbody>
+                                            {tradeLogs.map((log, i) => (
+                                                <tr key={i}>
+                                                    <td>{new Date(log.time).toLocaleString()}</td>
+                                                    <td>{log.accountId}</td>
+                                                    <td>{log.payload?.contract_type || 'Trade'}</td>
+                                                    <td>${parseFloat(log.payload?.amount || 0).toFixed(2)}</td>
+                                                    <td><span className={`adm-tag ${log.error ? 'adm-tag--rejected' : 'adm-tag--accepted'}`}>{log.error ? 'Failed' : 'Success'}</span></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ═══════════════ ANALYTICS ═══════════════ */}
+                    {activeSubPage === 'analytics' && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'><h3 className='adm-card__title'>📉 Platform Analytics</h3></div>
+                            <div className='adm-kpi-grid' style={{ marginBottom: 24 }}>
+                                <div className='adm-kpi adm-kpi--blue'><div className='adm-kpi__body'>
+                                    <span className='adm-kpi__label'>WIN RATE</span>
+                                    <h2 className='adm-kpi__value'>{tradeLogs.length > 0 ? ((tradeLogs.filter(l => !l.error).length / tradeLogs.length) * 100).toFixed(1) : '0.0'}%</h2>
+                                </div></div>
+                                <div className='adm-kpi adm-kpi--green'><div className='adm-kpi__body'>
+                                    <span className='adm-kpi__label'>TOTAL TRADES</span>
+                                    <h2 className='adm-kpi__value'>{tradeLogs.length}</h2>
+                                </div></div>
+                                <div className='adm-kpi adm-kpi--purple'><div className='adm-kpi__body'>
+                                    <span className='adm-kpi__label'>AVG STAKE</span>
+                                    <h2 className='adm-kpi__value'>${tradeLogs.length > 0 ? (tradingVolume / tradeLogs.length).toFixed(2) : '0.00'}</h2>
+                                </div></div>
+                            </div>
+                            {chartData.length > 0 && (
+                                <ResponsiveContainer width='100%' height={280}>
+                                    <AreaChart data={chartData}>
+                                        <defs><linearGradient id='ag' x1='0' y1='0' x2='0' y2='1'><stop offset='5%' stopColor='#8b5cf6' stopOpacity={0.3} /><stop offset='95%' stopColor='#8b5cf6' stopOpacity={0} /></linearGradient></defs>
+                                        <CartesianGrid strokeDasharray='3 3' stroke='rgba(255,255,255,0.03)' />
+                                        <XAxis dataKey='name' stroke='rgba(255,255,255,0.2)' fontSize={10} tickLine={false} />
+                                        <YAxis stroke='rgba(255,255,255,0.2)' fontSize={10} tickLine={false} />
+                                        <Tooltip contentStyle={{ background: '#0a0e17', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, color: '#fff' }} />
+                                        <Area type='monotone' dataKey='PnL' stroke='#8b5cf6' fill='url(#ag)' strokeWidth={2} />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ═══════════════ SYSTEM LOGS ═══════════════ */}
+                    {activeSubPage === 'system-logs' && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'><h3 className='adm-card__title'>🖥️ System Health & Logs</h3></div>
+                            <ul className='adm-health-list'>
+                                <li className='adm-health-item'>
+                                    <span>🔌 Deriv API Gateway</span>
+                                    <span className={`adm-tag ${apiOperational ? 'adm-tag--accepted' : 'adm-tag--rejected'}`}>{apiOperational ? 'Operational' : 'Down'}</span>
+                                </li>
+                                <li className='adm-health-item'>
+                                    <span>🗄️ Supabase Database</span>
+                                    <span className='adm-tag adm-tag--accepted'>Operational</span>
+                                </li>
+                                <li className='adm-health-item'>
+                                    <span>📡 WebSocket Latency</span>
+                                    <span className='adm-tag adm-tag--accepted'>{wsLatency}ms</span>
+                                </li>
+                                <li className='adm-health-item'>
+                                    <span>🔑 Auth Service</span>
+                                    <span className='adm-tag adm-tag--accepted'>Operational</span>
+                                </li>
+                                <li className='adm-health-item'>
+                                    <span>📨 Replicator Engine</span>
+                                    <span className={`adm-tag ${localStorage.getItem('iscopyTrading') === 'true' ? 'adm-tag--accepted' : 'adm-tag--stopped'}`}>
+                                        {localStorage.getItem('iscopyTrading') === 'true' ? 'Active' : 'Standby'}
+                                    </span>
+                                </li>
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* ═══════════════ SETTINGS ═══════════════ */}
+                    {activeSubPage === 'settings' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            {/* ── Maintenance Mode Card ── */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                                        </svg>
+                                        Maintenance Mode
+                                    </h3>
+                                    {siteConfig.maintenanceMode && (
+                                        <span className='adm-live-badge' style={{ background: 'rgba(244,63,94,0.15)', color: '#f43f5e' }}>● ACTIVE</span>
+                                    )}
+                                </div>
+                                <div style={{ padding: 20 }}>
+                                    <div className='adm-maintenance-toggle'>
+                                        <div className='adm-maintenance-toggle__info'>
+                                            <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>Site Maintenance Mode</strong>
+                                            <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                                                When enabled, all client-facing pages will display a maintenance screen. Admin panel remains accessible.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type='button'
+                                            className={`adm-toggle-switch ${siteConfig.maintenanceMode ? 'adm-toggle-switch--on' : ''}`}
+                                            onClick={() => {
+                                                const updated = { ...siteConfig, maintenanceMode: !siteConfig.maintenanceMode };
+                                                setSiteConfigState(updated);
+                                                saveSiteConfig(updated);
+                                            }}
+                                        >
+                                            <span className='adm-toggle-switch__thumb' />
+                                        </button>
+                                    </div>
+
+                                    {siteConfig.maintenanceMode && (
+                                        <div style={{ marginTop: 20, padding: 16, background: 'rgba(244,63,94,0.06)', borderRadius: 12, border: '1px solid rgba(244,63,94,0.15)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                                    <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                                </svg>
+                                                <span style={{ fontSize: 12, fontWeight: 700, color: '#f43f5e' }}>MAINTENANCE IS CURRENTLY ACTIVE</span>
+                                            </div>
+                                            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
+                                                Users are currently seeing the maintenance page. All trading and bot features are inaccessible.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className='adm-form-field' style={{ marginTop: 24 }}>
+                                        <label>Maintenance Message</label>
+                                        <textarea
+                                            className='adm-form-input'
+                                            rows={3}
+                                            value={siteConfig.maintenanceMessage}
+                                            onChange={e => {
+                                                handleSiteConfigChange({ maintenanceMessage: e.target.value });
+                                            }}
+                                            style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                                            placeholder='Enter the message users will see during maintenance...'
+                                        />
+                                        <button
+                                            type='button'
+                                            className='adm-act adm-act--blue'
+                                            style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                                            onClick={() => {
+                                                saveSiteConfig({ maintenanceMessage: siteConfig.maintenanceMessage });
+                                                setSaveSuccess(true);
+                                                setTimeout(() => setSaveSuccess(false), 3000);
+                                            }}
+                                        >
+                                            Save Message
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── System Status Card (Deriv Endpoints) ── */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, verticalAlign: 'middle' }}>
+                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                        </svg>
+                                        System Health
+                                    </h3>
+                                    <span className='adm-live-badge' style={{ fontSize: 10 }}>● LIVE</span>
+                                </div>
+                                <ul className='adm-health-list' style={{ padding: 20 }}>
+                                    <li className='adm-health-item'>
+                                        <span>WebSocket Gateway</span>
+                                        <span style={{ color: apiOperational ? 'var(--color-green)' : 'var(--color-rose)', fontWeight: 700, fontSize: 12 }}>
+                                            {apiOperational ? '● Operational' : '● Degraded'}
+                                        </span>
+                                    </li>
+                                    <li className='adm-health-item'>
+                                        <span>WS Latency</span>
+                                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: wsLatency < 200 ? 'var(--color-green)' : wsLatency < 500 ? 'var(--color-amber)' : 'var(--color-rose)' }}>
+                                            {wsLatency}ms
+                                        </span>
+                                    </li>
+                                    <li className='adm-health-item'>
+                                        <span>Server Time Sync</span>
+                                        <span style={{ color: 'var(--color-green)', fontWeight: 700, fontSize: 12 }}>● Synced</span>
+                                    </li>
+                                    <li className='adm-health-item'>
+                                        <span>Trading API</span>
+                                        <span style={{ color: apiOperational ? 'var(--color-green)' : 'var(--color-rose)', fontWeight: 700, fontSize: 12 }}>
+                                            {apiOperational ? '● Available' : '● Unavailable'}
+                                        </span>
+                                    </li>
+                                    <li className='adm-health-item'>
+                                        <span>App ID</span>
+                                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text-muted)' }}>
+                                            {getAppId()}
+                                        </span>
+                                    </li>
+                                    <li className='adm-health-item'>
+                                        <span>Environment</span>
+                                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: 'var(--text-muted)' }}>
+                                            {isProduction() ? 'Production' : 'Development'}
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            {/* ── Trading Configuration Card ── */}
+                            <div className='adm-card' style={{ maxWidth: 600 }}>
+                                <div className='adm-card__header'><h3 className='adm-card__title'>⚙️ Trading Configuration</h3></div>
+                                <form onSubmit={e => { e.preventDefault(); setSaveSuccess(true); setTimeout(() => setSaveSuccess(false), 3000); }} style={{ padding: 20 }}>
+                                    <div className='adm-form-field'>
+                                        <label>Min Stake ($)</label>
+                                        <input type='number' step='0.01' className='adm-form-input' value={settings.minStake} onChange={e => setSettings({ ...settings, minStake: parseFloat(e.target.value) })} />
+                                    </div>
+                                    <div className='adm-form-field'>
+                                        <label>Max Stake ($)</label>
+                                        <input type='number' step='0.01' className='adm-form-input' value={settings.maxStake} onChange={e => setSettings({ ...settings, maxStake: parseFloat(e.target.value) })} />
+                                    </div>
+                                    <div className='adm-form-field'>
+                                        <label>Daily Loss Limit ($)</label>
+                                        <input type='number' className='adm-form-input' value={settings.dailyLossLimit} onChange={e => setSettings({ ...settings, dailyLossLimit: parseInt(e.target.value) })} />
+                                    </div>
+                                    <div className='adm-form-field'>
+                                        <label>Slack Webhook URL</label>
+                                        <input type='text' className='adm-form-input' placeholder='https://hooks.slack.com/...' value={settings.slackWebhook} onChange={e => setSettings({ ...settings, slackWebhook: e.target.value })} />
+                                    </div>
+                                    <div className='adm-form-field adm-form-field--row'>
+                                        <label>Enable Auto-Trading</label>
+                                        <input type='checkbox' checked={settings.enableAutoTrading} onChange={e => setSettings({ ...settings, enableAutoTrading: e.target.checked })} />
+                                    </div>
+                                    {saveSuccess && <p className='adm-save-ok'>✅ Configuration saved successfully!</p>}
+                                    <button type='submit' className='adm-act adm-act--green' style={{ marginTop: 8 }}>Save Configuration</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ═══════════════ MESSAGES / CHAT HUB ═══════════════ */}
+                    {activeSubPage === 'messages' && (
+                        <div className='adm-chat-hub'>
+                            {/* Sessions Sidebar */}
+                            <div className='adm-chat-hub__sessions'>
+                                <div className='adm-chat-hub__sessions-hdr'>
+                                    <h3>Chat Sessions</h3>
+                                    <span className='adm-live-badge' style={{ fontSize: 10 }}>● LIVE</span>
+                                </div>
+                                {chatSessions.length === 0 ? (
+                                    <div className='adm-empty' style={{ padding: 20, fontSize: 12 }}>No conversations yet.</div>
+                                ) : chatSessions.map(sid => (
+                                    <button key={sid}
+                                        className={`adm-chat-hub__session-item ${activeChatUser === sid ? 'adm-chat-hub__session-item--active' : ''}`}
+                                        onClick={() => setActiveChatUser(sid)}
+                                    >
+                                        <span className='adm-chat-hub__avatar'>{sid.slice(0, 2).toUpperCase()}</span>
+                                        <div className='adm-chat-hub__session-info'>
+                                            <span className='adm-chat-hub__session-name'>{sid}</span>
+                                            <span className='adm-chat-hub__session-preview'>
+                                                {(() => { const m = getChatMessages(sid); return m.length > 0 ? m[m.length - 1].text.slice(0, 40) : 'No messages'; })()}
+                                            </span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            {/* Chat Area */}
+                            <div className='adm-chat-hub__main'>
+                                {!activeChatUser ? (
+                                    <div className='adm-chat-hub__empty'>
+                                        <Icons.Messages />
+                                        <p>Select a conversation to start</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className='adm-chat-hub__chat-hdr'>
+                                            <span className='adm-chat-hub__avatar'>{activeChatUser.slice(0, 2).toUpperCase()}</span>
+                                            <div>
+                                                <strong>{activeChatUser}</strong>
+                                                <span style={{ fontSize: 11, opacity: 0.5, marginLeft: 8 }}>{chatMsgs.length} messages</span>
+                                            </div>
+                                        </div>
+                                        <div className='adm-chat-hub__messages' ref={chatScrollRef}>
+                                            {chatMsgs.map(m => (
+                                                <div key={m.id} className={`adm-chat-hub__bubble adm-chat-hub__bubble--${m.sender}`}>
+                                                    <span>{m.text}</span>
+                                                    <small>{new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className='adm-chat-hub__input-row'>
+                                            <input type='text' placeholder='Reply to user…' value={chatDraft}
+                                                onChange={e => setChatDraft(e.target.value)}
+                                                onKeyDown={e => e.key === 'Enter' && handleAdminSend()} />
+                                            <button className='adm-act adm-act--green' onClick={handleAdminSend} type='button'>Send</button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ═══════════════ WEBSITE EDITOR ═══════════════ */}
+                    {activeSubPage === 'website-editor' && (
+                        <div className='adm-editor-grid'>
+                            {/* ── Branding Section ── */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'><Icons.Palette /> Brand & Colors</h3>
+                                </div>
+                                <div className='adm-editor-section'>
+                                    <div className='adm-editor-row'>
+                                        <label>Primary Color</label>
+                                        <div className='adm-color-pick'>
+                                            <input type='color' value={siteConfig.primaryColor} onChange={e => handleSiteConfigChange({ primaryColor: e.target.value })} />
+                                            <code>{siteConfig.primaryColor}</code>
+                                        </div>
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>Secondary Color</label>
+                                        <div className='adm-color-pick'>
+                                            <input type='color' value={siteConfig.secondaryColor} onChange={e => handleSiteConfigChange({ secondaryColor: e.target.value })} />
+                                            <code>{siteConfig.secondaryColor}</code>
+                                        </div>
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>Accent Color</label>
+                                        <div className='adm-color-pick'>
+                                            <input type='color' value={siteConfig.accentColor} onChange={e => handleSiteConfigChange({ accentColor: e.target.value })} />
+                                            <code>{siteConfig.accentColor}</code>
+                                        </div>
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>Font Family</label>
+                                        <select className='adm-form-input' value={siteConfig.fontFamily}
+                                            onChange={e => handleSiteConfigChange({ fontFamily: e.target.value })}>
+                                            {['Inter', 'Roboto', 'Outfit', 'Plus Jakarta Sans', 'Poppins', 'DM Sans', 'Nunito', 'Montserrat'].map(f => (
+                                                <option key={f} value={f}>{f}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>Logo Upload</label>
+                                        <div className='adm-logo-upload'>
+                                            {siteConfig.logoBase64 && <img src={siteConfig.logoBase64} alt='Preview' className='adm-logo-preview' />}
+                                            <input ref={logoInputRef} type='file' accept='image/*' onChange={handleLogoUpload} style={{ display: 'none' }} />
+                                            <button className='adm-act adm-act--green' onClick={() => logoInputRef.current?.click()} type='button'>
+                                                <Icons.Upload /> Upload Logo
+                                            </button>
+                                            {siteConfig.logoBase64 && (
+                                                <button className='adm-act adm-act--red' onClick={() => handleSiteConfigChange({ logoBase64: '' })} type='button'>
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                {editorSaveOk && <p className='adm-save-ok'>Configuration saved and pushed to live site!</p>}
+                                <button className='adm-act adm-act--green' style={{ margin: '12px 20px 16px' }} onClick={handleSaveSiteConfig} type='button'>
+                                    Save & Publish Changes
+                                </button>
+                            </div>
+
+                            {/* ── Tab Manager ── */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'><Icons.Dashboard /> Tab Manager</h3>
+                                    <button className='adm-chip' onClick={handleResetTabs} type='button'>Reset to Default</button>
+                                </div>
+                                <div className='adm-tab-manager'>
+                                    {[...siteConfig.tabConfig].sort((a, b) => a.order - b.order).map(tab => (
+                                        <div key={tab.key} className={`adm-tab-row ${!tab.enabled ? 'adm-tab-row--disabled' : ''}`}>
+                                            <div className='adm-tab-row__info'>
+                                                <span className={`adm-tab-row__dot ${tab.enabled ? 'adm-tab-row__dot--on' : ''}`} />
+                                                <span className='adm-tab-row__label'>{tab.label}</span>
+                                                <code className='adm-tab-row__key'>{tab.key}</code>
+                                            </div>
+                                            <div className='adm-tab-row__actions'>
+                                                <button onClick={() => handleTabMove(tab.key, -1)} type='button' title='Move Up'><Icons.ChevronUp /></button>
+                                                <button onClick={() => handleTabMove(tab.key, 1)} type='button' title='Move Down'><Icons.ChevronDown /></button>
+                                                <button onClick={() => handleTabToggle(tab.key)} type='button'
+                                                    className={tab.enabled ? 'adm-act--orange' : 'adm-act--green'}>
+                                                    {tab.enabled ? 'Disable' : 'Enable'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button className='adm-act adm-act--green' style={{ margin: '12px 20px 16px' }} onClick={handleSaveSiteConfig} type='button'>
+                                    Save Tab Layout
+                                </button>
+                            </div>
+
+                            {/* ── Bot XML Uploader ── */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <h3 className='adm-card__title'><Icons.Upload /> Bot XML Uploader</h3>
+                                </div>
+                                <div className='adm-editor-section'>
+                                    <div className='adm-editor-row'>
+                                        <label>Bot Name</label>
+                                        <input className='adm-form-input' type='text' placeholder='e.g. Over Destroyer Pro'
+                                            value={newBotName} onChange={e => setNewBotName(e.target.value)} />
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>Description</label>
+                                        <input className='adm-form-input' type='text' placeholder='Short description…'
+                                            value={newBotDesc} onChange={e => setNewBotDesc(e.target.value)} />
+                                    </div>
+                                    <div className='adm-editor-row'>
+                                        <label>XML File</label>
+                                        <input ref={xmlInputRef} type='file' accept='.xml' onChange={handleXmlUpload}
+                                            className='adm-form-input' />
+                                    </div>
+                                </div>
+                                {uploadedBots.length > 0 && (
+                                    <div className='adm-uploaded-bots'>
+                                        <h4 style={{ padding: '0 20px', opacity: 0.6, fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Uploaded Bots ({uploadedBots.length})</h4>
+                                        {uploadedBots.map(bot => (
+                                            <div key={bot.id} className='adm-uploaded-bot-item'>
+                                                <div>
+                                                    <strong>{bot.name}</strong>
+                                                    <span style={{ fontSize: 11, opacity: 0.5, marginLeft: 8 }}>
+                                                        {new Date(bot.uploadedAt).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <button className='adm-act adm-act--red' onClick={() => handleDeleteBot(bot.id)} type='button'>
+                                                    <Icons.Trash /> Delete
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Placeholder views for other nav items */}
+                    {['portfolio', 'market-data', 'account', 'notifications'].includes(activeSubPage) && (
+                        <div className='adm-card'>
+                            <div className='adm-card__header'>
+                                <h3 className='adm-card__title'>{activeSubPage.charAt(0).toUpperCase() + activeSubPage.slice(1).replace('-', ' ')}</h3>
+                            </div>
+                            <div className='adm-empty'>This module is under development. Check back soon.</div>
+                        </div>
+                    )}
+                </div>
+            </main>
+        </div>
+    );
+});
+
+export default AdminDashboard;

@@ -220,6 +220,11 @@ export default class ClientStore {
         return accountList[this.loginid] ?? '';
     };
 
+    getTokenForAccount = (loginid: string) => {
+        const accountList = JSON.parse(localStorage.getItem('accountsList') ?? '{}');
+        return accountList[loginid] ?? '';
+    };
+
     setAllAccountsBalance = (all_accounts_balance: Balance | undefined) => {
         this.all_accounts_balance = all_accounts_balance ?? null;
     };

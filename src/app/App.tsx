@@ -9,13 +9,14 @@ import { useLanguageFromURL } from '@/hooks/useLanguageFromURL';
 import { useOAuthCallback } from '@/hooks/useOAuthCallback';
 import { StoreProvider } from '@/hooks/useStore';
 import { OAuthTokenExchangeService } from '@/services/oauth-token-exchange.service';
-import { initializeI18n, localize, TranslationProvider } from '@deriv-com/translations';
+import { initializeI18n, TranslationProvider } from '@deriv-com/translations';
 import { getBrandLabel } from '@/components/shared/utils/brand/brand';
 import CoreStoreProvider from './CoreStoreProvider';
 import './app-root.scss';
 
 const Layout = lazy(() => import('../components/layout'));
 const AppRoot = lazy(() => import('./app-root'));
+const AdminDashboard = lazy(() => import('../pages/admin/admin-dashboard'));
 
 // Translations CDN is optional — requires TRANSLATIONS_CDN_URL, R2_PROJECT_NAME, and CROWDIN_BRANCH_NAME env vars.
 // Without these, the app defaults to English. See user-guide/03-white-labeling.md#translations for setup instructions.
@@ -56,6 +57,7 @@ const router = createBrowserRouter(
         >
             {/* All child routes will be passed as children to Layout */}
             <Route index element={<AppRoot />} />
+            <Route path='admin/*' element={<AdminDashboard />} />
         </Route>
     )
 );

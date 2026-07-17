@@ -7,12 +7,20 @@ import { useStore } from '@/hooks/useStore';
 import { getAppId, isProduction } from '@/components/shared/utils/config/config';
 import { api_base } from '@/external/bot-skeleton';
 import { getTradeLogs } from './replicator';
+import {
+    requestFollowProvider,
+    getCopyRequestStatus,
+    deleteRequest,
+} from '@/utils/supabase-copy';
 import './copy-trading.scss';
 
 // ─── Token Bridge Utilities ───────────────────────────────────────────────────
 const getAccountsList = (): Record<string, string> => {
-    try { return JSON.parse(localStorage.getItem('accountsList') || '{}'); }
-    catch { return {}; }
+    try {
+        return JSON.parse(localStorage.getItem('accountsList') || '{}');
+    } catch {
+        return {};
+    }
 };
 
 const getActiveLoginId = (): string => localStorage.getItem('active_loginid') || '';
@@ -29,8 +37,11 @@ const getAllStoredTokens = (): string[] => {
 };
 
 const getCopyTokensArray = (): string[] => {
-    try { return JSON.parse(localStorage.getItem('copyTokensArray') || '[]'); }
-    catch { return []; }
+    try {
+        return JSON.parse(localStorage.getItem('copyTokensArray') || '[]');
+    } catch {
+        return [];
+    }
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -40,7 +51,7 @@ const CopyTrading = observer(() => {
     const managerRef = useRef<CopyTradingManager | null>(null);
 
     // Active tab
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'clients' | 'logs' | 'settings'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'clients' | 'logs' | 'settings'>('dashboard');
 
     // UI state
     const [isTutorialOpen, setIsTutorialOpen] = useState(false);
@@ -54,7 +65,7 @@ const CopyTrading = observer(() => {
     const [successMessage2, setSuccessMessage2] = useState('');
     const [tokenInput, setTokenInput] = useState('');
 
-    // Account info state (React-driven)
+    // Account info state
     const [loginIdDisplay, setLoginIdDisplay] = useState<string>('Loading...');
     const [balanceDisplay, setBalanceDisplay] = useState<string>('------');
     const [clientsTotal, setClientsTotal] = useState(0);
@@ -63,6 +74,10 @@ const CopyTrading = observer(() => {
 
     // Live Trade Logs state
     const [tradeLogs, setTradeLogs] = useState<any[]>([]);
+
+    // Profithubadmin Follow state
+    const [adminFollowStatus, setAdminFollowStatus] = useState<'none' | 'pending' | 'accepted' | 'rejected'>('none');
+    const [isLoadingAdminStatus, setIsLoadingAdminStatus] = useState(false);
 
     // Auto-detect connected account on mount
     useEffect(() => {
@@ -81,7 +96,6 @@ const CopyTrading = observer(() => {
                 let storedTokens = getCopyTokensArray();
                 let updated = false;
 
-                // Auto-add all login account tokens to copier list (except active/master)
                 Object.keys(accountsList).forEach(key => {
                     const token = accountsList[key];
                     if (token && token !== activeToken && !storedTokens.includes(token)) {
@@ -100,7 +114,9 @@ const CopyTrading = observer(() => {
                                 if (isCopyTrading && copier) {
                                     void manager.connectCopier(copier.id);
                                 }
-                            } catch { /* Already added */ }
+                            } catch {
+                                /* Already added */
+                            }
                         }
                     }
                 }
@@ -151,7 +167,11 @@ const CopyTrading = observer(() => {
             const copyTokensArray = getCopyTokensArray();
             for (const token of copyTokensArray) {
                 if (!manager.copiers.find(c => c.token === token)) {
-                    try { manager.addCopier(token); } catch { /* Already exists */ }
+                    try {
+                        manager.addCopier(token);
+                    } catch {
+                        /* Already exists */
+                    }
                 }
             }
             refreshClientList();
@@ -205,7 +225,9 @@ const CopyTrading = observer(() => {
                             return;
                         }
                     }
-                } catch { /* Ignore per-token failures */ }
+                } catch {
+                    /* Ignore per-token failures */
+                }
             }
             setLoginIdDisplay('ROT — not linked yet');
             setBalanceDisplay('------');
@@ -215,6 +237,31 @@ const CopyTrading = observer(() => {
         updateAccountDetails();
         return () => clearInterval(interval);
     }, [client]);
+
+    // ─── Fetch Admin Copy Request Status ─────────────────────────────────────
+    const fetchAdminStatus = useCallback(async () => {
+        const activeLoginid = getActiveLoginId();
+        if (!activeLoginid) return;
+        setIsLoadingAdminStatus(true);
+        try {
+            const status = await getCopyRequestStatus(activeLoginid, 'Profithubadmin');
+            if (status) {
+                setAdminFollowStatus(status.status);
+            } else {
+                setAdminFollowStatus('none');
+            }
+        } catch {
+            setAdminFollowStatus('none');
+        } finally {
+            setIsLoadingAdminStatus(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAdminStatus();
+        const poll = setInterval(fetchAdminStatus, 15000);
+        return () => clearInterval(poll);
+    }, [fetchAdminStatus]);
 
     // ─── Client Count Poller ──────────────────────────────────────────────────
     useEffect(() => {
@@ -249,7 +296,11 @@ const CopyTrading = observer(() => {
                 localStorage.setItem('demo_to_real', 'true');
                 manager.setMasterToken(value);
                 if (localStorage.getItem('iscopyTrading') === 'true') {
-                    try { await manager.connectMaster(); } catch { /* Ignore */ }
+                    try {
+                        await manager.connectMaster();
+                    } catch {
+                        /* Ignore */
+                    }
                 }
                 setDemoToRealActive(true);
 
@@ -314,18 +365,26 @@ const CopyTrading = observer(() => {
                     try {
                         const { saveAllTokensToSupabase } = await import('@/utils/supabase');
                         void saveAllTokensToSupabase(copyTokensArray);
-                    } catch { /* Ignore supabase errors */ }
+                    } catch {
+                        /* Ignore supabase errors */
+                    }
                 }
                 manager.enableReplication(true);
                 if (localStorage.getItem('demo_to_real') === 'true' && manager.master.token) {
-                    try { await manager.connectMaster(); } catch { /* Ignore */ }
+                    try {
+                        await manager.connectMaster();
+                    } catch {
+                        /* Ignore */
+                    }
                 }
                 for (const token of copyTokensArray) {
                     try {
                         let copier = manager.copiers.find(c => c.token === token);
                         if (!copier) copier = manager.addCopier(token);
                         if (copier.enabled && copier.status !== 'connected') await manager.connectCopier(copier.id);
-                    } catch { /* Ignore per-copier failures */ }
+                    } catch {
+                        /* Ignore per-copier failures */
+                    }
                 }
                 localStorage.setItem('iscopyTrading', 'true');
                 setCopyTradingActive(true);
@@ -349,7 +408,11 @@ const CopyTrading = observer(() => {
     const handleAddToken = async () => {
         const newToken = tokenInput.trim();
         const manager = managerRef.current;
-        if (!manager) { setErrorMessage('Manager not active. Please log in first.'); setErrorModalVisible(true); return; }
+        if (!manager) {
+            setErrorMessage('Manager not active. Please log in first.');
+            setErrorModalVisible(true);
+            return;
+        }
         if (!newToken) return;
 
         const arr = getCopyTokensArray();
@@ -362,12 +425,18 @@ const CopyTrading = observer(() => {
                 arr.push(newToken);
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
                 if (localStorage.getItem('iscopyTrading') === 'true') {
-                    try { await manager.connectCopier(copier.id); } catch { /* Ignore */ }
+                    try {
+                        await manager.connectCopier(copier.id);
+                    } catch {
+                        /* Ignore */
+                    }
                 }
                 setTokenInput('');
                 refreshClientList();
             } catch (e: any) {
-                setErrorMessage(e?.error?.message || e?.message || 'Authorization failed. Make sure the token is valid.');
+                setErrorMessage(
+                    e?.error?.message || e?.message || 'Authorization failed. Make sure the token is valid.'
+                );
                 setErrorModalVisible(true);
             }
         }
@@ -395,14 +464,20 @@ const CopyTrading = observer(() => {
             if (token && token !== activeToken && !arr.includes(token)) {
                 arr.push(token);
                 if (managerRef.current) {
-                    try { managerRef.current.addCopier(token); } catch { /* Already added */ }
+                    try {
+                        managerRef.current.addCopier(token);
+                    } catch {
+                        /* Already added */
+                    }
                 }
                 added++;
             }
         });
         localStorage.setItem('copyTokensArray', JSON.stringify(arr));
         refreshClientList();
-        setSuccessMessage2(added > 0 ? `✅ Auto-imported ${added} token(s) from your session` : 'No new tokens to import');
+        setSuccessMessage2(
+            added > 0 ? `✅ Auto-imported ${added} token(s) from your session` : 'No new tokens to import'
+        );
         setTimeout(() => setSuccessMessage2(''), 5000);
     };
 
@@ -420,12 +495,70 @@ const CopyTrading = observer(() => {
         }
     };
 
-    const openTutorial = () => { setTutorialUrl('https://www.youtube.com/embed/gsWzKmslEnY'); setIsTutorialOpen(true); };
-    const closeTutorial = () => { setIsTutorialOpen(false); setTutorialUrl(''); };
+    const handleFollowAdmin = async () => {
+        const activeLoginid = getActiveLoginId();
+        const activeToken = getActiveToken();
 
-    const truncateToken = (t: string) => t.length > 14 ? `${t.slice(0, 6)}••••${t.slice(-4)}` : t;
+        if (!activeLoginid || !activeToken) {
+            setErrorMessage('You must be logged in to copy trades.');
+            setErrorModalVisible(true);
+            return;
+        }
 
-    // ─── Render ───────────────────────────────────────────────────────────────
+        setIsLoadingAdminStatus(true);
+        try {
+            const success = await requestFollowProvider(activeLoginid, activeToken, 'Profithubadmin');
+            if (success) {
+                setAdminFollowStatus('pending');
+                setSuccessMessage('🚀 Follow request sent to Profithubadmin. Awaiting admin approval.');
+                setTimeout(() => setSuccessMessage(''), 8000);
+            } else {
+                setErrorMessage('Failed to send follow request. Try again later.');
+                setErrorModalVisible(true);
+            }
+        } catch (e: any) {
+            setErrorMessage(e.message || 'An error occurred.');
+            setErrorModalVisible(true);
+        } finally {
+            setIsLoadingAdminStatus(false);
+        }
+    };
+
+    const handleStopFollowAdmin = async () => {
+        const activeLoginid = getActiveLoginId();
+        if (!activeLoginid) return;
+
+        setIsLoadingAdminStatus(true);
+        try {
+            await deleteRequest(activeLoginid, 'Profithubadmin');
+            setAdminFollowStatus('none');
+            setSuccessMessage('⏹️ Stopped following Profithubadmin.');
+            setTimeout(() => setSuccessMessage(''), 6000);
+        } catch {
+            setErrorMessage('Failed to stop follow.');
+            setErrorModalVisible(true);
+        } finally {
+            setIsLoadingAdminStatus(false);
+        }
+    };
+
+    const handleCopyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        setSuccessMessage2('📋 Token copied to clipboard!');
+        setTimeout(() => setSuccessMessage2(''), 3000);
+    };
+
+    const openTutorial = () => {
+        setTutorialUrl('https://www.youtube.com/embed/gsWzKmslEnY');
+        setIsTutorialOpen(true);
+    };
+    const closeTutorial = () => {
+        setIsTutorialOpen(false);
+        setTutorialUrl('');
+    };
+
+    const truncateToken = (t: string) => (t.length > 14 ? `${t.slice(0, 6)}••••${t.slice(-4)}` : t);
+
     return (
         <div className='ct2-root' ref={htmlContentRef}>
             {/* Error Dialog */}
@@ -445,9 +578,12 @@ const CopyTrading = observer(() => {
             {isTutorialOpen && (
                 <div className='ct2-video-overlay' onClick={closeTutorial}>
                     <div className='ct2-video-wrapper' onClick={e => e.stopPropagation()}>
-                        <button className='ct2-video-close' onClick={closeTutorial}>✕</button>
+                        <button className='ct2-video-close' onClick={closeTutorial}>
+                            ✕
+                        </button>
                         <iframe
-                            width='100%' height='100%'
+                            width='100%'
+                            height='100%'
                             src={tutorialUrl}
                             title='Copy Trading Tutorial'
                             frameBorder='0'
@@ -468,7 +604,6 @@ const CopyTrading = observer(() => {
 
             {/* ── Main Content ── */}
             <div className='ct2-content'>
-
                 <div className='ct2-hero'>
                     <div className='ct2-hero__left'>
                         <div className='ct2-hero__badges'>
@@ -503,7 +638,9 @@ const CopyTrading = observer(() => {
                                 <div className='ct2-account-card__sep' />
                                 <div className='ct2-account-card__field'>
                                     <span className='ct2-account-card__label'>Balance</span>
-                                    <span className='ct2-account-card__value ct2-account-card__value--green'>{balanceDisplay}</span>
+                                    <span className='ct2-account-card__value ct2-account-card__value--green'>
+                                        {balanceDisplay}
+                                    </span>
                                 </div>
                                 <div className='ct2-account-card__sep' />
                                 <div className='ct2-account-card__field'>
@@ -513,13 +650,21 @@ const CopyTrading = observer(() => {
                                 <div className='ct2-account-card__sep' />
                                 <div className='ct2-account-card__field'>
                                     <span className='ct2-account-card__label'>Live</span>
-                                    <span className={`ct2-account-card__value ${clientsConnected > 0 ? 'ct2-account-card__value--green' : ''}`}>{clientsConnected}</span>
+                                    <span
+                                        className={`ct2-account-card__value ${
+                                            clientsConnected > 0 ? 'ct2-account-card__value--green' : ''
+                                        }`}
+                                    >
+                                        {clientsConnected}
+                                    </span>
                                 </div>
                             </div>
                             {/* Master control buttons */}
                             <div className='ct2-account-card__actions'>
                                 <button
-                                    className={`ct2-pill-btn ${demoToRealActive ? 'ct2-pill-btn--danger' : 'ct2-pill-btn--blue'}`}
+                                    className={`ct2-pill-btn ${
+                                        demoToRealActive ? 'ct2-pill-btn--danger' : 'ct2-pill-btn--blue'
+                                    }`}
                                     onClick={handleDemoToReal}
                                 >
                                     {demoToRealActive ? '⏹ Stop Demo→Real' : '⚡ Demo → Real'}
@@ -542,33 +687,40 @@ const CopyTrading = observer(() => {
                         <div>
                             <div className='ct2-master-toggle__label'>Replication Engine</div>
                             <div className='ct2-master-toggle__sublabel'>
-                                {copyTradingActive ? `Live — copying to ${clientsTotal} account(s)` : 'Standby — not copying'}
+                                {copyTradingActive
+                                    ? `Live — copying to ${clientsTotal} account(s)`
+                                    : 'Standby — not copying'}
                             </div>
                         </div>
                     </div>
                     <button
-                        className={`ct2-master-btn ${copyTradingActive ? 'ct2-master-btn--stop' : 'ct2-master-btn--start'}`}
+                        className={`ct2-master-btn ${
+                            copyTradingActive ? 'ct2-master-btn--stop' : 'ct2-master-btn--start'
+                        }`}
                         onClick={handleStartCopyTrading}
                     >
                         <span className='ct2-master-btn__icon'>{copyTradingActive ? '⏹' : '▶'}</span>
                         {copyTradingActive ? 'PAUSE REPLICATION' : 'START COPY TRADING'}
                     </button>
                 </div>
-                {successMessage2 && <div className='ct2-success-banner ct2-success-banner--centered'>{successMessage2}</div>}
+                {successMessage2 && (
+                    <div className='ct2-success-banner ct2-success-banner--centered'>{successMessage2}</div>
+                )}
 
                 {/* ── Tab Bar ── */}
                 <div className='ct2-tabs'>
-                    {(['dashboard', 'clients', 'logs', 'settings'] as const).map(tab => (
+                    {(['dashboard', 'marketplace', 'clients', 'logs', 'settings'] as const).map(tab => (
                         <button
                             key={tab}
                             className={`ct2-tab ${activeTab === tab ? 'ct2-tab--active' : ''}`}
                             onClick={() => setActiveTab(tab)}
                         >
                             {tab === 'dashboard' && '📊'}
+                            {tab === 'marketplace' && '🛍️'}
                             {tab === 'clients' && '👥'}
                             {tab === 'logs' && '📡'}
                             {tab === 'settings' && '⚙️'}
-                            <span>{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                            <span>{tab === 'clients' ? 'My Clients' : tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
                             {tab === 'clients' && clientsTotal > 0 && (
                                 <span className='ct2-tab__badge'>{clientsTotal}</span>
                             )}
@@ -598,7 +750,11 @@ const CopyTrading = observer(() => {
                                 <div className='ct2-stat-card__value'>{tradeLogs.length}</div>
                                 <div className='ct2-stat-card__label'>Trade Events</div>
                             </div>
-                            <div className={`ct2-stat-card ${copyTradingActive ? 'ct2-stat-card--green' : 'ct2-stat-card--dim'}`}>
+                            <div
+                                className={`ct2-stat-card ${
+                                    copyTradingActive ? 'ct2-stat-card--green' : 'ct2-stat-card--dim'
+                                }`}
+                            >
                                 <div className='ct2-stat-card__icon'>{copyTradingActive ? '🟢' : '⚪'}</div>
                                 <div className='ct2-stat-card__value'>{copyTradingActive ? 'LIVE' : 'OFF'}</div>
                                 <div className='ct2-stat-card__label'>Engine Status</div>
@@ -634,6 +790,76 @@ const CopyTrading = observer(() => {
                     </div>
                 )}
 
+                {/* ── Marketplace Tab ── */}
+                {activeTab === 'marketplace' && (
+                    <div className='ct2-tab-panel'>
+                        <div className='ct2-glass-card' style={{ maxWidth: '600px', margin: '0 auto' }}>
+                            <h3 className='ct2-glass-card__title'>💎 Copy Provider Marketplace</h3>
+                            <p className='ct2-glass-card__desc'>
+                                Follow premium master accounts to replicate their trades on your real account.
+                            </p>
+
+                            <div className='ct2-provider-card'>
+                                <div className='ct2-provider-card__header'>
+                                    <div className='ct2-provider-card__avatar'>👑</div>
+                                    <div className='ct2-provider-card__info'>
+                                        <h4 className='ct2-provider-card__name'>Profithubadmin</h4>
+                                        <span className='ct2-provider-card__tag'>Verified Official Provider</span>
+                                    </div>
+                                </div>
+
+                                <div className='ct2-provider-stats'>
+                                    <div className='ct2-pstat'>
+                                        <span className='ct2-pstat__val'>94.8%</span>
+                                        <span className='ct2-pstat__lbl'>Historical Win Rate</span>
+                                    </div>
+                                    <div className='ct2-pstat'>
+                                        <span className='ct2-pstat__val'>Low</span>
+                                        <span className='ct2-pstat__lbl'>Risk Level</span>
+                                    </div>
+                                    <div className='ct2-pstat'>
+                                        <span className='ct2-pstat__val'>24/7</span>
+                                        <span className='ct2-pstat__lbl'>Uptime</span>
+                                    </div>
+                                </div>
+
+                                <div className='ct2-provider-actions'>
+                                    {isLoadingAdminStatus ? (
+                                        <button className='ct2-btn ct2-btn--ghost' disabled>
+                                            Checking status...
+                                        </button>
+                                    ) : adminFollowStatus === 'none' ? (
+                                        <button className='ct2-btn ct2-btn--primary' onClick={handleFollowAdmin}>
+                                            Request to Follow Profithubadmin
+                                        </button>
+                                    ) : adminFollowStatus === 'pending' ? (
+                                        <div className='ct2-status-group'>
+                                            <span className='ct2-badge ct2-badge--yellow'>⏳ Awaiting Admin Approval</span>
+                                            <button className='ct2-btn ct2-btn--ghost' onClick={handleStopFollowAdmin}>
+                                                Cancel Request
+                                            </button>
+                                        </div>
+                                    ) : adminFollowStatus === 'accepted' ? (
+                                        <div className='ct2-status-group'>
+                                            <span className='ct2-badge ct2-badge--green'>🟢 Copying Active</span>
+                                            <button className='ct2-btn ct2-btn--danger' onClick={handleStopFollowAdmin}>
+                                                Stop Copying
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className='ct2-status-group'>
+                                            <span className='ct2-badge ct2-badge--red'>❌ Follow Request Rejected</span>
+                                            <button className='ct2-btn ct2-btn--primary' onClick={handleFollowAdmin}>
+                                                Re-Request
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Clients Tab ── */}
                 {activeTab === 'clients' && (
                     <div className='ct2-tab-panel'>
@@ -654,10 +880,15 @@ const CopyTrading = observer(() => {
                                         onChange={e => setTokenInput(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && handleAddToken()}
                                     />
-                                    <button className='ct2-btn ct2-btn--primary' onClick={handleAddToken}>Add</button>
+                                    <button className='ct2-btn ct2-btn--primary' onClick={handleAddToken}>
+                                        Add
+                                    </button>
                                 </div>
                                 <div className='ct2-input-row ct2-input-row--mt'>
-                                    <button className='ct2-btn ct2-btn--accent ct2-btn--full' onClick={handleAutoImportTokens}>
+                                    <button
+                                        className='ct2-btn ct2-btn--accent ct2-btn--full'
+                                        onClick={handleAutoImportTokens}
+                                    >
                                         ⚡ Auto-Import from Login Session
                                     </button>
                                     <button
@@ -668,7 +899,31 @@ const CopyTrading = observer(() => {
                                         {isSyncing ? '↻ Syncing…' : '↻ Sync'}
                                     </button>
                                 </div>
-                                {successMessage2 && <div className='ct2-success-banner ct2-success-banner--mt'>{successMessage2}</div>}
+
+                                {/* My API Token Info Card */}
+                                <div className='ct2-token-info-card'>
+                                    <h4 className='ct2-token-info-card__title'>🔑 Your API Token</h4>
+                                    <p className='ct2-token-info-card__desc'>
+                                        Share this token with others so they can configure your account as their target copier.
+                                    </p>
+                                    <div className='ct2-token-info-card__row'>
+                                        <code className='ct2-token-info-card__code'>
+                                            {getActiveToken() ? truncateToken(getActiveToken()!) : 'Not Available'}
+                                        </code>
+                                        {getActiveToken() && (
+                                            <button
+                                                className='ct2-btn ct2-btn--ghost ct2-btn--sm'
+                                                onClick={() => handleCopyToClipboard(getActiveToken()!)}
+                                            >
+                                                Copy
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {successMessage2 && (
+                                    <div className='ct2-success-banner ct2-success-banner--mt'>{successMessage2}</div>
+                                )}
                             </div>
 
                             {/* Clients List */}
@@ -691,15 +946,27 @@ const CopyTrading = observer(() => {
                                             return (
                                                 <li key={i} className='ct2-client-item'>
                                                     <div className='ct2-client-item__left'>
-                                                        <div className={`ct2-client-dot ${isConnected ? 'ct2-client-dot--green' : ''}`} />
+                                                        <div
+                                                            className={`ct2-client-dot ${
+                                                                isConnected ? 'ct2-client-dot--green' : ''
+                                                            }`}
+                                                        />
                                                         <span className='ct2-client-idx'>#{i + 1}</span>
                                                         <span className='ct2-client-token'>{truncateToken(token)}</span>
                                                     </div>
                                                     <div className='ct2-client-item__right'>
-                                                        <span className={`ct2-client-status ${isConnected ? 'ct2-client-status--connected' : ''}`}>
+                                                        <span
+                                                            className={`ct2-client-status ${
+                                                                isConnected ? 'ct2-client-status--connected' : ''
+                                                            }`}
+                                                        >
                                                             {isConnected ? 'Connected' : 'Idle'}
                                                         </span>
-                                                        <button className='ct2-client-del' onClick={() => handleRemoveToken(i)} title='Remove'>
+                                                        <button
+                                                            className='ct2-client-del'
+                                                            onClick={() => handleRemoveToken(i)}
+                                                            title='Remove'
+                                                        >
                                                             🗑
                                                         </button>
                                                     </div>
@@ -719,7 +986,11 @@ const CopyTrading = observer(() => {
                         <div className='ct2-terminal'>
                             <div className='ct2-terminal__header'>
                                 <span className='ct2-terminal__title'>📡 Live Replication Activity</span>
-                                <span className={`ct2-terminal__badge ${copyTradingActive ? 'ct2-terminal__badge--live' : ''}`}>
+                                <span
+                                    className={`ct2-terminal__badge ${
+                                        copyTradingActive ? 'ct2-terminal__badge--live' : ''
+                                    }`}
+                                >
                                     {copyTradingActive ? '● LIVE' : '○ IDLE'}
                                 </span>
                             </div>
@@ -728,19 +999,33 @@ const CopyTrading = observer(() => {
                                     <div className='ct2-terminal__placeholder'>
                                         <div className='ct2-terminal__placeholder-icon'>📡</div>
                                         <div>Awaiting replication events…</div>
-                                        <div className='ct2-terminal__placeholder-sub'>Start copy trading to see activity logs here.</div>
+                                        <div className='ct2-terminal__placeholder-sub'>
+                                            Start copy trading to see activity logs here.
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className='ct2-terminal__log-scroll'>
-                                        {tradeLogs.slice().reverse().map((log, i) => (
-                                            <div key={i} className={`ct2-log-line ${log.error ? 'ct2-log-line--error' : 'ct2-log-line--success'}`}>
-                                                <span className='ct2-log-time'>[{new Date(log.time).toLocaleTimeString()}]</span>
-                                                <span className='ct2-log-acct'>({log.accountId}):</span>
-                                                <span className='ct2-log-msg'>
-                                                    {log.error ? `❌ ${log.error}` : `✅ Bought ${log.payload?.contract_type || 'contract'}`}
-                                                </span>
-                                            </div>
-                                        ))}
+                                        {tradeLogs
+                                            .slice()
+                                            .reverse()
+                                            .map((log, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`ct2-log-line ${
+                                                        log.error ? 'ct2-log-line--error' : 'ct2-log-line--success'
+                                                    }`}
+                                                >
+                                                    <span className='ct2-log-time'>
+                                                        [{new Date(log.time).toLocaleTimeString()}]
+                                                    </span>
+                                                    <span className='ct2-log-acct'>({log.accountId}):</span>
+                                                    <span className='ct2-log-msg'>
+                                                        {log.error
+                                                            ? `❌ ${log.error}`
+                                                            : `✅ Bought ${log.payload?.contract_type || 'contract'}`}
+                                                    </span>
+                                                </div>
+                                            ))}
                                     </div>
                                 )}
                             </div>
@@ -786,15 +1071,22 @@ const CopyTrading = observer(() => {
                             <div className='ct2-glass-card'>
                                 <h3 className='ct2-glass-card__title'>Token Management</h3>
                                 <div className='ct2-setting-btns'>
-                                    <button className='ct2-btn ct2-btn--accent ct2-btn--full' onClick={handleAutoImportTokens}>
+                                    <button
+                                        className='ct2-btn ct2-btn--accent ct2-btn--full'
+                                        onClick={handleAutoImportTokens}
+                                    >
                                         ⚡ Auto-Import Session Tokens
                                     </button>
-                                    <button className='ct2-btn ct2-btn--ghost ct2-btn--full' onClick={handleSyncTokens}>
+                                    <button
+                                        className='ct2-btn ct2-btn--ghost ct2-btn--full'
+                                        onClick={handleSyncTokens}
+                                    >
                                         ↻ Sync from Manager
                                     </button>
                                 </div>
                                 <p className='ct2-hint'>
-                                    Auto-Import reads all account tokens from your current login session and adds them as copy targets automatically.
+                                    Auto-Import reads all account tokens from your current login session and adds them
+                                    as copy targets automatically.
                                 </p>
                             </div>
                         </div>

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import { DBOT_TABS } from '@/constants/bot-contents';
 import { useStore } from '@/hooks/useStore';
 import { TBotsManifestItem, getXmlUploadsManifest, fetchXmlWithCache } from '@/utils/freebots-cache';
+import { getUploadedBots } from '@/utils/supabase-copy';
 import './free-bots.scss';
 
 interface BotData {
@@ -14,11 +15,6 @@ interface BotData {
     xml: string;
 }
 
-interface ManifestItem {
-    name: string;
-    file: string;
-    basePath?: string;
-}
 
 const DEFAULT_FEATURES = ['Automated Trading', 'Risk Management', 'Profit Optimization'];
 
@@ -77,15 +73,6 @@ const getBotDescription = (botName: string): string => {
     }
     return `Advanced trading bot: ${botName}. Features automated trading, risk management, and profit optimization.`;
 };
-
-const getXmlFiles = () => [
-    'EVEN ODD SPEEDY.xml',
-    'OVER UNDER PRO BOT.xml',
-    'OVER DESTROYER.xml',
-    'OVER DESTRYER 2 PRO BOT.xml',
-    'UNDER DESTROYER.xml',
-    'UNDER DESTROYER PRO BOT.xml',
-];
 
 // ─── Star Rating ──────────────────────────────────────────────────────────────
 const StarRating = ({ count = 5 }: { count?: number }) => (
@@ -248,6 +235,18 @@ const FreeBots = observer(() => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const combinedBots = useMemo(() => {
+        const uploaded = getUploadedBots().map(b => ({
+            name: b.name,
+            description: b.description,
+            difficulty: 'Custom',
+            strategy: 'User Uploaded',
+            features: ['Custom Bot', 'Automated Execution'],
+            xml: b.xml
+        }));
+        return [...uploaded, ...defaultBots];
+    }, [defaultBots]);
+
     return (
         <div className='free-bots'>
             <div className='free-bots__container'>
@@ -275,11 +274,11 @@ const FreeBots = observer(() => {
                             Retry
                         </button>
                     </div>
-                ) : defaultBots.length === 0 ? (
+                ) : combinedBots.length === 0 ? (
                     <div className='free-bots__empty'>No bots available at the moment.</div>
                 ) : (
                     <div className='free-bots__grid'>
-                        {defaultBots.map((bot, index) => (
+                        {combinedBots.map((bot, index) => (
                             <BotCard key={index} bot={bot} onLoad={loadBotIntoBuilder} />
                         ))}
                     </div>

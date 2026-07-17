@@ -1,5 +1,6 @@
 {
     "brand_name": "ProfitHub",
+    "admin_loginid": "Profithubadmin",
     "brand_domain": "profithub.co.ke",
     "brand_hostname": {
         "staging": "staging.profithub.co.ke/dashboard",

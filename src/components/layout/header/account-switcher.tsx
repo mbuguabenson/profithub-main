@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { addComma, getCurrencyDisplayCode, getDecimalPlaces } from '@/components/shared';
-import Text from '@/components/shared_ui/text';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { useApiBase } from '@/hooks/useApiBase';
 import { useStore } from '@/hooks/useStore';
@@ -12,8 +11,65 @@ import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
 import './account-switcher.scss';
 
+// ─── Country flag emoji helper ────────────────────────────────────────────────
+const getCurrencyFlag = (currency: string): string => {
+    const flags: Record<string, string> = {
+        USD: '🇺🇸',
+        EUR: '🇪🇺',
+        GBP: '🇬🇧',
+        AUD: '🇦🇺',
+        CAD: '🇨🇦',
+        CHF: '🇨🇭',
+        JPY: '🇯🇵',
+        NZD: '🇳🇿',
+        SGD: '🇸🇬',
+        HKD: '🇭🇰',
+        KES: '🇰🇪',
+        NGN: '🇳🇬',
+        ZAR: '🇿🇦',
+        GHS: '🇬🇭',
+        TZS: '🇹🇿',
+        UGX: '🇺🇬',
+        RWF: '🇷🇼',
+        BTC: '₿',
+        ETH: 'Ξ',
+        LTC: 'Ł',
+        USDT: '₮',
+        eUSDT: '₮',
+        tUSDT: '₮',
+    };
+    return flags[currency] || '💱';
+};
+
+const getCurrencyLabel = (currency: string): string => {
+    const labels: Record<string, string> = {
+        USD: 'US Dollar',
+        EUR: 'Euro',
+        GBP: 'British Pound',
+        AUD: 'Australian Dollar',
+        CAD: 'Canadian Dollar',
+        KES: 'Kenyan Shilling',
+        NGN: 'Nigerian Naira',
+        ZAR: 'South African Rand',
+        GHS: 'Ghanaian Cedi',
+    };
+    return labels[currency] || currency;
+};
+
+// ─── Demo account icon SVG ────────────────────────────────────────────────────
+const DemoIcon = () => (
+    <svg viewBox='0 0 40 40' fill='none' className='acc-chip__demo-icon'>
+        <circle cx='20' cy='20' r='20' fill='#0C2532' />
+        <text x='50%' y='54%' dominantBaseline='middle' textAnchor='middle' fontSize='18' fontWeight='bold' fill='#fff'>
+            $
+        </text>
+    </svg>
+);
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'real' | 'demo'>('real');
     const wrapperRef = useRef<HTMLDivElement>(null);
     const { accountList, activeLoginid } = useApiBase();
     const { client, run_panel } = useStore() ?? {};
@@ -38,9 +94,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
         return () => window.removeEventListener('currency_changed', handleSync);
     }, []);
 
-
     const is_bot_running = run_panel?.is_running || api_base.is_running;
-    const isSingleAccount = !accountList || accountList.length <= 1;
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -60,9 +114,9 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     }, []);
 
     const toggleDropdown = useCallback(() => {
-        if (is_bot_running || isSingleAccount) return;
+        if (is_bot_running) return;
         setIsOpen(prev => !prev);
-    }, [is_bot_running, isSingleAccount]);
+    }, [is_bot_running]);
 
     const handleAccountSelect = useCallback(
         (loginid: string) => {
@@ -74,39 +128,40 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     );
 
     // Reset demo balance handler
-    const handleResetBalance = useCallback(async (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (isResettingBalance || !api_base.api) return;
+    const handleResetBalance = useCallback(
+        async (e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (isResettingBalance || !api_base.api) return;
 
-        setIsResettingBalance(true);
-        setResetMessage(null);
+            setIsResettingBalance(true);
+            setResetMessage(null);
 
-        try {
-            const response = await api_base.api.send({ topup_virtual: 1 }) as any;
-            if (response?.error) {
+            try {
+                const response = (await api_base.api.send({ topup_virtual: 1 })) as any;
+                if (response?.error) {
+                    setResetMessage({
+                        type: 'error',
+                        text: response.error.message || localize('Failed to reset balance'),
+                    });
+                } else {
+                    setResetMessage({
+                        type: 'success',
+                        text: localize('Balance reset to 10,000.00 USD'),
+                    });
+                    client?.checkAndRegenerateWebSocket();
+                }
+            } catch (error: any) {
                 setResetMessage({
                     type: 'error',
-                    text: response.error.message || localize('Failed to reset balance'),
+                    text: error?.message || localize('Failed to reset balance'),
                 });
-            } else {
-                setResetMessage({
-                    type: 'success',
-                    text: localize('Balance reset to 10,000.00 USD'),
-                });
-                // Refresh account data
-                client?.checkAndRegenerateWebSocket();
+            } finally {
+                setIsResettingBalance(false);
+                setTimeout(() => setResetMessage(null), 3000);
             }
-        } catch (error: any) {
-            setResetMessage({
-                type: 'error',
-                text: error?.message || localize('Failed to reset balance'),
-            });
-        } finally {
-            setIsResettingBalance(false);
-            // Auto-clear message after 3 seconds
-            setTimeout(() => setResetMessage(null), 3000);
-        }
-    }, [isResettingBalance, client]);
+        },
+        [isResettingBalance, client]
+    );
 
     const formattedAccounts = useMemo(() => {
         if (!accountList) return [];
@@ -126,6 +181,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                 return {
                     loginid: account.loginid,
                     currency: account.currency ? displayCurr : '',
+                    rawCurrency: accCurr,
                     balance: displayBal,
                     isVirtual: isDemoAccount(account.loginid),
                     isActive: account.loginid === activeLoginid,
@@ -134,14 +190,36 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
             .sort((a, b) => (a.isActive ? -1 : b.isActive ? 1 : 0));
     }, [accountList, activeLoginid, displayCurrency, rate]);
 
+    const realAccounts = formattedAccounts.filter(a => !a.isVirtual);
+    const demoAccounts = formattedAccounts.filter(a => a.isVirtual);
+    const tabAccounts = activeTab === 'real' ? realAccounts : demoAccounts;
+
     if (!activeAccount) return null;
 
     const { currency, isVirtual, balance } = activeAccount;
-    const showChevron = !isSingleAccount && !is_bot_running;
+    const showChevron = !is_bot_running;
+
+    // ─── Format balance for header chip ──────────────────────────────────────
+    const chipBalance = (() => {
+        if (!currency) return localize('No currency');
+        const accCurr = currency || 'USD';
+        if (displayCurrency === 'KES' && accCurr === 'USD') {
+            const num = parseFloat((balance || '0').replace(/,/g, '')) || 0;
+            const converted = num * rate;
+            return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(converted)} KES`;
+        }
+        return `${balance} ${getCurrencyDisplayCode(accCurr)}`;
+    })();
+
+    // Sync active tab with active account type
+    useEffect(() => {
+        setActiveTab(isVirtual ? 'demo' : 'real');
+    }, [isVirtual]);
 
     return (
         <div className='acc-info__wrapper' ref={wrapperRef}>
             <AccountInfoWrapper>
+                {/* ── Header Chip ─────────────────────────────────────────── */}
                 <div
                     data-testid='dt_acc_info'
                     id='dt_core_account-info_acc-info'
@@ -149,9 +227,10 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                     tabIndex={showChevron ? 0 : -1}
                     aria-expanded={showChevron ? isOpen : undefined}
                     aria-haspopup={showChevron ? 'listbox' : undefined}
-                    className={classNames('acc-info', {
-                        'acc-info--is-virtual': isVirtual,
-                        'acc-info--interactive': showChevron,
+                    className={classNames('acc-chip', {
+                        'acc-chip--virtual': isVirtual,
+                        'acc-chip--interactive': showChevron,
+                        'acc-chip--open': isOpen,
                     })}
                     onClick={toggleDropdown}
                     onKeyDown={e => {
@@ -161,162 +240,274 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         }
                     }}
                 >
-                    {/* Modern account badge */}
-                    <div className='acc-info__badge'>
-                        <span className={classNames('acc-info__badge-dot', {
-                            'acc-info__badge-dot--demo': isVirtual,
-                            'acc-info__badge-dot--real': !isVirtual,
-                        })} />
+                    {/* Flag / Demo icon */}
+                    <div className='acc-chip__avatar'>
+                        {isVirtual ? (
+                            <DemoIcon />
+                        ) : (
+                            <span className='acc-chip__flag' role='img' aria-label={currency}>
+                                {getCurrencyFlag(currency || 'USD')}
+                            </span>
+                        )}
                     </div>
-                    <div className='acc-info__content'>
-                        <div className='acc-info__account-type-header'>
-                            <span className={classNames('acc-info__type-pill', {
-                                'acc-info__type-pill--demo': isVirtual,
-                                'acc-info__type-pill--real': !isVirtual,
-                            })}>
-                                {isVirtual ? localize('Demo') : localize('Real')}
+
+                    {/* Label & balance */}
+                    <div className='acc-chip__body'>
+                        <div className='acc-chip__label'>
+                            <span
+                                className={classNames('acc-chip__account-type', {
+                                    'acc-chip__account-type--demo': isVirtual,
+                                    'acc-chip__account-type--real': !isVirtual,
+                                })}
+                            >
+                                {isVirtual ? localize('Demo account') : localize('Real account')}
+                            </span>
+                            <span
+                                className={classNames('acc-chip__checkmark', {
+                                    'acc-chip__checkmark--demo': isVirtual,
+                                    'acc-chip__checkmark--real': !isVirtual,
+                                })}
+                            >
+                                ✓
                             </span>
                             {showChevron && (
-                                <span
-                                    className={classNames('acc-info__select-arrow', {
-                                        'acc-info__select-arrow--invert': isOpen,
+                                <svg
+                                    className={classNames('acc-chip__chevron', {
+                                        'acc-chip__chevron--open': isOpen,
                                     })}
+                                    width='12'
+                                    height='12'
+                                    viewBox='0 0 12 12'
+                                    fill='none'
                                 >
-                                    <svg width='12' height='12' viewBox='0 0 12 12' fill='none'>
-                                        <path
-                                            d='M2 4L6 8L10 4'
-                                            stroke='currentColor'
-                                            strokeWidth='1.5'
-                                            strokeLinecap='round'
-                                            strokeLinejoin='round'
-                                        />
-                                    </svg>
-                                </span>
+                                    <path
+                                        d='M2 4L6 8L10 4'
+                                        stroke='currentColor'
+                                        strokeWidth='1.8'
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                    />
+                                </svg>
                             )}
                         </div>
-                        {(typeof balance !== 'undefined' || !currency) && (
-                            <div className='acc-info__balance-section'>
-                                <p
-                                    data-testid='dt_balance'
-                                    className={classNames('acc-info__balance', {
-                                        'acc-info__balance--no-currency': !currency && !isVirtual,
-                                    })}
-                                >
-                                    {!currency ? (
-                                        <Localize i18n_default_text='No currency assigned' />
-                                    ) : (
-                                        (() => {
-                                            const accCurr = currency || 'USD';
-                                            if (displayCurrency === 'KES' && accCurr === 'USD') {
-                                                const balanceNum = parseFloat(balance.replace(/,/g, '')) || 0;
-                                                const converted = balanceNum * rate;
-                                                return `${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(converted)} KES`;
+                        <p
+                            data-testid='dt_balance'
+                            className={classNames('acc-chip__balance', {
+                                'acc-chip__balance--no-currency': !currency && !isVirtual,
+                            })}
+                        >
+                            {chipBalance}
+                        </p>
+                    </div>
+
+                    {/* Right border accent */}
+                    <div
+                        className={classNames('acc-chip__border-accent', {
+                            'acc-chip__border-accent--demo': isVirtual,
+                            'acc-chip__border-accent--real': !isVirtual,
+                        })}
+                    />
+                </div>
+            </AccountInfoWrapper>
+
+            {/* ── Dropdown Panel ──────────────────────────────────────────── */}
+            {isOpen && (
+                <div className='acc-panel' role='dialog' aria-label={localize('Account switcher')}>
+                    {/* Real / Demo tab toggle */}
+                    <div className='acc-panel__tabs'>
+                        <button
+                            className={classNames('acc-panel__tab', {
+                                'acc-panel__tab--active-real': activeTab === 'real',
+                                'acc-panel__tab--inactive': activeTab !== 'real',
+                            })}
+                            onClick={() => setActiveTab('real')}
+                            id='acc-tab-real'
+                        >
+                            <Localize i18n_default_text='Real' />
+                            {activeTab === 'real' && <span className='acc-panel__tab-underline acc-panel__tab-underline--real' />}
+                        </button>
+                        <button
+                            className={classNames('acc-panel__tab', {
+                                'acc-panel__tab--active-demo': activeTab === 'demo',
+                                'acc-panel__tab--inactive': activeTab !== 'demo',
+                            })}
+                            onClick={() => setActiveTab('demo')}
+                            id='acc-tab-demo'
+                        >
+                            <Localize i18n_default_text='Demo' />
+                            {activeTab === 'demo' && <span className='acc-panel__tab-underline acc-panel__tab-underline--demo' />}
+                        </button>
+                    </div>
+
+                    {/* Account list */}
+                    <div className='acc-panel__body'>
+                        <p className='acc-panel__section-label'>
+                            <Localize i18n_default_text='Deriv accounts' />
+                        </p>
+
+                        {tabAccounts.length === 0 ? (
+                            <p className='acc-panel__empty'>
+                                {activeTab === 'real'
+                                    ? localize('No real accounts')
+                                    : localize('No demo accounts')}
+                            </p>
+                        ) : (
+                            <div className='acc-panel__account-list' role='listbox'>
+                                {tabAccounts.map(account => (
+                                    <div
+                                        key={account.loginid}
+                                        role='option'
+                                        aria-selected={account.isActive}
+                                        tabIndex={0}
+                                        className={classNames('acc-panel__account', {
+                                            'acc-panel__account--active': account.isActive,
+                                        })}
+                                        onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
+                                        onKeyDown={e => {
+                                            if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
+                                                e.preventDefault();
+                                                handleAccountSelect(account.loginid);
                                             }
-                                            return `${balance} ${getCurrencyDisplayCode(accCurr)}`;
-                                        })()
-                                    )}
-                                </p>
+                                        }}
+                                    >
+                                        {/* Icon */}
+                                        <div className='acc-panel__account-icon'>
+                                            {account.isVirtual ? (
+                                                <DemoIcon />
+                                            ) : (
+                                                <span className='acc-panel__account-flag' role='img'>
+                                                    {getCurrencyFlag(account.rawCurrency)}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Info */}
+                                        <div className='acc-panel__account-info'>
+                                            <span className='acc-panel__account-name'>
+                                                {account.isVirtual
+                                                    ? localize('Demo')
+                                                    : getCurrencyLabel(account.rawCurrency)}
+                                            </span>
+                                            <span className='acc-panel__account-id'>
+                                                {account.loginid.slice(0, 10)}..
+                                            </span>
+                                        </div>
+
+                                        {/* Balance */}
+                                        <span className='acc-panel__account-balance'>
+                                            {account.currency
+                                                ? `${account.balance} ${account.currency}`
+                                                : localize('No currency')}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
-                </div>
-            </AccountInfoWrapper>
-            {isOpen && (
-                <div className='acc-dropdown' role='listbox'>
-                    <div className='acc-dropdown__header'>
-                        <span className='acc-dropdown__header-title'>
-                            <Localize i18n_default_text='Switch Account' />
-                        </span>
-                    </div>
-                    {formattedAccounts.map(account => (
-                        <div
-                            key={account.loginid}
-                            role='option'
-                            aria-selected={account.isActive}
-                            tabIndex={0}
-                            className={classNames('acc-dropdown__account', {
-                                'acc-dropdown__account--selected': account.isActive,
-                                'acc-dropdown__account--virtual': account.isVirtual,
-                            })}
-                            onClick={() => !account.isActive && handleAccountSelect(account.loginid)}
-                            onKeyDown={e => {
-                                if (!account.isActive && (e.key === 'Enter' || e.key === ' ')) {
-                                    e.preventDefault();
-                                    handleAccountSelect(account.loginid);
-                                }
+
+                    {/* Footer actions */}
+                    <div className='acc-panel__footer'>
+                        <button
+                            className='acc-panel__manage-btn'
+                            onClick={() => {
+                                window.open('https://app.deriv.com/account/personal-details', '_blank');
+                                setIsOpen(false);
                             }}
+                            id='acc-manage-accounts-btn'
                         >
-                            <div className='acc-dropdown__account-row'>
-                                <span className={classNames('acc-dropdown__status-dot', {
-                                    'acc-dropdown__status-dot--demo': account.isVirtual,
-                                    'acc-dropdown__status-dot--real': !account.isVirtual,
-                                })} />
-                                <div className='acc-dropdown__account-details'>
-                                    <Text
-                                        size='xxxs'
-                                        className={classNames('acc-dropdown__account-type', {
-                                            'acc-dropdown__account-type--virtual': account.isVirtual,
-                                        })}
-                                    >
-                                        {account.isVirtual ? (
-                                            <Localize i18n_default_text='Demo' />
-                                        ) : (
-                                            <Localize i18n_default_text='Real' />
-                                        )}
-                                    </Text>
-                                    <Text size='xs' weight='bold' className='acc-dropdown__balance'>
-                                        {account.currency ? (
-                                            `${account.balance} ${getCurrencyDisplayCode(account.currency)}`
-                                        ) : (
-                                            <Localize i18n_default_text='No currency assigned' />
-                                        )}
-                                    </Text>
-                                </div>
-                                {account.isActive && (
-                                    <span className='acc-dropdown__active-check'>
-                                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3' strokeLinecap='round' strokeLinejoin='round'>
-                                            <polyline points='20 6 9 17 4 12' />
-                                        </svg>
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                    {/* Reset Demo Balance Button — only for demo accounts */}
-                    {isVirtual && (
-                        <div className='acc-dropdown__reset-section'>
-                            <button
-                                className={classNames('acc-dropdown__reset-btn', {
-                                    'acc-dropdown__reset-btn--loading': isResettingBalance,
-                                })}
-                                onClick={handleResetBalance}
-                                disabled={isResettingBalance}
-                            >
-                                {isResettingBalance ? (
-                                    <>
-                                        <svg className='acc-dropdown__reset-spinner' viewBox='0 0 24 24' width='14' height='14'>
-                                            <circle cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeDasharray='31.416' strokeDashoffset='10' fill='none' />
-                                        </svg>
-                                        <Localize i18n_default_text='Resetting...' />
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
-                                            <path d='M1 4v6h6' />
-                                            <path d='M3.51 15a9 9 0 102.13-9.36L1 10' />
-                                        </svg>
-                                        <Localize i18n_default_text='Reset Demo Balance' />
-                                    </>
-                                )}
-                            </button>
-                            {resetMessage && (
-                                <div className={classNames('acc-dropdown__reset-msg', {
-                                    'acc-dropdown__reset-msg--success': resetMessage.type === 'success',
-                                    'acc-dropdown__reset-msg--error': resetMessage.type === 'error',
-                                })}>
-                                    {resetMessage.text}
-                                </div>
+                            <Localize i18n_default_text='manage accounts' />
+                        </button>
+
+                        <div className='acc-panel__footer-right'>
+                            {activeTab === 'demo' && demoAccounts.length > 0 && (
+                                <button
+                                    className={classNames('acc-panel__reset-btn', {
+                                        'acc-panel__reset-btn--loading': isResettingBalance,
+                                    })}
+                                    onClick={handleResetBalance}
+                                    disabled={isResettingBalance}
+                                    id='acc-reset-balance-btn'
+                                >
+                                    {isResettingBalance ? (
+                                        <>
+                                            <svg
+                                                className='acc-panel__reset-spinner'
+                                                viewBox='0 0 24 24'
+                                                width='14'
+                                                height='14'
+                                            >
+                                                <circle
+                                                    cx='12'
+                                                    cy='12'
+                                                    r='10'
+                                                    stroke='currentColor'
+                                                    strokeWidth='2.5'
+                                                    strokeLinecap='round'
+                                                    strokeDasharray='31.416'
+                                                    strokeDashoffset='10'
+                                                    fill='none'
+                                                />
+                                            </svg>
+                                            <Localize i18n_default_text='Resetting...' />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg
+                                                width='14'
+                                                height='14'
+                                                viewBox='0 0 24 24'
+                                                fill='none'
+                                                stroke='currentColor'
+                                                strokeWidth='2.2'
+                                                strokeLinecap='round'
+                                                strokeLinejoin='round'
+                                            >
+                                                <path d='M1 4v6h6' />
+                                                <path d='M3.51 15a9 9 0 102.13-9.36L1 10' />
+                                            </svg>
+                                            <Localize i18n_default_text='Reset Balance' />
+                                        </>
+                                    )}
+                                </button>
                             )}
+
+                            <button
+                                className='acc-panel__logout-btn'
+                                onClick={() => {
+                                    client?.logout();
+                                    setIsOpen(false);
+                                }}
+                                id='acc-logout-btn'
+                            >
+                                <Localize i18n_default_text='Logout' />
+                                <svg
+                                    width='18'
+                                    height='18'
+                                    viewBox='0 0 24 24'
+                                    fill='none'
+                                    stroke='currentColor'
+                                    strokeWidth='2'
+                                    strokeLinecap='round'
+                                    strokeLinejoin='round'
+                                    className='acc-panel__logout-icon'
+                                >
+                                    <path d='M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4' />
+                                    <polyline points='16 17 21 12 16 7' />
+                                    <line x1='21' y1='12' x2='9' y2='12' />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Reset message toast */}
+                    {resetMessage && (
+                        <div
+                            className={classNames('acc-panel__toast', {
+                                'acc-panel__toast--success': resetMessage.type === 'success',
+                                'acc-panel__toast--error': resetMessage.type === 'error',
+                            })}
+                        >
+                            {resetMessage.text}
                         </div>
                     )}
                 </div>

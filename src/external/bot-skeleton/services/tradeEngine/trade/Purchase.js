@@ -4,6 +4,7 @@ import { contractStatus, info, log } from '../utils/broadcast';
 import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../utils/helpers';
 import { purchaseSuccessful, sell } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
+import { observer as globalObserver } from '../../../utils/observer';
 
 let delayIndex = 0;
 let purchase_reference;
@@ -72,6 +73,16 @@ export default Engine =>
             if (this.is_proposal_subscription_required) {
                 const { id, askPrice } = this.selectProposal(contract_type);
 
+                try {
+                    globalObserver.emit('replicator.purchase', {
+                        mode: 'proposal_id',
+                        request: { buy: id, price: askPrice },
+                        tradeOptions: this.tradeOptions,
+                        contract_type,
+                        account_id: this.accountInfo?.loginid,
+                    });
+                } catch {}
+
                 const action = () => api_base.api.send({ buy: id, price: askPrice });
 
                 this.isSold = false;
@@ -108,6 +119,17 @@ export default Engine =>
                 ).then(onSuccess);
             }
             const trade_option = tradeOptionToBuy(contract_type, this.tradeOptions);
+
+            try {
+                globalObserver.emit('replicator.purchase', {
+                    mode: 'parameters',
+                    request: trade_option,
+                    tradeOptions: this.tradeOptions,
+                    contract_type,
+                    account_id: this.accountInfo?.loginid,
+                });
+            } catch {}
+
             const action = () => api_base.api.send(trade_option);
 
             this.isSold = false;
