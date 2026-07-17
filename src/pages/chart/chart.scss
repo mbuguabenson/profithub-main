@@ -144,3 +144,10 @@
     left: 0;
     top: 0;
 }
+
+// SmartChart Last Digit Stats Positioning Fix
+.sc-digit-stats,
+.sc-last-digit-stats,
+.cq-digits {
+    bottom: 35px !important; /* Adjust position up a bit to prevent overlapping bottom elements */
+}
