@@ -209,18 +209,16 @@ const buildAnalysis = (strategy: TScannerStrategy, ticks: TTickPoint[], symbol: 
             signal = { contractType: 'DIGITODD', label: 'Odd', confidence: Number(oddPct) };
         }
     } else if (strategy === 'Over & Under') {
-        const overCount = digits.filter(d => d <= 4).length;
-        const underCount = sampleSize - overCount;
-        const overPct = ((overCount / sampleSize) * 100).toFixed(1);
+        const underCount = digits.filter(d => d <= 4).length;
+        const overCount = sampleSize - underCount;
         const underPct = ((underCount / sampleSize) * 100).toFixed(1);
-        if (overCount >= underCount) {
-            const leastOver = findLeastCommonDigit(digits.filter(d => d <= 4).length ? digits.filter(d => d <= 4) : [0]);
-            lines.push(`OVER (0-4) → ${overPct}% | Digit: ${leastOver}`);
-            signal = { barrier: String(leastOver), contractType: 'DIGITOVER', label: `Over ${leastOver}`, confidence: Number(overPct) };
+        const overPct = ((overCount / sampleSize) * 100).toFixed(1);
+        if (underCount >= overCount) {
+            lines.push(`UNDER (0-4) dominates → ${underPct}%`);
+            signal = { barrier: '5', contractType: 'DIGITUNDER', label: 'Under 5', confidence: Number(underPct) };
         } else {
-            const leastUnder = findLeastCommonDigit(digits.filter(d => d >= 5).length ? digits.filter(d => d >= 5) : [5]);
-            lines.push(`UNDER (5-9) → ${underPct}% | Digit: ${leastUnder}`);
-            signal = { barrier: String(leastUnder), contractType: 'DIGITUNDER', label: `Under ${leastUnder}`, confidence: Number(underPct) };
+            lines.push(`OVER (5-9) dominates → ${overPct}%`);
+            signal = { barrier: '5', contractType: 'DIGITOVER', label: 'Over 5', confidence: Number(overPct) };
         }
     } else if (strategy === 'Only Ups') {
         let ups = 0;
@@ -288,7 +286,7 @@ const isSignalAligned = (
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: boolean; isEmbed?: boolean }) => {
-    const { client, dashboard, run_panel, summary_card, transactions } = useStore();
+    const { client, dashboard, run_panel, summary_card, transactions, quick_strategy } = useStore();
     const { isDesktop } = useDevice();
     const { active_tab } = dashboard;
 
@@ -852,12 +850,66 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
             `Market: ${selectedMarket.label}`,
             `Stake: ${stakeInput} ${currency} | TP: ${takeProfitInput} | SL: ${stopLossInput}`,
             `Martingale: ${martingale}× | Alternate: ${alternateEnabled ? `${alternateStrategy} after ${alternateAfterLosses} losses` : 'disabled'}`,
-            '→ Switching to Bot Builder...',
+            '→ Building bot and loading into workspace...',
         ]);
         setPopupOpen(true);
-        setTimeout(() => {
-            try { dashboard.setActiveTab(DBOT_TABS.BOT_BUILDER); } catch { /* not available */ }
-        }, 2000);
+
+        try {
+            // Map strategy to tradetype and type
+            let tradetype = 'risefall';
+            let type = 'both';
+            if (strategy === 'Matches & Differs') {
+                tradetype = 'matchesdiffers';
+            } else if (strategy === 'Even & Odd') {
+                tradetype = 'evenodd';
+            } else if (strategy === 'Over & Under') {
+                tradetype = 'overunder';
+            } else if (strategy === 'Only Ups') {
+                tradetype = 'risefall';
+                type = 'CALL';
+            } else if (strategy === 'Only Downs') {
+                tradetype = 'risefall';
+                type = 'PUT';
+            }
+
+            // Configure strategy store parameters
+            quick_strategy.setSelectedStrategy('MARTINGALE');
+            quick_strategy.setValue('symbol', selectedSymbol);
+            quick_strategy.setValue('tradetype', tradetype);
+            quick_strategy.setValue('type', type);
+            quick_strategy.setValue('stake', Number(stakeInput) || 1);
+            quick_strategy.setValue('size', Number(martingale) || 2);
+            quick_strategy.setValue('profit', Number(takeProfitInput) || 100);
+            quick_strategy.setValue('loss', Number(stopLossInput) || 50);
+            quick_strategy.setValue('durationtype', 't');
+            quick_strategy.setValue('duration', 1);
+            quick_strategy.setValue('action', 'BUILD');
+
+            // Set prediction digit if applicable
+            if (confirmedSignal && confirmedSignal.barrier) {
+                quick_strategy.setValue('last_digit_prediction', Number(confirmedSignal.barrier));
+            } else if (strategy === 'Matches & Differs') {
+                quick_strategy.setValue('last_digit_prediction', 5);
+            } else if (strategy === 'Over & Under') {
+                quick_strategy.setValue('last_digit_prediction', 5);
+            }
+
+            // Build and import the bot XML DOM blocks directly to the Blockly canvas
+            void quick_strategy.onSubmit(quick_strategy.form_data);
+
+            setTimeout(() => {
+                try {
+                    dashboard.setActiveTab(DBOT_TABS.BOT_BUILDER);
+                    setPopupOpen(false);
+                } catch (e) {
+                    console.error('[Scanner] Unable to switch to Bot Builder tab:', e);
+                }
+            }, 2000);
+
+        } catch (e) {
+            console.error('[Scanner] Auto Build error:', e);
+            setTerminalDashboard(prev => [...prev, `❌ Error: ${e instanceof Error ? e.message : String(e)}`]);
+        }
     };
 
     const handlePauseResume = () => {
