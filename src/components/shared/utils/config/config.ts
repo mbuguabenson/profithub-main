@@ -792,7 +792,7 @@ export const getDomainConfig = (activeHostname = window.location.hostname): Doma
     return {
         clientId: process.env.CLIENT_ID || '',
         appId: process.env.APP_ID || '71937',
-        redirectUri: process.env.REDIRECT_URI || window.location.origin,
+        redirectUri: process.env.REDIRECT_URI || `${window.location.origin}/`,
         botsFolder: process.env.BOTS_FOLDER || DEFAULT_BOTS_FOLDER,
         canonicalHost: hostname,
         includeLegacyAppIdInOAuth: true,
@@ -920,6 +920,7 @@ export const STAGING_DOMAINS = {
 export const isProduction = () => {
     if (process.env.APP_ENV === 'production') return true;
     const hostname = window.location.hostname;
+    if (/localhost(:\d+)?$/i.test(hostname)) return true;
     return !!DOMAIN_CONFIG[hostname];
 };
 
