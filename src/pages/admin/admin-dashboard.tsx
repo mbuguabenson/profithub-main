@@ -7,7 +7,7 @@ import {
 } from 'recharts';
 import {
     getPendingRequestsForProvider, updateCopyRequestStatus, CopyRequest,
-    getSiteConfig, saveSiteConfig, SiteConfig, TabConfigItem, getDefaultTabConfig,
+    getSiteConfig, saveSiteConfig, SiteConfig, getDefaultTabConfig,
     getChatSessions, getChatMessages, sendChatMessage, ChatMessage,
     getUploadedBots, saveUploadedBot, deleteUploadedBot, UploadedBot,
 } from '@/utils/supabase-copy';
@@ -445,20 +445,21 @@ const AdminDashboard = observer(() => {
     [copyRequests, searchQuery]);
 
     // ─── Auth ─────────────────────────────────────────────────────────────────
+
+    // ... existing state definitions above remain unchanged
     const handleLoginSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (loginUsername === 'Admin_profithub' && loginPassword === 'Access@profithub2026') {
             setIsAuthenticated(true);
-            // Store the configured APP_ID for subsequent API calls
-            localStorage.setItem('APP_ID', getAppId?.() ?? process.env.APP_ID ?? '114292');
+            // Store the configured CLIENT_ID for subsequent API calls
+            localStorage.setItem('CLIENT_ID', getAppId?.() ?? '');
             localStorage.setItem('admin_authenticated', 'true');
             setLoginError('');
             navigate('/admin/dashboard');
         } else {
             setLoginError('Invalid username or password');
         }
-    };
-    const handleLogout = () => {
+    };    const handleLogout = () => {
         setIsAuthenticated(false);
         localStorage.removeItem('admin_authenticated');
         navigate('/admin/login');
