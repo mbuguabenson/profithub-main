@@ -254,6 +254,21 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         }
                     }}
                 >
+                    {/* Currency circle icon */}
+                    <div className={classNames('acc-chip__currency-icon', {
+                        'acc-chip__currency-icon--demo': isVirtual,
+                        'acc-chip__currency-icon--real': !isVirtual,
+                    })}>
+                        {isVirtual ? (
+                            <span className='acc-chip__currency-letter'>D</span>
+                        ) : (
+                            <svg className='acc-chip__dollar-svg' viewBox='0 0 24 24' fill='none'>
+                                <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z' fill='currentColor' opacity='0.15' />
+                                <text x='12' y='16.5' textAnchor='middle' fontSize='14' fontWeight='700' fill='currentColor'>$</text>
+                            </svg>
+                        )}
+                    </div>
+
                     {/* Two-line text block */}
                     <div className='acc-chip__text-block'>
                         {/* Line 1: Account label + chevron */}
@@ -313,18 +328,6 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         )}
                     </button>
                 </div>
-
-                {/* ── Deposit Button ─────────────────────────────────────── */}
-                <button
-                    type='button'
-                    className='acc-chip__deposit-btn'
-                    onClick={e => {
-                        e.stopPropagation();
-                        window.open('https://app.deriv.com/cashier/deposit', '_blank');
-                    }}
-                >
-                    <Localize i18n_default_text='Deposit' />
-                </button>
             </AccountInfoWrapper>
 
             {/* ── Dropdown Panel ──────────────────────────────────────────── */}

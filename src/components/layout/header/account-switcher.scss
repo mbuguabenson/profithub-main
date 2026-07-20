@@ -23,7 +23,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     height: auto;
     padding: 0;
     border-radius: 0;
@@ -80,7 +80,44 @@
         }
     }
 
-    // ── Avatar circle — hidden in new design ──────────────────
+    // ── Currency circle icon ──────────────────────────────────
+    &__currency-icon {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: box-shadow 0.2s ease;
+
+        &--demo {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        &--real {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+        }
+    }
+
+    &__currency-letter {
+        font-size: 14px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1;
+        letter-spacing: -0.02em;
+    }
+
+    &__dollar-svg {
+        width: 20px;
+        height: 20px;
+        color: #ffffff;
+    }
+
+    // ── Legacy avatar — hidden ────────────────────────────────
     &__avatar {
         display: none;
     }
@@ -143,37 +180,6 @@
 
         &--open {
             transform: rotate(180deg);
-        }
-    }
-
-    // ── Deposit button ─────────────────────────────────────────
-    &__deposit-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 6px 18px;
-        border-radius: 20px;
-        border: none;
-        background: #e74c3c;
-        color: #ffffff;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
-        white-space: nowrap;
-        letter-spacing: 0.2px;
-        line-height: 1.4;
-        flex-shrink: 0;
-
-        &:hover {
-            background: #d63a2c;
-            box-shadow: 0 3px 12px rgba(231, 76, 60, 0.35);
-            transform: translateY(-0.5px);
-        }
-
-        &:active {
-            transform: translateY(0);
-            box-shadow: none;
         }
     }
 
