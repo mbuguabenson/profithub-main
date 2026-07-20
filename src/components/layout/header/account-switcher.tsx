@@ -9,6 +9,7 @@ import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize, localize } from '@deriv-com/translations';
 import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
+import realAccountImg from '../../../../images.jpg';
 import './account-switcher.scss';
 
 // ─── Country flag emoji helper ────────────────────────────────────────────────
@@ -262,10 +263,11 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         {isVirtual ? (
                             <span className='acc-chip__currency-letter'>D</span>
                         ) : (
-                            <svg className='acc-chip__dollar-svg' viewBox='0 0 24 24' fill='none'>
-                                <path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z' fill='currentColor' opacity='0.15' />
-                                <text x='12' y='16.5' textAnchor='middle' fontSize='14' fontWeight='700' fill='currentColor'>$</text>
-                            </svg>
+                            <img
+                                src={realAccountImg}
+                                alt='Real Account'
+                                className='acc-chip__real-img'
+                            />
                         )}
                     </div>
 
@@ -274,7 +276,12 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         {/* Line 1: Account label + chevron */}
                         <div className='acc-chip__label-row'>
                             <span className='acc-chip__account-label'>
-                                {isVirtual ? localize('Demo account') : localize('Real account')}
+                                {isVirtual ? localize('Demo account') : (
+                                    <>
+                                        <span className='acc-chip__real-label'>Real</span>
+                                        {currency && <span className='acc-chip__real-currency'>· {getCurrencyDisplayCode(currency)}</span>}
+                                    </>
+                                )}
                             </span>
                             {showChevron && (
                                 <svg
