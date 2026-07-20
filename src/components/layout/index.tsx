@@ -224,9 +224,25 @@ const DynamicThemeStyle = () => {
         }
 
         /* Run panel styles */
-        .run-panel, .run-panel__container {
+        body.theme--dark .run-panel, body.theme--dark .run-panel__container {
             background-color: var(--ph-run-panel-bg) !important;
             color: var(--ph-run-panel-text) !important;
+        }
+        body.theme--light .run-panel, body.theme--light .run-panel__container {
+            background-color: var(--general-main-1) !important;
+            color: var(--text-general) !important;
+        }
+        body.theme--light .run-panel .dc-tabs__item:not(.dc-tabs__active) {
+            color: var(--text-less-prominent) !important;
+        }
+        body.theme--light .run-panel .dc-tabs__active {
+            color: var(--text-prominent) !important;
+        }
+        body.theme--light .run-panel .dc-tabs__active-line {
+            background: var(--text-prominent) !important;
+        }
+        body.theme--light .run-panel__tile-title {
+            color: var(--text-less-prominent) !important;
         }
     `;
 

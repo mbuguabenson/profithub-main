@@ -85,6 +85,20 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     const [isResettingBalance, setIsResettingBalance] = useState(false);
     const [resetMessage, setResetMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+    // Balance visibility state
+    const [isBalanceVisible, setIsBalanceVisible] = useState(() => {
+        return localStorage.getItem('is_balance_visible') !== 'false';
+    });
+
+    const toggleBalanceVisibility = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsBalanceVisible(prev => {
+            const next = !prev;
+            localStorage.setItem('is_balance_visible', String(next));
+            return next;
+        });
+    }, []);
+
     useEffect(() => {
         const handleSync = () => {
             setDisplayCurrency((localStorage.getItem('converter_display_currency') as 'USD' | 'KES') || 'USD');
@@ -251,54 +265,56 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         )}
                     </div>
 
-                    {/* Label & balance */}
-                    <div className='acc-chip__body'>
-                        <div className='acc-chip__label'>
-                            <span
-                                className={classNames('acc-chip__account-type', {
-                                    'acc-chip__account-type--demo': isVirtual,
-                                    'acc-chip__account-type--real': !isVirtual,
-                                })}
-                            >
-                                {isVirtual ? localize('Demo account') : localize('Real account')}
-                            </span>
-                            <span
-                                className={classNames('acc-chip__checkmark', {
-                                    'acc-chip__checkmark--demo': isVirtual,
-                                    'acc-chip__checkmark--real': !isVirtual,
-                                })}
-                            >
-                                ✓
-                            </span>
-                            {showChevron && (
-                                <svg
-                                    className={classNames('acc-chip__chevron', {
-                                        'acc-chip__chevron--open': isOpen,
-                                    })}
-                                    width='12'
-                                    height='12'
-                                    viewBox='0 0 12 12'
-                                    fill='none'
-                                >
-                                    <path
-                                        d='M2 4L6 8L10 4'
-                                        stroke='currentColor'
-                                        strokeWidth='1.8'
-                                        strokeLinecap='round'
-                                        strokeLinejoin='round'
-                                    />
-                                </svg>
-                            )}
-                        </div>
-                        <p
-                            data-testid='dt_balance'
-                            className={classNames('acc-chip__balance', {
-                                'acc-chip__balance--no-currency': !currency && !isVirtual,
+                    {/* Balance */}
+                    <span
+                        data-testid='dt_balance'
+                        className={classNames('acc-chip__balance', {
+                            'acc-chip__balance--no-currency': !currency && !isVirtual,
+                        })}
+                    >
+                        {isBalanceVisible ? chipBalance : '••••'}
+                    </span>
+
+                    {/* Eye toggle button */}
+                    <button
+                        type='button'
+                        className='acc-chip__visibility-btn'
+                        onClick={toggleBalanceVisibility}
+                        aria-label={isBalanceVisible ? 'Hide balance' : 'Show balance'}
+                    >
+                        {isBalanceVisible ? (
+                            <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                                <path d='M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' />
+                                <circle cx='12' cy='12' r='3' />
+                            </svg>
+                        ) : (
+                            <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                                <path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24' />
+                                <line x1='1' y1='1' x2='23' y2='23' />
+                            </svg>
+                        )}
+                    </button>
+
+                    {/* Chevron */}
+                    {showChevron && (
+                        <svg
+                            className={classNames('acc-chip__chevron', {
+                                'acc-chip__chevron--open': isOpen,
                             })}
+                            width='12'
+                            height='12'
+                            viewBox='0 0 12 12'
+                            fill='none'
                         >
-                            {chipBalance}
-                        </p>
-                    </div>
+                            <path
+                                d='M2 4L6 8L10 4'
+                                stroke='currentColor'
+                                strokeWidth='1.8'
+                                strokeLinecap='round'
+                                strokeLinejoin='round'
+                            />
+                        </svg>
+                    )}
 
                     {/* Right border accent */}
                     <div

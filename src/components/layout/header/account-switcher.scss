@@ -22,28 +22,34 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    height: 52px;
-    padding: 8px 24px 8px 8px;
-    border-radius: 40px;
+    gap: 6px;
+    height: 32px;
+    padding: 4px 10px 4px 6px;
+    border-radius: 20px;
     background: #ffffff;
     border: 1.5px solid #e8e8e8;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
     transition: box-shadow 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
     overflow: hidden;
     cursor: default;
 
-    // Right-side colored curve accent (see screenshot)
+    .theme--dark & {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+    }
+
+    // Right-side colored curve accent
     &::after {
         content: '';
         position: absolute;
         right: -1px;
-        top: 10%;
-        width: 6px;
-        height: 80%;
-        border-radius: 0 40px 40px 0;
+        top: 15%;
+        width: 4px;
+        height: 70%;
+        border-radius: 0 20px 20px 0;
         background: transparent;
-        border: 2px solid transparent;
+        border: 1.5px solid transparent;
         border-left: none;
         transition: border-color 0.3s ease;
         pointer-events: none;
@@ -53,9 +59,15 @@
         cursor: pointer;
 
         &:hover {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            transform: translateY(-1px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-0.5px);
             border-color: #d0d0d0;
+
+            .theme--dark & {
+                background: rgba(255, 255, 255, 0.08);
+                border-color: rgba(255, 255, 255, 0.15);
+                box-shadow: none;
+            }
         }
 
         &:active {
@@ -64,8 +76,13 @@
     }
 
     &--open {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
         border-color: #c0c0c0;
+
+        .theme--dark & {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
     }
 
     // Real account — green accent curve
@@ -81,90 +98,89 @@
     // ── Avatar circle ──────────────────────────────────────────
     &__avatar {
         flex-shrink: 0;
-        width: 40px;
-        height: 40px;
+        width: 22px;
+        height: 22px;
         border-radius: 50%;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 28px;
+        font-size: 16px;
         line-height: 1;
     }
 
     &__flag {
-        font-size: 28px;
+        font-size: 16px;
         line-height: 1;
     }
 
     &__demo-icon {
-        width: 40px;
-        height: 40px;
+        width: 22px;
+        height: 22px;
     }
 
-    // ── Text body ──────────────────────────────────────────────
-    &__body {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
+    // ── Balance ────────────────────────────────────────────────
+    &__balance {
+        font-size: 12px;
+        font-weight: 800;
+        color: #0d0d0d;
+        margin: 0;
+        letter-spacing: -0.01em;
+        line-height: 1;
+        white-space: nowrap;
+
+        .theme--dark & {
+            color: #ffffff;
+        }
+
+        &--no-currency {
+            font-size: 11px;
+            font-weight: 500;
+            color: #999;
+        }
     }
 
-    &__label {
+    // ── Visibility Eye Button ──────────────────────────────────
+    &__visibility-btn {
         display: flex;
         align-items: center;
-        gap: 5px;
-    }
+        justify-content: center;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #888;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        flex-shrink: 0;
+        margin-left: 2px;
 
-    &__account-type {
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1;
-
-        &--real {
-            color: #85c28e;
+        &:hover {
+            color: #555;
         }
 
-        &--demo {
-            color: #1a3c49;
-        }
-    }
+        .theme--dark & {
+            color: rgba(255, 255, 255, 0.5);
 
-    &__checkmark {
-        font-size: 12px;
-        font-weight: 900;
-        line-height: 1;
-
-        &--real {
-            color: #85c28e;
+            &:hover {
+                color: rgba(255, 255, 255, 0.8);
+            }
         }
 
-        &--demo {
-            color: #1a3c49;
+        svg {
+            display: block;
         }
     }
 
+    // ── Chevron ────────────────────────────────────────────────
     &__chevron {
         color: #888;
         transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
         flex-shrink: 0;
+        width: 10px;
+        height: 10px;
 
         &--open {
             transform: rotate(180deg);
-        }
-    }
-
-    &__balance {
-        font-size: 16px;
-        font-weight: 800;
-        color: #0d0d0d;
-        margin: 0;
-        letter-spacing: -0.02em;
-        line-height: 1.2;
-
-        &--no-currency {
-            font-size: 12px;
-            font-weight: 500;
-            color: #999;
         }
     }
 
@@ -173,9 +189,9 @@
         position: absolute;
         right: 0;
         top: 0;
-        width: 4px;
+        width: 3px;
         height: 100%;
-        border-radius: 0 40px 40px 0;
+        border-radius: 0 20px 20px 0;
 
         &--real {
             background: linear-gradient(180deg, #85c28e 0%, #4caf6c 100%);
@@ -185,36 +201,6 @@
         &--demo {
             background: linear-gradient(180deg, #e55c5f 0%, #c0373a 100%);
             opacity: 0.8;
-        }
-    }
-
-    // Mobile adjustments
-    @include mobile-screen {
-        height: 44px;
-        padding: 6px 20px 6px 6px;
-        gap: 8px;
-
-        &__avatar {
-            width: 32px;
-            height: 32px;
-            font-size: 22px;
-        }
-
-        &__flag {
-            font-size: 22px;
-        }
-
-        &__demo-icon {
-            width: 32px;
-            height: 32px;
-        }
-
-        &__balance {
-            font-size: 13px;
-        }
-
-        &__account-type {
-            font-size: 11px;
         }
     }
 }

@@ -772,6 +772,17 @@ $c-purple:     #a78bfa;
         box-shadow: 0 0 8px rgba(34,200,122,0.5);
         animation: ct2-pulse 2s ease-in-out infinite;
     }
+
+    &--orange {
+        background: $c-purple;
+        box-shadow: 0 0 8px rgba(167,139,250,0.5);
+        animation: ct2-pulse 2s ease-in-out infinite;
+    }
+
+    &--red {
+        background: $c-red;
+        box-shadow: 0 0 8px rgba(242,92,110,0.5);
+    }
 }
 
 @keyframes ct2-pulse {
@@ -806,6 +817,18 @@ $c-purple:     #a78bfa;
         background: rgba(34,200,122,0.12);
         color: $c-green;
         border: 1px solid rgba(34,200,122,0.25);
+    }
+
+    &--connecting {
+        background: rgba(167,139,250,0.12);
+        color: $c-purple;
+        border: 1px solid rgba(167,139,250,0.25);
+    }
+
+    &--error {
+        background: rgba(242,92,110,0.12);
+        color: $c-red;
+        border: 1px solid rgba(242,92,110,0.25);
     }
 }
 

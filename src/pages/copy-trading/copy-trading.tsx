@@ -64,6 +64,8 @@ const CopyTrading = observer(() => {
     const [successMessage, setSuccessMessage] = useState('');
     const [successMessage2, setSuccessMessage2] = useState('');
     const [tokenInput, setTokenInput] = useState('');
+    const [tick, setTick] = useState(0);
+    void tick;
 
     // Account info state
     const [loginIdDisplay, setLoginIdDisplay] = useState<string>('Loading...');
@@ -170,14 +172,19 @@ const CopyTrading = observer(() => {
                 if (key) manager.setMasterToken(accounts_list[key]);
             }
 
+            const isCopyTrading = localStorage.getItem('iscopyTrading') === 'true';
             const copyTokensArray = getCopyTokensArray();
             for (const token of copyTokensArray) {
-                if (!manager.copiers.find(c => c.token === token)) {
+                let copier = manager.copiers.find(c => c.token === token);
+                if (!copier) {
                     try {
-                        manager.addCopier(token);
+                        copier = manager.addCopier(token);
                     } catch {
                         /* Already exists */
                     }
+                }
+                if (isCopyTrading && copier && copier.status !== 'connected') {
+                    void manager.connectCopier(copier.id).catch(() => {});
                 }
             }
             refreshClientList();
@@ -252,7 +259,7 @@ const CopyTrading = observer(() => {
         try {
             const status = await getCopyRequestStatus(activeLoginid, 'Profithubadmin');
             if (status) {
-                setAdminFollowStatus(status.status);
+                setAdminFollowStatus(status.status === 'stopped' ? 'none' : status.status);
             } else {
                 setAdminFollowStatus('none');
             }
@@ -276,6 +283,7 @@ const CopyTrading = observer(() => {
             setClientsTotal(arr.length);
             const active = managerRef.current?.copiers?.filter(c => c.status === 'connected').length ?? 0;
             setClientsConnected(active);
+            setTick(t => t + 1);
         }, 2000);
         return () => clearInterval(poll);
     }, []);
@@ -427,22 +435,26 @@ const CopyTrading = observer(() => {
             setErrorModalVisible(true);
         } else {
             try {
+                // Add the copier first
                 const copier = manager.addCopier(newToken);
+                
+                // Validate by connecting immediately
+                try {
+                    await manager.connectCopier(copier.id);
+                } catch (connErr: any) {
+                    // Remove copier from manager since validation failed
+                    manager.removeCopier(copier.id);
+                    throw connErr;
+                }
+
+                // If connection succeeded, save to localStorage
                 arr.push(newToken);
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
-                if (localStorage.getItem('iscopyTrading') === 'true') {
-                    try {
-                        await manager.connectCopier(copier.id);
-                    } catch {
-                        /* Ignore */
-                    }
-                }
                 setTokenInput('');
                 refreshClientList();
             } catch (e: any) {
-                setErrorMessage(
-                    e?.error?.message || e?.message || 'Authorization failed. Make sure the token is valid.'
-                );
+                const errMsg = e?.error?.message || e?.message || 'Authorization failed. Make sure the token is valid.';
+                setErrorMessage(errMsg);
                 setErrorModalVisible(true);
             }
         }
@@ -524,6 +536,12 @@ const CopyTrading = observer(() => {
         const activeLoginid = getActiveLoginId();
         const activeToken = getActiveToken();
 
+        if (!activeLoginid || !activeToken) {
+            setErrorMessage('You must be logged in to copy trades.');
+            setErrorModalVisible(true);
+            return;
+        }
+
         setIsLoadingAdminStatus(true);
         try {
             const success = await requestFollowProvider(activeLoginid, activeToken, 'Profithubadmin');
@@ -604,7 +622,7 @@ const CopyTrading = observer(() => {
                 onCancel={() => setIsTermsModalOpen(false)}
                 onClose={() => setIsTermsModalOpen(false)}
                 portal_element_id='modal_root'
-                is_confirm_button_disabled={!termsAccepted1 || !termsAccepted2}
+                login={() => {}}
             >
                 <div className='ct2-dialog-body' style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#e2e8f0', fontSize: '13px', lineHeight: '1.6' }}>
                     <div style={{ background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.2)', padding: '12px', borderRadius: '8px' }}>
@@ -987,7 +1005,6 @@ const CopyTrading = observer(() => {
                                         )}
                                     </div>
                                 </div>
-
                                 {successMessage2 && (
                                     <div className='ct2-success-banner ct2-success-banner--mt'>{successMessage2}</div>
                                 )}
@@ -1010,25 +1027,58 @@ const CopyTrading = observer(() => {
                                         {copierList.map((token, i) => {
                                             const copier = managerRef.current?.copiers?.find(c => c.token === token);
                                             const isConnected = copier?.status === 'connected';
+                                            const isConnecting = copier?.status === 'connecting';
+                                            const isError = copier?.status === 'error';
+
+                                            let dotClass = '';
+                                            if (isConnected) dotClass = 'ct2-client-dot--green';
+                                            else if (isConnecting) dotClass = 'ct2-client-dot--orange';
+                                            else if (isError) dotClass = 'ct2-client-dot--red';
+
+                                            let statusClass = '';
+                                            if (isConnected) statusClass = 'ct2-client-status--connected';
+                                            else if (isConnecting) statusClass = 'ct2-client-status--connecting';
+                                            else if (isError) statusClass = 'ct2-client-status--error';
+
+                                            let statusLabel = 'Idle';
+                                            if (isConnected) statusLabel = 'Connected';
+                                            else if (isConnecting) statusLabel = 'Connecting';
+                                            else if (isError) statusLabel = copier?.lastErrorCode ? `Error: ${copier.lastErrorCode}` : 'Error';
+
                                             return (
                                                 <li key={i} className='ct2-client-item'>
                                                     <div className='ct2-client-item__left'>
-                                                        <div
-                                                            className={`ct2-client-dot ${
-                                                                isConnected ? 'ct2-client-dot--green' : ''
-                                                            }`}
-                                                        />
+                                                        <div className={`ct2-client-dot ${dotClass}`} />
                                                         <span className='ct2-client-idx'>#{i + 1}</span>
-                                                        <span className='ct2-client-token'>{truncateToken(token)}</span>
+                                                        <span className='ct2-client-token'>
+                                                            {truncateToken(token)}
+                                                            {copier?.loginId && ` (${copier.loginId})`}
+                                                            {copier?.balance !== undefined && ` - $${Number(copier.balance).toFixed(2)}`}
+                                                        </span>
                                                     </div>
                                                     <div className='ct2-client-item__right'>
-                                                        <span
-                                                            className={`ct2-client-status ${
-                                                                isConnected ? 'ct2-client-status--connected' : ''
-                                                            }`}
-                                                        >
-                                                            {isConnected ? 'Connected' : 'Idle'}
+                                                        <span className={`ct2-client-status ${statusClass}`}>
+                                                            {statusLabel}
                                                         </span>
+                                                        {isError && (
+                                                            <button
+                                                                className='ct2-client-del'
+                                                                style={{ fontSize: '1.4rem', opacity: 0.6 }}
+                                                                onClick={async () => {
+                                                                    if (copier) {
+                                                                        try {
+                                                                            await managerRef.current?.connectCopier(copier.id);
+                                                                        } catch (e: any) {
+                                                                            setErrorMessage(e?.message || 'Connection failed');
+                                                                            setErrorModalVisible(true);
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                title={copier?.lastErrorMsg || 'Retry Connection'}
+                                                            >
+                                                                ↻
+                                                            </button>
+                                                        )}
                                                         <button
                                                             className='ct2-client-del'
                                                             onClick={() => handleRemoveToken(i)}

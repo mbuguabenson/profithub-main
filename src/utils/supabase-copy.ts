@@ -261,6 +261,15 @@ export interface SiteConfig {
     disabledTabs: string[];
     maintenanceMode: boolean;
     maintenanceMessage: string;
+    tabColor?: string;
+    activeTabColor?: string;
+    loginBtnBg?: string;
+    loginBtnText?: string;
+    signupBtnBg?: string;
+    signupBtnText?: string;
+    runPanelBg?: string;
+    runPanelText?: string;
+    faviconBase64?: string;
 }
 
 export interface TabConfigItem {
@@ -307,6 +316,15 @@ export const getSiteConfig = (): SiteConfig => {
         disabledTabs: [],
         maintenanceMode: false,
         maintenanceMessage: 'We are currently performing scheduled maintenance. Please check back shortly.',
+        tabColor: 'rgba(255,255,255,0.6)',
+        activeTabColor: '#ffffff',
+        loginBtnBg: 'transparent',
+        loginBtnText: '#ffffff',
+        signupBtnBg: '#f5c542',
+        signupBtnText: '#000000',
+        runPanelBg: '#0e0e0e',
+        runPanelText: '#ffffff',
+        faviconBase64: '',
     };
 };
 
@@ -342,4 +360,159 @@ export const saveUploadedBot = (bot: Omit<UploadedBot, 'id' | 'uploadedAt'>): vo
 export const deleteUploadedBot = (id: string): void => {
     const bots = getUploadedBots().filter(b => b.id !== id);
     localStorage.setItem(UPLOADED_BOTS_KEY, JSON.stringify(bots));
+};
+
+// ─── Platform Notifications (localStorage-backed) ─────────────────────────────
+export interface PlatformNotification {
+    id: string;
+    title: string;
+    message: string;
+    timestamp: number;
+    is_read: boolean;
+}
+
+const NOTIFICATIONS_STORAGE_KEY = 'profithub_platform_notifications';
+
+export const getPlatformNotifications = (): PlatformNotification[] => {
+    try { return JSON.parse(localStorage.getItem(NOTIFICATIONS_STORAGE_KEY) || '[]'); } catch { return []; }
+};
+
+export const pushPlatformNotification = (title: string, message: string): void => {
+    const items = getPlatformNotifications();
+    items.unshift({
+        id: `noti-${Date.now()}`,
+        title,
+        message,
+        timestamp: Date.now(),
+        is_read: false
+    });
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(items));
+};
+
+// ─── M-Pesa Transactions (localStorage-backed) ────────────────────────────────
+export interface MpesaTransaction {
+    id: string;
+    phoneNumber: string;
+    amount: number;
+    packageName: string;
+    timestamp: number;
+    status: 'completed' | 'pending' | 'failed';
+    reference: string;
+}
+
+const TRANSACTIONS_STORAGE_KEY = 'profithub_mpesa_transactions';
+
+export const getMpesaTransactions = (): MpesaTransaction[] => {
+    try {
+        const raw = localStorage.getItem(TRANSACTIONS_STORAGE_KEY);
+        if (!raw) {
+            // Seed mock transactions
+            const mocks: MpesaTransaction[] = [
+                { id: 'TXN-876251', phoneNumber: '254712345678', amount: 1500, packageName: 'Weekly Pass', timestamp: Date.now() - 3600000 * 4, status: 'completed', reference: 'MPESA-MPG87H9' },
+                { id: 'TXN-912851', phoneNumber: '254722998877', amount: 5000, packageName: 'Monthly Premium', timestamp: Date.now() - 3600000 * 24, status: 'completed', reference: 'MPESA-MPL23X2' },
+                { id: 'TXN-421764', phoneNumber: '254799001122', amount: 1500, packageName: 'Weekly Pass', timestamp: Date.now() - 3600000 * 48, status: 'failed', reference: 'MPESA-MPE12L1' }
+            ];
+            localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(mocks));
+            return mocks;
+        }
+        return JSON.parse(raw);
+    } catch { return []; }
+};
+
+export const saveMpesaTransaction = (txn: MpesaTransaction): void => {
+    const list = getMpesaTransactions();
+    list.unshift(txn);
+    localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(list));
+};
+
+// ─── Markup Commissions (localStorage-backed) ──────────────────────────────────
+export interface MarkupCommission {
+    id: string;
+    date: string;
+    clientId: string;
+    volume: number;
+    profitShare: number;
+    amount: number;
+    status: 'paid' | 'pending' | 'unpaid';
+}
+
+const COMMISSIONS_STORAGE_KEY = 'profithub_commissions';
+
+export const getCommissions = (): MarkupCommission[] => {
+    try {
+        const raw = localStorage.getItem(COMMISSIONS_STORAGE_KEY);
+        if (!raw) {
+            const now = new Date();
+            const mocks: MarkupCommission[] = [
+                { id: 'COMM-101', date: new Date(now.getTime() - 3600000 * 2).toISOString(), clientId: 'CR4879210', volume: 1250.50, profitShare: 200.00, amount: 40.00, status: 'paid' },
+                { id: 'COMM-102', date: new Date(now.getTime() - 3600000 * 24).toISOString(), clientId: 'CR3891024', volume: 800.00, profitShare: 150.00, amount: 30.00, status: 'pending' },
+                { id: 'COMM-103', date: new Date(now.getTime() - 3600000 * 72).toISOString(), clientId: 'CR2987162', volume: 2100.00, profitShare: 450.00, amount: 90.00, status: 'unpaid' },
+                { id: 'COMM-104', date: new Date(now.getTime() - 3600000 * 120).toISOString(), clientId: 'CR5123984', volume: 450.00, profitShare: 80.00, amount: 16.00, status: 'paid' }
+            ];
+            localStorage.setItem(COMMISSIONS_STORAGE_KEY, JSON.stringify(mocks));
+            return mocks;
+        }
+        return JSON.parse(raw);
+    } catch { return []; }
+};
+
+export const addCommission = (comm: MarkupCommission): void => {
+    const list = getCommissions();
+    list.unshift(comm);
+    localStorage.setItem(COMMISSIONS_STORAGE_KEY, JSON.stringify(list));
+};
+
+export const updateCommissionStatus = (id: string, status: 'paid' | 'pending' | 'unpaid'): void => {
+    const list = getCommissions();
+    const idx = list.findIndex(c => c.id === id);
+    if (idx >= 0) {
+        list[idx].status = status;
+        localStorage.setItem(COMMISSIONS_STORAGE_KEY, JSON.stringify(list));
+    }
+};
+
+// ─── System Logs (localStorage-backed) ────────────────────────────────────────
+export interface SystemLogItem {
+    id: string;
+    timestamp: number;
+    level: 'info' | 'warn' | 'error';
+    message: string;
+    component: string;
+}
+
+const SYSTEM_LOGS_STORAGE_KEY = 'profithub_system_logs';
+
+export const getSystemLogs = (): SystemLogItem[] => {
+    try {
+        const raw = localStorage.getItem(SYSTEM_LOGS_STORAGE_KEY);
+        if (!raw) {
+            const mocks: SystemLogItem[] = [
+                { id: 'LOG-001', timestamp: Date.now() - 3600000 * 5, level: 'info', message: 'Deriv API connection established successfully.', component: 'Deriv WS' },
+                { id: 'LOG-002', timestamp: Date.now() - 3600000 * 3, level: 'warn', message: 'WebSocket ping latency exceeded 350ms.', component: 'Network Monitor' },
+                { id: 'LOG-003', timestamp: Date.now() - 3600000 * 2, level: 'error', message: 'Failed to authorize client token VR129841. Error code: AuthorizationExpired.', component: 'Replicator Engine' }
+            ];
+            localStorage.setItem(SYSTEM_LOGS_STORAGE_KEY, JSON.stringify(mocks));
+            return mocks;
+        }
+        return JSON.parse(raw);
+    } catch { return []; }
+};
+
+export const addSystemLog = (level: 'info' | 'warn' | 'error', message: string, component: string): void => {
+    const list = getSystemLogs();
+    list.unshift({
+        id: `LOG-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: Date.now(),
+        level,
+        message,
+        component
+    });
+    if (list.length > 200) {
+        list.splice(200);
+    }
+    localStorage.setItem(SYSTEM_LOGS_STORAGE_KEY, JSON.stringify(list));
+};
+
+export const clearSystemLogs = (): void => {
+    localStorage.setItem(SYSTEM_LOGS_STORAGE_KEY, JSON.stringify([]));
 };

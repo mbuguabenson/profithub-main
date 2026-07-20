@@ -9,6 +9,9 @@ import DBot from '@/external/bot-skeleton/scratch/dbot';
 const recentKeys = new Set<string>();
 const RECENT_TTL_MS = 15000;
 
+// Cache for token → account_id lookups so we don't hit the API repeatedly
+const tokenAccountCache = new Map<string, { account_id: string; is_demo: boolean }>();
+
 // Status update function for UI - exported for use in copy-trading.tsx
 export function updateReplicationStatus(
     status: 'disabled' | 'no_clients' | 'copying' | 'success' | 'error',
@@ -60,6 +63,88 @@ function cleanupKeys() {
     }
 }
 
+/**
+ * Resolve a token to its account_id by querying the REST API.
+ * Results are cached to avoid repeated API calls.
+ */
+async function resolveTokenToAccount(
+    token: string,
+    manager: CopyTradingManager,
+    appId: string,
+    baseURL: string
+): Promise<{ account_id: string; is_demo: boolean } | null> {
+    // 1. Check cache first
+    if (tokenAccountCache.has(token)) {
+        return tokenAccountCache.get(token)!;
+    }
+
+    // 2. Check manager copiers
+    const copier = manager.copiers.find(c => c.token === token);
+    if (copier?.loginId) {
+        const is_demo = copier.loginId.startsWith('VR') || copier.loginId.startsWith('VRT');
+        const result = { account_id: copier.loginId, is_demo };
+        tokenAccountCache.set(token, result);
+        return result;
+    }
+
+    // 3. Check manager master
+    if (manager.master.token === token && manager.master.loginId) {
+        const is_demo = manager.master.loginId.startsWith('VR') || manager.master.loginId.startsWith('VRT');
+        const result = { account_id: manager.master.loginId, is_demo };
+        tokenAccountCache.set(token, result);
+        return result;
+    }
+
+    // 4. Check localStorage accountsList
+    try {
+        const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
+        for (const loginId of Object.keys(accountsList)) {
+            if (accountsList[loginId] === token) {
+                const is_demo = loginId.startsWith('VR') || loginId.startsWith('VRT');
+                const result = { account_id: loginId, is_demo };
+                tokenAccountCache.set(token, result);
+                return result;
+            }
+        }
+    } catch {}
+
+    // 5. Fetch from REST API — this is the key fix for external tokens
+    try {
+        const res = await fetch(`${baseURL}options/accounts`, {
+            method: 'GET',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Deriv-App-ID': appId,
+            },
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const accounts = data?.data || [];
+            if (accounts.length > 0) {
+                const account = accounts[0];
+                const accountId = account.account_id;
+                const is_demo = accountId.startsWith('VR') || accountId.startsWith('VRT');
+                const result = { account_id: accountId, is_demo };
+                tokenAccountCache.set(token, result);
+
+                // Also update the copier in manager so future lookups are instant
+                if (copier) {
+                    copier.loginId = accountId;
+                }
+
+                console.log(`[Replicator] ✅ Resolved token to account: ${accountId}`);
+                return result;
+            }
+        }
+    } catch (e) {
+        console.warn('[Replicator] Failed to resolve token via API:', e);
+    }
+
+    console.warn('[Replicator] ⚠️ Could not resolve account_id for token:', token.slice(0, 6) + '...');
+    return null;
+}
+
 export function initReplicator(manager: CopyTradingManager) {
     const sub = async (payload: any) => {
         try {
@@ -99,14 +184,10 @@ export function initReplicator(manager: CopyTradingManager) {
             const isSpecialCR = showAsCR && isSpecialCRAccount(showAsCR);
 
             // Get current user token
-            // IMPORTANT: For normal CR accounts, getToken() works normally
-            // For special CR (CR6779123), we need to use demo token since that's what API uses
             let currentToken: any = null;
             let masterToken: string | undefined = undefined;
 
             if (isSpecialCR && showAsCR) {
-                // Special CR account mode: API uses demo token for trading
-                // Use demo token as master for copy trading
                 const demoAccountId = getDemoAccountIdForSpecialCR(showAsCR);
                 if (demoAccountId) {
                     const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
@@ -118,19 +199,12 @@ export function initReplicator(manager: CopyTradingManager) {
                     } else {
                         currentToken = getToken();
                         masterToken = currentToken?.token;
-                        console.log(
-                            '[Replicator] ⚠️ Special CR mode but demo token not found, falling back to getToken()'
-                        );
                     }
                 } else {
                     currentToken = getToken();
                     masterToken = currentToken?.token;
-                    console.log(
-                        '[Replicator] ⚠️ Special CR mode but no demo account ID found, falling back to getToken()'
-                    );
                 }
             } else {
-                // Normal CR accounts: use getToken() exactly like deriv insider
                 currentToken = getToken();
                 masterToken = currentToken?.token;
             }
@@ -141,31 +215,19 @@ export function initReplicator(manager: CopyTradingManager) {
             }
 
             if (isCopyTrading) {
-                // Copy trading mode: include master token first, then copier tokens
-                // The API needs the master token (source account) as the first token
-                // Remove duplicates and filter out master token from copier list if it exists
                 const uniqueCopierTokens = copyTokensArray.filter(
                     (token: string) => token && token.trim() && token !== masterToken
                 );
-                // Master token first, then copier tokens
                 tokens = [masterToken, ...uniqueCopierTokens];
-                // Remove any remaining duplicates (but keep master as first)
                 const uniqueTokens = Array.from(new Set(tokens.filter(Boolean)));
-                // Ensure master is first
                 tokens = uniqueTokens
                     .filter((t: string) => t === masterToken)
                     .concat(uniqueTokens.filter((t: string) => t !== masterToken));
             } else if (isDemoToReal) {
-                // Demo to real mode: use current token (demo) + real account token
-                // Like mkorean: tokens: [currentToken, realToken]
-                // Current token is the demo account user is trading on
-                // Real token is stored in manager.master.token
                 const realToken = manager.master.token;
                 if (realToken && realToken !== masterToken) {
-                    // Current token (demo) first, then real token
                     tokens = [masterToken, realToken];
                 } else {
-                    // Fallback: try to find real account from accountsList
                     const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
                     const realLoginId = Object.keys(accountsList).find(k => !k.startsWith('VR') && (k.startsWith('CR') || k.startsWith('ROT')));
                     if (realLoginId) {
@@ -179,7 +241,6 @@ export function initReplicator(manager: CopyTradingManager) {
                         tokens = [masterToken];
                     }
                 }
-                // Remove duplicates
                 tokens = Array.from(new Set(tokens.filter(Boolean)));
             }
 
@@ -188,7 +249,6 @@ export function initReplicator(manager: CopyTradingManager) {
                 return;
             }
 
-            // Final validation: ensure all tokens are unique and valid
             tokens = Array.from(new Set(tokens.filter((t: string) => t && t.trim() && t.length > 0)));
 
             if (tokens.length < 1) {
@@ -224,7 +284,6 @@ export function initReplicator(manager: CopyTradingManager) {
             }
 
             if (!contract_parameters) {
-                // Fallback to params
                 const params = JSON.parse(JSON.stringify(payload.request?.parameters || payload.request || {}));
                 const tradeEngine = (DBot as any).interpreter?.bot?.tradeEngine;
                 const tradeOptions = tradeEngine?.tradeOptions || {};
@@ -251,53 +310,74 @@ export function initReplicator(manager: CopyTradingManager) {
                 contract_parameters.amount = Number(amt.toFixed(2));
             }
 
-            // Separate accounts into demo/real groups
-            const demoAccounts: Array<{ token: string; account_id: string }> = [];
-            const realAccounts: Array<{ token: string; account_id: string }> = [];
-
-            const getAccountIdForToken = (token: string, mgr: CopyTradingManager): string | null => {
-                const copier = mgr.copiers.find(c => c.token === token);
-                if (copier && copier.loginId) return copier.loginId;
-
-                if (mgr.master.token === token && mgr.master.loginId) return mgr.master.loginId;
-
-                try {
-                    const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
-                    for (const loginId of Object.keys(accountsList)) {
-                        if (accountsList[loginId] === token) {
-                            return loginId;
-                        }
-                    }
-                } catch (e) {}
-
-                return null;
-            };
-
-            for (const token of tokens) {
-                const accountId = getAccountIdForToken(token, manager);
-                if (accountId) {
-                    const isDemo = accountId.startsWith('VR') || accountId.startsWith('VRT');
-                    if (isDemo) {
-                        demoAccounts.push({ token, account_id: accountId });
-                    } else {
-                        realAccounts.push({ token, account_id: accountId });
-                    }
-                }
-            }
-
+            // ── Resolve all tokens to account IDs asynchronously ──
             const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
             const environment = isProduction() ? 'production' : 'staging';
             const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+
+            const demoAccounts: Array<{ token: string; account_id: string }> = [];
+            const realAccounts: Array<{ token: string; account_id: string }> = [];
+            const unresolvedTokens: string[] = [];
+
+            // Resolve all tokens in parallel
+            const resolutions = await Promise.allSettled(
+                tokens.map(async (token) => {
+                    const resolved = await resolveTokenToAccount(token, manager, appId, baseURL);
+                    return { token, resolved };
+                })
+            );
+
+            for (const result of resolutions) {
+                if (result.status === 'fulfilled' && result.value.resolved) {
+                    const { token, resolved } = result.value;
+                    if (resolved.is_demo) {
+                        demoAccounts.push({ token, account_id: resolved.account_id });
+                    } else {
+                        realAccounts.push({ token, account_id: resolved.account_id });
+                    }
+                } else if (result.status === 'fulfilled') {
+                    unresolvedTokens.push(result.value.token);
+                }
+            }
+
+            if (unresolvedTokens.length > 0) {
+                console.warn(`[Replicator] ⚠️ ${unresolvedTokens.length} token(s) could not be resolved to account IDs`);
+                tradeLogs.push({
+                    id: 'resolve-warn',
+                    accountId: 'system',
+                    payload: { unresolvedCount: unresolvedTokens.length },
+                    time: Date.now(),
+                    error: `${unresolvedTokens.length} token(s) could not be resolved — check if tokens are valid`,
+                });
+            }
+
+            const totalResolved = demoAccounts.length + realAccounts.length;
+            if (totalResolved === 0) {
+                updateReplicationStatus('error', 'No accounts could be resolved from tokens');
+                tradeLogs.push({
+                    id: 'no-accounts',
+                    accountId: 'system',
+                    payload: contract_parameters,
+                    time: Date.now(),
+                    error: 'No accounts could be resolved from tokens. Verify your tokens are valid API tokens with trading scope.',
+                });
+                return;
+            }
 
             const buyForGroup = async (groupAccounts: typeof demoAccounts, isDemo: boolean) => {
                 if (groupAccounts.length === 0) return;
 
                 const endpoint = `${baseURL}options/contracts/bulk-purchase/${isDemo ? 'demo' : 'real'}`;
+
+                // Use the first account's token for authorization
+                const authToken = groupAccounts[0].token;
+
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Deriv-App-ID': appId,
+                        Authorization: `Bearer ${authToken}`,
                     },
                     body: JSON.stringify({
                         contract_parameters,
@@ -306,7 +386,8 @@ export function initReplicator(manager: CopyTradingManager) {
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
+                    const errorBody = await response.text().catch(() => '');
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}${errorBody ? ` — ${errorBody}` : ''}`);
                 }
 
                 const result = await response.json();
@@ -319,29 +400,44 @@ export function initReplicator(manager: CopyTradingManager) {
             try {
                 if (demoAccounts.length > 0) {
                     await buyForGroup(demoAccounts, true);
+                    console.log(`[Replicator] ✅ Demo bulk purchase sent for ${demoAccounts.length} account(s)`);
                 }
                 if (realAccounts.length > 0) {
                     await buyForGroup(realAccounts, false);
+                    console.log(`[Replicator] ✅ Real bulk purchase sent for ${realAccounts.length} account(s)`);
                 }
 
-                updateReplicationStatus('success', `Copied to ${tokens.length} account(s) successfully`);
-                tradeLogs.push({ id: 'all', accountId: 'multiple', payload: contract_parameters, time: Date.now() });
+                updateReplicationStatus('success', `Copied to ${totalResolved} account(s) successfully`);
+                tradeLogs.push({
+                    id: `copy-${Date.now()}`,
+                    accountId: `${demoAccounts.length} demo, ${realAccounts.length} real`,
+                    payload: contract_parameters,
+                    time: Date.now(),
+                });
             } catch (e: any) {
                 const errorMsg = e?.error?.message || e?.message || 'Unknown error';
                 const errorCode = e?.error?.code || e?.code || 'Unknown';
                 updateReplicationStatus('error', `Failed: ${errorMsg} (${errorCode})`);
                 tradeLogs.push({
-                    id: 'all',
+                    id: `copy-err-${Date.now()}`,
                     accountId: 'multiple',
                     payload: contract_parameters,
                     time: Date.now(),
-                    error: errorMsg,
+                    error: `${errorMsg} (${errorCode})`,
                 });
             }
 
             cleanupKeys();
         } catch (e) {
-            updateReplicationStatus('error', `Error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+            const errMsg = e instanceof Error ? e.message : 'Unknown error';
+            updateReplicationStatus('error', `Error: ${errMsg}`);
+            tradeLogs.push({
+                id: `fatal-${Date.now()}`,
+                accountId: 'system',
+                payload: null,
+                time: Date.now(),
+                error: errMsg,
+            });
         }
     };
 
