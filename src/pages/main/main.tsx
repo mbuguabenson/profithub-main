@@ -27,7 +27,6 @@ import {
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
 import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@deriv/quill-icons/Legacy';
-import { Orbit } from 'lucide-react';
 import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import RunPanel from '../../components/run-panel';
@@ -37,6 +36,7 @@ import RunStrategy from '../dashboard/run-strategy';
 import Scanner from '../bot-builder/scanner/scanner';
 import Tutorials from '../tutorials';
 import './main.scss';
+import FloatingMarketHunter from '@/components/floating-market-hunter/floating-market-hunter';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 
@@ -54,7 +54,6 @@ const EasyTool = lazy(() => import('../easy-tool'));
 const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
-const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
 
 
 
@@ -108,7 +107,6 @@ const AppWrapper = observer(() => {
         'signal_centre',
         'marketkiller',
         'multi_trader',
-        'market_hunter_pro',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -546,21 +544,6 @@ const AppWrapper = observer(() => {
                     <MultiTrader />
                 </Suspense>
             )
-        },
-        {
-            key: 'market_hunter_pro',
-            id: 'id-market-hunter-pro',
-            label: (
-                <>
-                    <Orbit size={20} color='#a78bfa' strokeWidth={1.5} style={{ flexShrink: 0 }} />
-                    <Localize i18n_default_text='Market Hunter Pro' />
-                </>
-            ),
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Market Hunter Pro...')} />}>
-                    <MarketHunterPro />
-                </Suspense>
-            )
         }
     ], [is_chart_modal_visible, is_trading_view_modal_visible, handleTabChange]);
 
@@ -667,6 +650,7 @@ const AppWrapper = observer(() => {
                 onCancel={getTradeTypeModalProps().onCancel}
             />
             <Scanner />
+            <FloatingMarketHunter />
         </React.Fragment>
     );
 });

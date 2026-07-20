@@ -299,7 +299,6 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
     { key: 'signal_centre', label: 'Signal Centre', enabled: true, order: 14 },
     { key: 'marketkiller', label: 'MarketKiller', enabled: true, order: 15 },
     { key: 'multi_trader', label: 'Multi Trader', enabled: true, order: 16 },
-    { key: 'market_hunter_pro', label: 'Market Hunter Pro', enabled: true, order: 17 },
 ];
 
 // Bump this when new tabs are added to force clients to pick up new defaults
