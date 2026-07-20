@@ -6,13 +6,16 @@
 .fmh-fab {
     position: fixed;
     z-index: 9999;
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+    // Glossy 3D red sphere gradient
+    background: radial-gradient(circle at 35% 35%, #ff6b6b 0%, #e60000 45%, #990000 85%, #660000 100%);
     box-shadow:
-        0 4px 20px rgba(109, 40, 217, 0.55),
-        0 2px 8px rgba(0, 0, 0, 0.4);
+        0 8px 24px rgba(230, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.4),
+        inset 0 4px 8px rgba(255, 255, 255, 0.45),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -27,155 +30,102 @@
 
     &:hover {
         box-shadow:
-            0 6px 28px rgba(139, 92, 246, 0.7),
-            0 3px 12px rgba(0, 0, 0, 0.5);
+            0 12px 32px rgba(255, 0, 0, 0.6),
+            0 4px 12px rgba(0, 0, 0, 0.5),
+            inset 0 6px 10px rgba(255, 255, 255, 0.6),
+            inset 0 -6px 10px rgba(0, 0, 0, 0.6);
         transform: scale(1.08);
     }
 
     &--active {
-        background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
         box-shadow:
-            0 0 0 3px rgba(139, 92, 246, 0.4),
-            0 6px 28px rgba(109, 40, 217, 0.6),
-            0 3px 12px rgba(0, 0, 0, 0.4);
+            0 0 0 4px rgba(230, 0, 0, 0.35),
+            0 12px 32px rgba(230, 0, 0, 0.5),
+            inset 0 4px 8px rgba(255, 255, 255, 0.45);
     }
 
-    &__icon {
+    // Outer shiny gloss layer
+    &__ai-gloss {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        position: relative;
+
+        // Subtle specular highlight reflection
+        &::after {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 14px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.6);
+            filter: blur(0.5px);
+        }
+    }
+
+    &__ai-text {
+        font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+        font-size: 16px;
+        font-weight: 900;
         color: #ffffff;
-        flex-shrink: 0;
-        animation: fmh-orbit-spin 8s linear infinite;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        user-select: none;
         pointer-events: none;
     }
 
     // Pulse ring animation
     &__pulse {
         position: absolute;
-        inset: -4px;
+        inset: -6px;
         border-radius: 50%;
-        border: 2px solid rgba(139, 92, 246, 0.5);
+        border: 2px solid rgba(230, 0, 0, 0.4);
         animation: fmh-pulse 2.5s ease-out infinite;
         pointer-events: none;
     }
 }
 
-// ── Floating Panel ────────────────────────────────────────────────
-.fmh-panel {
-    position: fixed;
-    z-index: 9998;
-    width: 860px;
-    max-width: calc(100vw - 20px);
-    height: calc(100vh - 80px);
-    max-height: 900px;
-    background: rgba(10, 8, 20, 0.97);
-    backdrop-filter: blur(24px);
-    border: 1.5px solid rgba(109, 40, 217, 0.35);
-    border-radius: 20px;
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.6),
-        0 0 0 1px rgba(139, 92, 246, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+// ── Inside DraggableResizeWrapper Modal Body ──────────────────────
+.fmh-dialog-body {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    animation: fmh-panel-enter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--general-main-1, #0e0e12);
 
-    &--dragging {
-        opacity: 0.95;
-        box-shadow:
-            0 28px 80px rgba(0, 0, 0, 0.7),
-            0 0 0 2px rgba(139, 92, 246, 0.4);
-        cursor: grabbing;
+    &::-webkit-scrollbar {
+        width: 4px;
     }
-
-    // Drag handle header
-    &__header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        background: linear-gradient(135deg, rgba(109, 40, 217, 0.25) 0%, rgba(76, 29, 149, 0.15) 100%);
-        border-bottom: 1px solid rgba(109, 40, 217, 0.2);
-        cursor: grab;
-        user-select: none;
-        flex-shrink: 0;
-
-        &:active {
-            cursor: grabbing;
-        }
+    &::-webkit-scrollbar-track {
+        background: transparent;
     }
-
-    &__grip {
-        color: rgba(139, 92, 246, 0.5);
-        flex-shrink: 0;
+    &::-webkit-scrollbar-thumb {
+        background: rgba(230, 0, 0, 0.3);
+        border-radius: 2px;
     }
+}
 
-    &__orbit-icon {
-        color: #a78bfa;
-        flex-shrink: 0;
-        animation: fmh-orbit-spin 8s linear infinite;
-    }
+// Loading state inside dialog
+.fmh-dialog-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    height: 250px;
+    color: var(--text-general, #ffffff);
+    font-size: 13px;
+    font-weight: 500;
 
-    &__title {
-        font-size: 13px;
-        font-weight: 700;
-        color: #c4b5fd;
-        letter-spacing: 0.5px;
-        flex: 1;
-    }
-
-    &__close {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(255, 255, 255, 0.08);
-        color: rgba(255, 255, 255, 0.6);
-        cursor: pointer;
-        transition: background 0.2s, color 0.2s;
-        flex-shrink: 0;
-
-        &:hover {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-        }
-    }
-
-    // Scrollable content area
-    &__body {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-
-        &::-webkit-scrollbar {
-            width: 4px;
-        }
-        &::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        &::-webkit-scrollbar-thumb {
-            background: rgba(109, 40, 217, 0.4);
-            border-radius: 2px;
-        }
-    }
-
-    // Loading state
-    &__loading {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 16px;
-        height: 200px;
-        color: rgba(196, 181, 253, 0.7);
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    &__loading-icon {
-        color: #7c3aed;
+    &-icon {
+        color: #e60000;
         animation: fmh-orbit-spin 2s linear infinite;
     }
 }
@@ -188,26 +138,7 @@
 
 @keyframes fmh-pulse {
     0%   { transform: scale(1);   opacity: 0.7; }
-    70%  { transform: scale(1.5); opacity: 0;   }
-    100% { transform: scale(1.5); opacity: 0;   }
+    70%  { transform: scale(1.4); opacity: 0;   }
+    100% { transform: scale(1.4); opacity: 0;   }
 }
 
-@keyframes fmh-panel-enter {
-    from {
-        opacity: 0;
-        transform: scale(0.94) translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-// ── Mobile: full-screen panel ─────────────────────────────────────
-@media (max-width: 900px) {
-    .fmh-panel {
-        width: calc(100vw - 16px);
-        left: 8px !important;
-        height: calc(100vh - 80px);
-    }
-}

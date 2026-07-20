@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
-import { Orbit, X, GripVertical } from 'lucide-react';
+import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
+import { Orbit } from 'lucide-react';
 import './floating-market-hunter.scss';
 
 const MarketHunterPro = lazy(() => import('../../pages/market-hunter-pro'));
 
-// ─── Draggable hook ───────────────────────────────────────────────────────────
+// ─── Draggable hook for FAB ──────────────────────────────────────────────────
 function useDraggable(initialPos: { x: number; y: number }) {
     const [pos, setPos] = useState(initialPos);
     const dragging = useRef(false);
@@ -43,36 +44,9 @@ function useDraggable(initialPos: { x: number; y: number }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 const FloatingMarketHunter = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isPanelDragging, setIsPanelDragging] = useState(false);
 
     // FAB button position
     const fab = useDraggable({ x: window.innerWidth - 80, y: window.innerHeight - 160 });
-
-    // Panel position
-    const [panelPos, setPanelPos] = useState({ x: window.innerWidth - 880, y: 60 });
-    const panelOffset = useRef({ x: 0, y: 0 });
-
-    const handlePanelDragStart = useCallback((e: React.MouseEvent) => {
-        setIsPanelDragging(true);
-        panelOffset.current = { x: e.clientX - panelPos.x, y: e.clientY - panelPos.y };
-        e.preventDefault();
-    }, [panelPos]);
-
-    useEffect(() => {
-        const onMove = (e: MouseEvent) => {
-            if (!isPanelDragging) return;
-            const newX = Math.max(0, Math.min(window.innerWidth - 860, e.clientX - panelOffset.current.x));
-            const newY = Math.max(0, Math.min(window.innerHeight - 100, e.clientY - panelOffset.current.y));
-            setPanelPos({ x: newX, y: newY });
-        };
-        const onUp = () => setIsPanelDragging(false);
-        window.addEventListener('mousemove', onMove);
-        window.addEventListener('mouseup', onUp);
-        return () => {
-            window.removeEventListener('mousemove', onMove);
-            window.removeEventListener('mouseup', onUp);
-        };
-    }, [isPanelDragging]);
 
     const handleFabClick = useCallback((e: React.MouseEvent) => {
         // Only toggle if not dragging
@@ -83,9 +57,13 @@ const FloatingMarketHunter = () => {
         }
     }, [fab.pos]);
 
+    const handleClosePanel = useCallback(() => {
+        setIsOpen(false);
+    }, []);
+
     return (
         <>
-            {/* ── Floating Orbit Button ──────────────────────────────────────── */}
+            {/* ── Floating AI Sphere Button ──────────────────────────────────── */}
             <div
                 ref={fab.ref}
                 className={`fmh-fab${isOpen ? ' fmh-fab--active' : ''}`}
@@ -94,52 +72,43 @@ const FloatingMarketHunter = () => {
                 onClick={handleFabClick}
                 title='Market Hunter Pro'
                 role='button'
-                aria-label='Open Market Hunter Pro'
+                aria-label='Open AI Scanner'
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setIsOpen(p => !p); }}
             >
-                <Orbit size={26} strokeWidth={1.5} className='fmh-fab__icon' />
+                <div className='fmh-fab__ai-gloss'>
+                    <span className='fmh-fab__ai-text'>AI</span>
+                </div>
                 <span className='fmh-fab__pulse' />
             </div>
 
-            {/* ── Floating Panel ─────────────────────────────────────────────── */}
+            {/* ── Floating Draggable Resize Modal Card ──────────────────────── */}
             {isOpen && (
-                <div
-                    className={`fmh-panel${isPanelDragging ? ' fmh-panel--dragging' : ''}`}
-                    style={{ left: panelPos.x, top: panelPos.y }}
+                <DraggableResizeWrapper
+                    boundary='.main'
+                    header='AI Scanner'
+                    onClose={handleClosePanel}
+                    modalWidth={526}
+                    modalHeight={595}
+                    minWidth={526}
+                    minHeight={524}
+                    enableResizing={true}
                 >
-                    {/* Panel drag handle + header */}
-                    <div
-                        className='fmh-panel__header'
-                        onMouseDown={handlePanelDragStart}
-                    >
-                        <GripVertical size={14} className='fmh-panel__grip' />
-                        <Orbit size={16} strokeWidth={1.5} className='fmh-panel__orbit-icon' />
-                        <span className='fmh-panel__title'>Market Hunter Pro</span>
-                        <button
-                            className='fmh-panel__close'
-                            onClick={() => setIsOpen(false)}
-                            aria-label='Close Market Hunter Pro'
-                        >
-                            <X size={14} />
-                        </button>
-                    </div>
-
-                    {/* Panel content */}
-                    <div className='fmh-panel__body'>
+                    <div className='fmh-dialog-body'>
                         <Suspense fallback={
-                            <div className='fmh-panel__loading'>
-                                <Orbit size={32} strokeWidth={1} className='fmh-panel__loading-icon' />
-                                <span>Loading Market Hunter Pro...</span>
+                            <div className='fmh-dialog-loading'>
+                                <Orbit size={32} strokeWidth={1} className='fmh-dialog-loading-icon' />
+                                <span>Loading AI Scanner...</span>
                             </div>
                         }>
                             <MarketHunterPro />
                         </Suspense>
                     </div>
-                </div>
+                </DraggableResizeWrapper>
             )}
         </>
     );
 };
 
 export default FloatingMarketHunter;
+
