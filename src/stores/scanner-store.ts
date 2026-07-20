@@ -1221,7 +1221,11 @@ export default class ScannerStore implements IScannerStore {
       action: 'LOAD',
     };
 
-    if (this.current_signal.details.targetDigit !== undefined) {
+    // Apply prediction: manual override from UI takes priority, then signal's target digit
+    const predOverride = (this as any).prediction_override;
+    if (predOverride !== null && predOverride !== undefined) {
+      formData.prediction = predOverride.toString();
+    } else if (this.current_signal.details.targetDigit !== undefined) {
       formData.prediction = this.current_signal.details.targetDigit.toString();
     }
 
@@ -1232,10 +1236,10 @@ export default class ScannerStore implements IScannerStore {
       formData.type = 'DIGITDIFF';
     } else if (strategy === 'under_7') {
       formData.type = 'DIGITUNDER';
-      formData.prediction = '7';
+      if (!formData.prediction) formData.prediction = '7';
     } else if (strategy === 'over_2') {
       formData.type = 'DIGITOVER';
-      formData.prediction = '2';
+      if (!formData.prediction) formData.prediction = '2';
     } else {
       const bias = this.current_signal.details.signalDetails?.bias;
       if (bias === 'even') formData.type = 'DIGITEVEN';
@@ -1244,6 +1248,14 @@ export default class ScannerStore implements IScannerStore {
       else if (bias === 'low') formData.type = 'DIGITUNDER';
     }
 
+    // Recovery mode: if enabled, sync alternate_after_losses from UI settings
+    const recMode = (this as any).rec_mode;
+    if (recMode) {
+      this.alternate_after_losses = true;
+      this.loss_threshold = (this as any).rec_loss_threshold ?? 3;
+    } else {
+      this.alternate_after_losses = false;
+    }
 
     await quick_strategy.onSubmit(formData);
   };

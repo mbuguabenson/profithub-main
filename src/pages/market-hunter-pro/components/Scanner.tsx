@@ -1035,41 +1035,40 @@ export default function Scanner() {
                   </div>
 
                   {/* Prediction picker */}
-                  {selectedSignal && selectedSignal.entryDigits && selectedSignal.entryDigits.length > 0
-                    && (selectedSignal.type === 'over_under' || selectedSignal.type === 'pro_over_under' || selectedSignal.type === 'under_7' || selectedSignal.type === 'over_2')
-                    && (() => {
-                      const digits = selectedSignal.entryDigits!;
-                      const dir = (selectedSignal.tradeDirection ?? '').toUpperCase();
-                      const lbl = dir.startsWith('OVER') ? 'OVER' : dir.startsWith('UNDER') ? 'UNDER' : dir;
-                      return (
-                        <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(245,197,66,0.35)', background: 'rgba(245,197,66,0.06)' }}>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingUp size={11} className="text-[#f5c542]" />
-                            <span className="text-[10px] font-black text-white/80 uppercase tracking-wide">Set Prediction</span>
-                            <span className="text-[9px] text-white/40 ml-auto">
-                              {predictionChoice !== null ? `Digit ${predictionChoice}` : `Auto: ${selectedSignal.targetDigit ?? digits[0]}`}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {digits.map((d) => (
-                              <button key={d} onClick={() => setPredictionChoice(predictionChoice === d ? null : d)}
-                                className="rounded-lg py-2 text-center font-black transition active:scale-95"
-                                style={{
-                                  background: predictionChoice === d ? 'linear-gradient(135deg,#e67e22,#f5c542)' : selectedSignal.targetDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
-                                  color: predictionChoice === d ? '#000' : '#fff',
-                                  border: predictionChoice === d ? '1px solid #f5c542' : selectedSignal.targetDigit === d && predictionChoice === null ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.1)',
-                                }}>
-                                <span className="block text-[10px] leading-none font-bold">{lbl}</span>
-                                <span className="block text-base mt-0.5">{d}</span>
-                                {selectedSignal.targetDigit === d && predictionChoice === null && (
-                                  <span className="block text-[8px] text-green-400 mt-0.5">AI</span>
-                                )}
-                              </button>
-                            ))}
-                          </div>
+                  {(selectedTradeType === 'over_under' || selectedTradeType === 'pro_over_under' || selectedTradeType === 'under_7' || selectedTradeType === 'over_2' || selectedTradeType === 'matches' || selectedTradeType === 'differs') && (() => {
+                    const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+                    const autoDigit = selectedSignal?.targetDigit ?? (selectedTradeType === 'over_2' ? 2 : (selectedTradeType === 'under_7' ? 7 : 5));
+                    const dir = selectedSignal?.tradeDirection ?? (selectedTradeType === 'over_2' ? 'OVER' : (selectedTradeType === 'under_7' ? 'UNDER' : (selectedTradeType === 'matches' ? 'MATCH' : (selectedTradeType === 'differs' ? 'DIFF' : 'UNDER'))));
+                    const lbl = dir.toUpperCase().startsWith('OVER') ? 'OVER' : dir.toUpperCase().startsWith('UNDER') ? 'UNDER' : dir.toUpperCase().startsWith('MATCH') ? 'MATCH' : 'DIFF';
+                    return (
+                      <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(245,197,66,0.35)', background: 'rgba(245,197,66,0.06)' }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <TrendingUp size={11} className="text-[#f5c542]" />
+                          <span className="text-[10px] font-black text-white/80 uppercase tracking-wide">Set Prediction</span>
+                          <span className="text-[9px] text-white/40 ml-auto">
+                            {predictionChoice !== null ? `Digit ${predictionChoice}` : `Auto: ${autoDigit}`}
+                          </span>
                         </div>
-                      );
-                    })()}
+                        <div className="grid grid-cols-5 gap-2">
+                          {digits.map((d) => (
+                            <button key={d} onClick={() => setPredictionChoice(predictionChoice === d ? null : d)}
+                              className="rounded-lg py-1.5 text-center font-black transition active:scale-95 animate-none"
+                              style={{
+                                background: predictionChoice === d ? 'linear-gradient(135deg,#e67e22,#f5c542)' : autoDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                                color: predictionChoice === d ? '#000' : '#fff',
+                                border: predictionChoice === d ? '1px solid #f5c542' : autoDigit === d && predictionChoice === null ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                              }}>
+                              <span className="block text-[8px] leading-none font-bold text-white/45">{lbl}</span>
+                              <span className="block text-sm font-black mt-0.5">{d}</span>
+                              {autoDigit === d && predictionChoice === null && (
+                                <span className="block text-[8px] text-green-400 mt-0.5">AI</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Signal list */}
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
@@ -1252,11 +1251,11 @@ function generateBotXML(opts: {
       // Entry: wait for the match digit to appear (confirming it's active/trending)
       singlePrediction = matchDigit; singleEntryOp = 'EQ'; singleEntryThreshold = matchDigit;
     } else if (differsMatch) {
-      const differDigit = parseInt(differsMatch[1], 10);
+      const differsDigit = parseInt(differsMatch[1], 10);
       tradeTypeCat = 'digits'; tradeType = 'matchesdiffers';
       singleMode = true; singlePurchaseType = 'DIGITDIFF';
       // Entry: wait for a dominant digit (NOT the differ digit) to appear — that's the signal to buy differs
-      singlePrediction = differDigit; singleEntryOp = 'NEQ'; singleEntryThreshold = differDigit;
+      singlePrediction = differsDigit; singleEntryOp = 'NEQ'; singleEntryThreshold = differsDigit;
     } else if (dir === 'RISE') {
       tradeTypeCat = 'callput'; tradeType = 'risefall';
       singleMode = true; singlePurchaseType = 'CALL';
@@ -1277,6 +1276,46 @@ function generateBotXML(opts: {
         singlePrediction = entryDigit;
         singleEntryThreshold = entryDigit;
       }
+    }
+  } else {
+    // Manual setup: fallback based on selectedTradeType when no signal is selected
+    singleMode = true;
+    if (selectedTradeType === 'over_under' || selectedTradeType === 'pro_over_under' || selectedTradeType === 'under_7') {
+      tradeTypeCat = 'digits'; tradeType = 'overunder';
+      singlePurchaseType = 'DIGITUNDER';
+      singlePrediction = entryDigit ?? 7;
+      singleEntryOp = 'GTE';
+      singleEntryThreshold = singlePrediction;
+    } else if (selectedTradeType === 'over_2') {
+      tradeTypeCat = 'digits'; tradeType = 'overunder';
+      singlePurchaseType = 'DIGITOVER';
+      singlePrediction = entryDigit ?? 2;
+      singleEntryOp = 'LTE';
+      singleEntryThreshold = singlePrediction;
+    } else if (selectedTradeType === 'even_odd' || selectedTradeType === 'pro_even_odd') {
+      tradeTypeCat = 'digits'; tradeType = 'evenodd';
+      singlePurchaseType = 'DIGITEVEN';
+      singlePrediction = 0;
+      singleEntryOp = 'EQ';
+      singleEntryThreshold = 1; // wait for odd
+    } else if (selectedTradeType === 'matches') {
+      tradeTypeCat = 'digits'; tradeType = 'matchesdiffers';
+      singlePurchaseType = 'DIGITMATCH';
+      singlePrediction = entryDigit ?? 5;
+      singleEntryOp = 'EQ';
+      singleEntryThreshold = singlePrediction;
+    } else if (selectedTradeType === 'differs') {
+      tradeTypeCat = 'digits'; tradeType = 'matchesdiffers';
+      singlePurchaseType = 'DIGITDIFF';
+      singlePrediction = entryDigit ?? 5;
+      singleEntryOp = 'NEQ';
+      singleEntryThreshold = singlePrediction;
+    } else if (selectedTradeType === 'rise_fall') {
+      tradeTypeCat = 'callput'; tradeType = 'risefall';
+      singlePurchaseType = 'CALL';
+      singlePrediction = 0;
+      singleEntryOp = 'GTE';
+      singleEntryThreshold = 5;
     }
   }
 
