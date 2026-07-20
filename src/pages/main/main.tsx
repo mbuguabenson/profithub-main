@@ -27,6 +27,7 @@ import {
     LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
 import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@deriv/quill-icons/Legacy';
+import { Orbit } from 'lucide-react';
 import { Localize, localize } from '@deriv-com/translations';
 import { useDevice } from '@deriv-com/ui';
 import RunPanel from '../../components/run-panel';
@@ -551,7 +552,7 @@ const AppWrapper = observer(() => {
             id: 'id-market-hunter-pro',
             label: (
                 <>
-                    <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                    <Orbit size={20} color='#a78bfa' strokeWidth={1.5} style={{ flexShrink: 0 }} />
                     <Localize i18n_default_text='Market Hunter Pro' />
                 </>
             ),
