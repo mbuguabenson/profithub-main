@@ -302,17 +302,50 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
     { key: 'market_hunter_pro', label: 'Market Hunter Pro', enabled: true, order: 17 },
 ];
 
+// Bump this when new tabs are added to force clients to pick up new defaults
+const TAB_CONFIG_VERSION = 4;
+
 export const getSiteConfig = (): SiteConfig => {
     try {
         const raw = localStorage.getItem(SITE_CONFIG_KEY);
         if (raw) {
             const stored: SiteConfig = JSON.parse(raw);
-            // Auto-merge any new default tabs that are not yet in the stored config
             const defaults = getDefaultTabConfig();
             const storedKeys = new Set((stored.tabConfig || []).map(t => t.key));
+            let changed = false;
+
+            // Add any missing default tabs
             const missingTabs = defaults.filter(t => !storedKeys.has(t.key));
             if (missingTabs.length > 0) {
                 stored.tabConfig = [...(stored.tabConfig || []), ...missingTabs];
+                changed = true;
+            }
+
+            // Force re-enable any tab that is in defaults but was somehow disabled
+            // Also re-sync if version stamp is old
+            const storedVersion = (stored as any).__tabConfigVersion || 0;
+            if (storedVersion < TAB_CONFIG_VERSION) {
+                const defaultKeySet = new Set(defaults.map(t => t.key));
+                stored.tabConfig = (stored.tabConfig || []).map(tab => {
+                    if (defaultKeySet.has(tab.key)) {
+                        const def = defaults.find(d => d.key === tab.key)!;
+                        // Only force-enable if the default says enabled: true
+                        return { ...tab, enabled: tab.enabled ?? def.enabled };
+                    }
+                    return tab;
+                });
+                // Ensure all default tabs exist
+                const currentKeys = new Set(stored.tabConfig.map(t => t.key));
+                defaults.forEach(def => {
+                    if (!currentKeys.has(def.key)) {
+                        stored.tabConfig!.push(def);
+                    }
+                });
+                (stored as any).__tabConfigVersion = TAB_CONFIG_VERSION;
+                changed = true;
+            }
+
+            if (changed) {
                 localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(stored));
             }
             return stored;
