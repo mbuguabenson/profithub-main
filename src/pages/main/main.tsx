@@ -53,6 +53,8 @@ const EasyTool = lazy(() => import('../easy-tool'));
 const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
+const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
+
 
 
 const AppWrapper = observer(() => {
@@ -105,6 +107,7 @@ const AppWrapper = observer(() => {
         'signal_centre',
         'marketkiller',
         'multi_trader',
+        'market_hunter_pro',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -540,6 +543,21 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Multi Trader...')} />}>
                     <MultiTrader />
+                </Suspense>
+            )
+        },
+        {
+            key: 'market_hunter_pro',
+            id: 'id-market-hunter-pro',
+            label: (
+                <>
+                    <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
+                    <Localize i18n_default_text='Market Hunter Pro' />
+                </>
+            ),
+            content: (
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Market Hunter Pro...')} />}>
+                    <MarketHunterPro />
                 </Suspense>
             )
         }
