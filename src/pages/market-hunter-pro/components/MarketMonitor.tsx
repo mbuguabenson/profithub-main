@@ -245,7 +245,7 @@ function DigitDetailGrid({ frequencies, trends }: {
         const trend  = trends[df.digit];
         const isStrong = df.percentage >= 12;
         const isWeak   = df.percentage < 8;
-        const color    = isStrong ? '#D61A8C' : isWeak ? '#4b5563' : '#E67E22';
+        const color    = isStrong ? '#f5c542' : isWeak ? '#4b5563' : '#e67e22';
         const arrow    = trend?.trendDirection === 'increasing' ? '▲' : trend?.trendDirection === 'decreasing' ? '▼' : '–';
         const arrowColor = trend?.trendDirection === 'increasing' ? '#10b981' : trend?.trendDirection === 'decreasing' ? '#ef4444' : '#6b7280';
         return (
@@ -352,8 +352,8 @@ function MarketRow({
         {/* Scan button */}
         <button
           onClick={e => { e.stopPropagation(); onSelectSymbol(state?.symbol ?? ''); }}
-          className="text-[9px] font-black px-2.5 py-1.5 rounded-lg text-white shrink-0 transition active:scale-95 hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg,#D61A8C,#E67E22)' }}>
+          className="text-[9px] font-black px-2.5 py-1.5 rounded-lg text-black shrink-0 transition active:scale-95 hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg,#f5c542,#e67e22)' }}>
           Scan
         </button>
 
@@ -585,8 +585,8 @@ export default function MarketMonitor({
       <div className="flex items-center gap-2.5 px-4 py-3 border-b shrink-0"
         style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(7,7,13,0.98)' }}>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg,#D61A8C22,#E67E2222)', border: '1px solid rgba(214,26,140,0.3)' }}>
-          <LayoutGrid size={14} className="text-[#D61A8C]" />
+          style={{ background: 'linear-gradient(135deg,rgba(245,197,66,0.15),rgba(230,126,34,0.15))', border: '1px solid rgba(245,197,66,0.3)' }}>
+          <LayoutGrid size={14} className="text-[#f5c542]" />
         </div>
         <div>
           <div className="text-sm font-black text-white tracking-wide">Market Monitor</div>

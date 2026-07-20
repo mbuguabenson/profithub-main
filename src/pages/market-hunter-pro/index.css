@@ -35,49 +35,49 @@
   0% {
     transform: rotate(90deg);
     box-shadow:
-      0 6px 12px 0 #38bdf8 inset,
-      0 12px 18px 0 #005dff inset,
-      0 36px 36px 0 #1e40af inset,
-      0 0 3px 1.2px rgba(56,189,248,0.3),
-      0 0 6px 1.8px rgba(0,93,255,0.2);
+      0 6px 12px 0 #f5c542 inset,
+      0 12px 18px 0 #e67e22 inset,
+      0 36px 36px 0 #b45309 inset,
+      0 0 3px 1.2px rgba(245,197,66,0.3),
+      0 0 6px 1.8px rgba(230,126,34,0.2);
   }
   25% {
     transform: rotate(180deg);
     box-shadow:
-      0 6px 12px 0 #0099ff inset,
-      0 12px 18px 0 #38bdf8 inset,
-      0 36px 36px 0 #005dff inset,
-      0 0 6px 2.4px rgba(56,189,248,0.3),
-      0 0 12px 3.6px rgba(0,93,255,0.2),
-      0 0 18px 6px rgba(30,64,175,0.15);
+      0 6px 12px 0 #fbbf24 inset,
+      0 12px 18px 0 #f5c542 inset,
+      0 36px 36px 0 #e67e22 inset,
+      0 0 6px 2.4px rgba(245,197,66,0.3),
+      0 0 12px 3.6px rgba(230,126,34,0.2),
+      0 0 18px 6px rgba(180,83,9,0.15);
   }
   50% {
     transform: rotate(270deg);
     box-shadow:
-      0 6px 12px 0 #60a5fa inset,
-      0 12px 6px 0 #0284c7 inset,
-      0 24px 36px 0 #005dff inset,
-      0 0 3px 1.2px rgba(56,189,248,0.3),
-      0 0 6px 1.8px rgba(0,93,255,0.2);
+      0 6px 12px 0 #fbbf24 inset,
+      0 12px 6px 0 #f59e0b inset,
+      0 24px 36px 0 #e67e22 inset,
+      0 0 3px 1.2px rgba(245,197,66,0.3),
+      0 0 6px 1.8px rgba(230,126,34,0.2);
   }
   75% {
     transform: rotate(360deg);
     box-shadow:
-      0 6px 12px 0 #3b82f6 inset,
-      0 12px 18px 0 #0ea5e9 inset,
-      0 36px 36px 0 #2563eb inset,
-      0 0 6px 2.4px rgba(56,189,248,0.3),
-      0 0 12px 3.6px rgba(0,93,255,0.2),
-      0 0 18px 6px rgba(30,64,175,0.15);
+      0 6px 12px 0 #f5c542 inset,
+      0 12px 18px 0 #d97706 inset,
+      0 36px 36px 0 #e67e22 inset,
+      0 0 6px 2.4px rgba(245,197,66,0.3),
+      0 0 12px 3.6px rgba(230,126,34,0.2),
+      0 0 18px 6px rgba(180,83,9,0.15);
   }
   100% {
     transform: rotate(450deg);
     box-shadow:
-      0 6px 12px 0 #4dc8fd inset,
-      0 12px 18px 0 #005dff inset,
-      0 36px 36px 0 #1e40af inset,
-      0 0 3px 1.2px rgba(56,189,248,0.3),
-      0 0 6px 1.8px rgba(0,93,255,0.2);
+      0 6px 12px 0 #f5c542 inset,
+      0 12px 18px 0 #e67e22 inset,
+      0 36px 36px 0 #b45309 inset,
+      0 0 3px 1.2px rgba(245,197,66,0.3),
+      0 0 6px 1.8px rgba(230,126,34,0.2);
   }
 }
 

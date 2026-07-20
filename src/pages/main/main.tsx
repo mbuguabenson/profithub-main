@@ -36,7 +36,6 @@ import RunStrategy from '../dashboard/run-strategy';
 import Scanner from '../bot-builder/scanner/scanner';
 import Tutorials from '../tutorials';
 import './main.scss';
-import FloatingMarketHunter from '@/components/floating-market-hunter/floating-market-hunter';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 
@@ -650,7 +649,6 @@ const AppWrapper = observer(() => {
                 onCancel={getTradeTypeModalProps().onCancel}
             />
             <Scanner />
-            <FloatingMarketHunter />
         </React.Fragment>
     );
 });

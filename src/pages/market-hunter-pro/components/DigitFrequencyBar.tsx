@@ -26,8 +26,8 @@ export function DigitFrequencyBar({ analysis }: Props) {
                   style={{
                     height: `${Math.max(heightPct, 4)}%`,
                     background: isHigh
-                      ? 'linear-gradient(180deg, #D61A8C, #8E44AD)'
-                      : 'linear-gradient(180deg, #E67E22, #f59e0b)',
+                      ? 'linear-gradient(180deg, #f5c542, #e67e22)'
+                      : 'linear-gradient(180deg, #3b82f6, #1d4ed8)',
                   }}
                 />
               </div>
@@ -37,8 +37,8 @@ export function DigitFrequencyBar({ analysis }: Props) {
         })}
       </div>
       <div className="flex justify-between mt-2 text-[9px] font-bold">
-        <span className="text-brand-orange">Low (0-4): {analysis.lowPercentage.toFixed(1)}%</span>
-        <span className="text-brand-pink">High (5-9): {analysis.highPercentage.toFixed(1)}%</span>
+        <span style={{ color: '#3b82f6' }}>Low (0-4): {analysis.lowPercentage.toFixed(1)}%</span>
+        <span style={{ color: '#f5c542' }}>High (5-9): {analysis.highPercentage.toFixed(1)}%</span>
       </div>
     </div>
   );

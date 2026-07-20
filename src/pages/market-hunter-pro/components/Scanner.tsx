@@ -240,7 +240,7 @@ function StatsCard({ mwa, tradeTypeId }: { mwa: MultiWindowAnalysis; tradeTypeId
               <StatBar label="Over / Under 4.5" leftLabel="OVER" rightLabel="UNDR" leftValue={a.highPercentage} leftColor="#0ea5e9" rightColor="#f97316" />
             )}
             {tradeTypeId === 'matches' && (
-              <DigitStat label="Strongest Digit" digit={a.powerIndex.strongest} percentage={a.digitFrequencies[a.powerIndex.strongest]?.percentage ?? 0} color="#D61A8C" badge="MATCHES" />
+              <DigitStat label="Strongest Digit" digit={a.powerIndex.strongest} percentage={a.digitFrequencies[a.powerIndex.strongest]?.percentage ?? 0} color="#f5c542" badge="MATCHES" />
             )}
             {tradeTypeId === 'differs' && (
               <DigitStat label="Weakest Digit" digit={a.powerIndex.weakest} percentage={a.digitFrequencies[a.powerIndex.weakest]?.percentage ?? 0} color="#64748b" badge="DIFFERS" />
@@ -274,7 +274,7 @@ function StatsCard({ mwa, tradeTypeId }: { mwa: MultiWindowAnalysis; tradeTypeId
               {([
                 { label: '1000T', a: a, color: '#6366f1' },
                 { label: '120T', a: a120, color: '#0ea5e9' },
-                { label: '15T', a: a15, color: '#D61A8C' },
+                { label: '15T', a: a15, color: '#f5c542' },
               ] as const).map(({ label, a: wa, color }) => {
                 const val = tradeTypeId === 'even_odd' ? wa.evenPercentage
                   : tradeTypeId === 'over_under' ? wa.highPercentage
@@ -307,7 +307,7 @@ function UnifiedSignalCard({ signal, rank, selected, lastDigit, isTop, marketLab
   const statusBg = isTradeNow ? 'rgba(16,185,129,0.15)' : isWait ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.06)';
   const statusBorder = isTradeNow ? 'rgba(16,185,129,0.3)' : isWait ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)';
 
-  const rankBg = rank === 1 ? 'linear-gradient(135deg, #D61A8C, #8E44AD)'
+  const rankBg = rank === 1 ? 'linear-gradient(135deg, #f5c542, #e67e22)'
     : rank === 2 ? 'linear-gradient(135deg, #0ea5e9, #6366f1)'
     : rank === 3 ? 'linear-gradient(135deg, #f59e0b, #ef4444)'
     : 'rgba(148,163,184,0.4)';
@@ -316,10 +316,10 @@ function UnifiedSignalCard({ signal, rank, selected, lastDigit, isTop, marketLab
     <div
       className="rounded-2xl border transition-all duration-200 cursor-pointer"
       style={{
-        borderColor: selected ? '#D61A8C' : (isTop && signal.windowsAligned) ? 'rgba(16,185,129,0.3)' : statusBorder,
-        background: selected ? 'rgba(214,26,140,0.08)' : 'rgba(255,255,255,0.03)',
+        borderColor: selected ? '#f5c542' : (isTop && signal.windowsAligned) ? 'rgba(16,185,129,0.3)' : statusBorder,
+        background: selected ? 'rgba(245,197,66,0.08)' : 'rgba(255,255,255,0.03)',
         backdropFilter: 'blur(8px)',
-        boxShadow: selected ? '0 0 0 2px rgba(214,26,140,0.3)' : undefined,
+        boxShadow: selected ? '0 0 0 2px rgba(245,197,66,0.3)' : undefined,
       }}
     >
       <div className="p-3">
@@ -644,9 +644,9 @@ export default function Scanner() {
       {isActive && (
         <>
           <div className="absolute inset-0 m-auto rounded-full pointer-events-none"
-            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out infinite', background: 'transparent', border: '1.5px solid rgba(56,189,248,0.6)' }} />
+            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out infinite', background: 'transparent', border: '1.5px solid rgba(245,197,66,0.6)' }} />
           <div className="absolute inset-0 m-auto rounded-full pointer-events-none"
-            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out 0.7s infinite', background: 'transparent', border: '1.5px solid rgba(0,93,255,0.4)' }} />
+            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out 0.7s infinite', background: 'transparent', border: '1.5px solid rgba(230,126,34,0.4)' }} />
         </>
       )}
 
@@ -655,7 +655,7 @@ export default function Scanner() {
         style={{
           width: 96, height: 96, top: -12, left: -12,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(56,189,248,0.22) 0%, rgba(0,93,255,0.1) 55%, transparent 75%)',
+          background: 'radial-gradient(circle, rgba(245,197,66,0.22) 0%, rgba(230,126,34,0.1) 55%, transparent 75%)',
           animation: 'orb-pulse 3s ease-in-out infinite',
         }} />
 
@@ -674,14 +674,14 @@ export default function Scanner() {
             ) : step === 'scanning' ? (
               <div className="flex items-end gap-[2px] h-4">
                 {[0, 1, 2, 3].map(i => (
-                  <div key={i} className="w-[3px] rounded-full bg-sky-300"
-                    style={{ height: 14, animation: `dot-bounce 1s ease-in-out ${i * 0.12}s infinite`, boxShadow: '0 0 4px rgba(56,189,248,0.9)' }} />
+                  <div key={i} className="w-[3px] rounded-full bg-amber-300"
+                    style={{ height: 14, animation: `dot-bounce 1s ease-in-out ${i * 0.12}s infinite`, boxShadow: '0 0 4px rgba(245,197,66,0.9)' }} />
                 ))}
               </div>
             ) : (
               <>
-                <Sparkles size={18} className="text-sky-200" style={{ filter: 'drop-shadow(0 0 4px rgba(56,189,248,0.9))' }} />
-                <span className="text-[7px] font-black text-sky-100 mt-0.5 tracking-widest">LIVE</span>
+                <Sparkles size={18} className="text-amber-200" style={{ filter: 'drop-shadow(0 0 4px rgba(245,197,66,0.9))' }} />
+                <span className="text-[7px] font-black text-amber-100 mt-0.5 tracking-widest">LIVE</span>
               </>
             )}
           </div>
@@ -707,21 +707,21 @@ export default function Scanner() {
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
         border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(214,26,140,0.15)',
+        boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(245,197,66,0.15)',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {/* Header bar */}
       <div className="relative px-5 py-4 flex items-center justify-between select-none"
         style={{
-          background: 'linear-gradient(135deg, rgba(214,26,140,0.3), rgba(142,68,173,0.2))',
+          background: 'linear-gradient(135deg, rgba(245,197,66,0.3), rgba(230,126,34,0.2))',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
         }}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <GripVertical size={14} className="text-white/30" />
             <span className="text-[10px] font-black tracking-wide text-white/90">
-              Pro <span className="text-[#E67E22]">AI</span>
+              Pro <span className="text-[#f5c542]">AI</span>
             </span>
           </div>
           <span className="text-[10px] text-white/40">{isConnected ? 'Connected' : 'Connecting...'}</span>
@@ -752,7 +752,7 @@ export default function Scanner() {
               {tab.label}
               {activeTab === tab.id && (
                 <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
-                  style={{ background: 'linear-gradient(90deg,#D61A8C,#E67E22)' }} />
+                  style={{ background: 'linear-gradient(90deg,#f5c542,#e67e22)' }} />
               )}
             </button>
           ))}
@@ -789,8 +789,8 @@ export default function Scanner() {
                             <button
                               key={s.id}
                               onClick={() => { setSelectedSymbol(s.id); setShowSymbolPicker(false); }}
-                              className={`w-full text-left px-4 py-2 text-sm font-medium transition ${selectedSymbol === s.id ? 'text-[#D61A8C] font-bold' : 'text-white/70 hover:bg-white/5'}`}
-                              style={selectedSymbol === s.id ? { background: 'rgba(214,26,140,0.12)' } : {}}
+                              className={`w-full text-left px-4 py-2 text-sm font-medium transition ${selectedSymbol === s.id ? 'text-[#f5c542] font-bold' : 'text-white/70 hover:bg-white/5'}`}
+                              style={selectedSymbol === s.id ? { background: 'rgba(245,197,66,0.12)' } : {}}
                             >
                               {s.label}
                             </button>
@@ -809,7 +809,7 @@ export default function Scanner() {
                   <button
                     onClick={() => setShowTradeTypePicker(v => !v)}
                     className="w-full border rounded-xl p-2.5 text-xs font-bold text-left flex items-center justify-between transition"
-                    style={{ borderColor: '#D61A8C', color: '#D61A8C', background: 'rgba(214,26,140,0.12)' }}
+                    style={{ borderColor: '#f5c542', color: '#f5c542', background: 'rgba(245,197,66,0.12)' }}
                   >
                     <span>{TRADE_TYPES.find(t => t.id === selectedTradeType)?.label ?? 'Select'}</span>
                     <ChevronDown size={14} className={showTradeTypePicker ? 'rotate-180 transition-transform' : 'transition-transform'} />
@@ -821,7 +821,7 @@ export default function Scanner() {
                           key={t.id}
                           onClick={() => { setSelectedTradeType(t.id); setSelectedSignal(null); setShowTradeTypePicker(false); }}
                           className="w-full px-3 py-2 text-xs font-bold text-left transition flex items-center justify-between hover:bg-white/5"
-                          style={selectedTradeType === t.id ? { color: '#D61A8C', background: 'rgba(214,26,140,0.12)' } : { color: 'rgba(255,255,255,0.6)' }}
+                          style={selectedTradeType === t.id ? { color: '#f5c542', background: 'rgba(245,197,66,0.12)' } : { color: 'rgba(255,255,255,0.6)' }}
                         >
                           <span>{t.label}</span>
                           {selectedTradeType === t.id && <Check size={12} />}
@@ -862,7 +862,7 @@ export default function Scanner() {
                 </div>
                 <button
                   onClick={() => setMultiMarket((v) => !v)}
-                  className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 ${multiMarket ? 'bg-[#D61A8C]' : 'bg-white/20'}`}
+                  className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 ${multiMarket ? 'bg-[#f5c542]' : 'bg-white/20'}`}
                 >
                   <div className={`bg-white w-5 h-5 rounded-full shadow transform transition-transform duration-300 ${multiMarket ? 'translate-x-5' : 'translate-x-0'}`} />
                 </button>
@@ -878,11 +878,11 @@ export default function Scanner() {
                     </div>
                     <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
                       <div className="h-full transition-all duration-300 rounded-full"
-                        style={{ width: `${(scanProgress / scanTarget) * 100}%`, background: 'linear-gradient(90deg, #D61A8C, #E67E22)' }} />
+                        style={{ width: `${(scanProgress / scanTarget) * 100}%`, background: 'linear-gradient(90deg, #f5c542, #e67e22)' }} />
                     </div>
                   </div>
                   <div className="w-full text-white font-bold text-center py-3 rounded-xl text-xs flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(90deg, #E67E22, #D61A8C, #8E44AD)' }}>
+                    style={{ background: 'linear-gradient(90deg, #E67E22, #f5c542, #d97706)' }}>
                     <RefreshCw size={14} className="animate-spin" />
                     Collecting 1000 ticks across 3 windows...
                   </div>
@@ -896,16 +896,16 @@ export default function Scanner() {
                     onClick={() => setAutoScan(a => !a)}
                     className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 border transition active:scale-95"
                     style={{
-                      borderColor: autoScan ? 'rgba(214,26,140,0.5)' : 'rgba(255,255,255,0.15)',
-                      background: autoScan ? 'rgba(214,26,140,0.12)' : 'rgba(255,255,255,0.05)',
+                      borderColor: autoScan ? 'rgba(245,197,66,0.5)' : 'rgba(255,255,255,0.15)',
+                      background: autoScan ? 'rgba(245,197,66,0.12)' : 'rgba(255,255,255,0.05)',
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <RefreshCw size={13} className={autoScan ? 'animate-spin text-[#D61A8C]' : 'text-white/40'} />
+                      <RefreshCw size={13} className={autoScan ? 'animate-spin text-[#f5c542]' : 'text-white/40'} />
                       <span className="text-xs font-bold text-white/80">Continuous scan (60s)</span>
                     </div>
                     <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                      style={{ background: autoScan ? '#D61A8C' : 'rgba(255,255,255,0.15)', color: '#fff' }}>
+                      style={{ background: autoScan ? '#f5c542' : 'rgba(255,255,255,0.15)', color: autoScan ? '#000' : '#fff' }}>
                       {autoScan ? 'ON' : 'OFF'}
                     </span>
                   </button>
@@ -913,7 +913,7 @@ export default function Scanner() {
                     <button
                       onClick={resetScan}
                       className="border-2 rounded-xl font-bold py-3 transition active:scale-95 text-sm"
-                      style={{ borderColor: 'rgba(142,68,173,0.5)', color: 'rgba(255,255,255,0.6)', background: 'transparent' }}
+                      style={{ borderColor: 'rgba(230,126,34,0.5)', color: 'rgba(255,255,255,0.6)', background: 'transparent' }}
                     >
                       Reset
                     </button>
@@ -921,7 +921,7 @@ export default function Scanner() {
                       onClick={startScan}
                       disabled={!isConnected}
                       className="text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95 text-sm disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, #E67E22, #D61A8C)' }}
+                      style={{ background: 'linear-gradient(135deg, #e67e22, #f5c542)', color: '#000' }}
                     >
                       {isConnected ? 'Scan' : 'Connecting...'}
                     </button>
@@ -959,16 +959,16 @@ export default function Scanner() {
 
                   {selectedSignal && (
                     <div className="rounded-2xl p-3 flex items-center justify-between gap-3"
-                      style={{ background: 'linear-gradient(135deg, rgba(214,26,140,0.12), rgba(142,68,173,0.08))', border: '1.5px solid rgba(214,26,140,0.3)' }}>
+                      style={{ background: 'linear-gradient(135deg, rgba(245,197,66,0.12), rgba(230,126,34,0.08))', border: '1.5px solid rgba(245,197,66,0.3)' }}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
                           <Check size={12} className="text-green-400" />
-                          <span className="text-xs font-black text-[#D61A8C]">Selected Signal</span>
+                          <span className="text-xs font-black text-[#f5c542]">Selected Signal</span>
                         </div>
                         <p className="text-xs font-bold text-white/70 truncate">{selectedSignal.recommendation}</p>
                       </div>
                       <span className="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-xl text-white"
-                        style={{ background: 'linear-gradient(135deg, #D61A8C, #8E44AD)' }}>
+                        style={{ background: 'linear-gradient(135deg, #f5c542, #e67e22)' }}>
                         {selectedSignal.tradeDirection ?? selectedSignal.label}
                       </span>
                     </div>
@@ -1079,9 +1079,9 @@ export default function Scanner() {
                       const dir = (selectedSignal.tradeDirection ?? '').toUpperCase();
                       const lbl = dir.startsWith('OVER') ? 'OVER' : dir.startsWith('UNDER') ? 'UNDER' : dir;
                       return (
-                        <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(214,26,140,0.35)', background: 'rgba(214,26,140,0.06)' }}>
+                        <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(245,197,66,0.35)', background: 'rgba(245,197,66,0.06)' }}>
                           <div className="flex items-center gap-1.5 mb-2">
-                            <TrendingUp size={11} className="text-[#D61A8C]" />
+                            <TrendingUp size={11} className="text-[#f5c542]" />
                             <span className="text-[10px] font-black text-white/80 uppercase tracking-wide">Set Prediction</span>
                             <span className="text-[9px] text-white/40 ml-auto">
                               {predictionChoice !== null ? `Digit ${predictionChoice}` : `Auto: ${selectedSignal.targetDigit ?? digits[0]}`}
@@ -1092,9 +1092,9 @@ export default function Scanner() {
                               <button key={d} onClick={() => setPredictionChoice(predictionChoice === d ? null : d)}
                                 className="rounded-lg py-2 text-center font-black transition active:scale-95"
                                 style={{
-                                  background: predictionChoice === d ? 'linear-gradient(135deg,#E67E22,#D61A8C)' : selectedSignal.targetDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
-                                  color: predictionChoice === d ? '#fff' : selectedSignal.targetDigit === d && predictionChoice === null ? '#10b981' : 'rgba(255,255,255,0.6)',
-                                  border: predictionChoice === d ? '1px solid #D61A8C' : selectedSignal.targetDigit === d && predictionChoice === null ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                  background: predictionChoice === d ? 'linear-gradient(135deg,#e67e22,#f5c542)' : selectedSignal.targetDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                                  color: predictionChoice === d ? '#000' : '#fff',
+                                  border: predictionChoice === d ? '1px solid #f5c542' : selectedSignal.targetDigit === d && predictionChoice === null ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.1)',
                                 }}>
                                 <span className="block text-[10px] leading-none font-bold">{lbl}</span>
                                 <span className="block text-base mt-0.5">{d}</span>
