@@ -305,7 +305,18 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
 export const getSiteConfig = (): SiteConfig => {
     try {
         const raw = localStorage.getItem(SITE_CONFIG_KEY);
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+            const stored: SiteConfig = JSON.parse(raw);
+            // Auto-merge any new default tabs that are not yet in the stored config
+            const defaults = getDefaultTabConfig();
+            const storedKeys = new Set((stored.tabConfig || []).map(t => t.key));
+            const missingTabs = defaults.filter(t => !storedKeys.has(t.key));
+            if (missingTabs.length > 0) {
+                stored.tabConfig = [...(stored.tabConfig || []), ...missingTabs];
+                localStorage.setItem(SITE_CONFIG_KEY, JSON.stringify(stored));
+            }
+            return stored;
+        }
     } catch { /* ignore */ }
     return {
         primaryColor: '#f5c542',
