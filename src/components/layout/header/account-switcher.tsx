@@ -12,35 +12,6 @@ import AccountInfoWrapper from './account-info-wrapper';
 import realAccountImg from '../../../../images.jpg';
 import './account-switcher.scss';
 
-// ─── Country flag emoji helper ────────────────────────────────────────────────
-const getCurrencyFlag = (currency: string): string => {
-    const flags: Record<string, string> = {
-        USD: '🇺🇸',
-        EUR: '🇪🇺',
-        GBP: '🇬🇧',
-        AUD: '🇦🇺',
-        CAD: '🇨🇦',
-        CHF: '🇨🇭',
-        JPY: '🇯🇵',
-        NZD: '🇳🇿',
-        SGD: '🇸🇬',
-        HKD: '🇭🇰',
-        KES: '🇰🇪',
-        NGN: '🇳🇬',
-        ZAR: '🇿🇦',
-        GHS: '🇬🇭',
-        TZS: '🇹🇿',
-        UGX: '🇺🇬',
-        RWF: '🇷🇼',
-        BTC: '₿',
-        ETH: 'Ξ',
-        LTC: 'Ł',
-        USDT: '₮',
-        eUSDT: '₮',
-        tUSDT: '₮',
-    };
-    return flags[currency] || '💱';
-};
 
 const getCurrencyLabel = (currency: string): string => {
     const labels: Record<string, string> = {
