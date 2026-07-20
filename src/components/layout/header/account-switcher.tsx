@@ -57,14 +57,18 @@ const getCurrencyLabel = (currency: string): string => {
     return labels[currency] || currency;
 };
 
-// ─── Demo account icon SVG ────────────────────────────────────────────────────
+// ─── Demo account icon ────────────────────────────────────────────────────────
 const DemoIcon = () => (
-    <svg viewBox='0 0 40 40' fill='none' className='acc-chip__demo-icon'>
-        <circle cx='20' cy='20' r='20' fill='#0C2532' />
-        <text x='50%' y='54%' dominantBaseline='middle' textAnchor='middle' fontSize='18' fontWeight='bold' fill='#fff'>
-            $
-        </text>
-    </svg>
+    <div className='acc-icon acc-icon--demo'>
+        <span className='acc-icon__letter'>D</span>
+    </div>
+);
+
+// ─── Real account icon ────────────────────────────────────────────────────────
+const RealIcon = ({ src }: { src: string }) => (
+    <div className='acc-icon acc-icon--real'>
+        <img src={src} alt='Real Account' className='acc-icon__img' />
+    </div>
 );
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -261,7 +265,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         'acc-chip__currency-icon--real': !isVirtual,
                     })}>
                         {isVirtual ? (
-                            <span className='acc-chip__currency-letter'>D</span>
+                            <span className='acc-icon__letter' style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>D</span>
                         ) : (
                             <img
                                 src={realAccountImg}
@@ -402,9 +406,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                                             {account.isVirtual ? (
                                                 <DemoIcon />
                                             ) : (
-                                                <span className='acc-panel__account-flag' role='img'>
-                                                    {getCurrencyFlag(account.rawCurrency)}
-                                                </span>
+                                                <RealIcon src={realAccountImg} />
                                             )}
                                         </div>
 

@@ -223,6 +223,48 @@
 }
 
 // ════════════════════════════════════════════════════════════════
+//  ACC-ICON  — Reusable account avatar circle
+// ════════════════════════════════════════════════════════════════
+.acc-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+
+    &--demo {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        box-shadow: 0 2px 10px rgba(59, 130, 246, 0.45);
+    }
+
+    &--real {
+        background: transparent;
+        box-shadow:
+            0 0 0 2px rgba(200, 200, 210, 0.75),
+            0 3px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    &__letter {
+        font-size: 15px;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1;
+        letter-spacing: -0.02em;
+    }
+
+    &__img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 50%;
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 //  ACC-PANEL  — Dropdown panel
 // ════════════════════════════════════════════════════════════════
 .acc-panel {
@@ -231,13 +273,13 @@
     right: 0;
     z-index: 9999;
     width: 320px;
-    background: rgba(10, 10, 16, 0.96);
+    background: var(--general-main-1, rgba(14, 14, 22, 0.97));
     backdrop-filter: blur(24px);
-    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    border: 1.5px solid var(--border-normal, rgba(255, 255, 255, 0.08));
     border-radius: 20px;
     box-shadow:
-        0 12px 40px rgba(0, 0, 0, 0.5),
-        0 4px 12px rgba(0, 0, 0, 0.3);
+        0 12px 40px rgba(0, 0, 0, 0.45),
+        0 4px 12px rgba(0, 0, 0, 0.25);
     overflow: hidden;
     animation: acc-panel-enter 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -366,35 +408,34 @@
 
     &__account-icon {
         flex-shrink: 0;
-        width: 28px;
-        height: 28px;
+        width: 36px;
+        height: 36px;
         border-radius: 50%;
         overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.04);
-        font-size: 16px;
+        background: transparent;
     }
 
     &__account-flag {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1;
     }
 
     &__account-info {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 3px;
         flex: 1;
         margin-left: 10px;
         min-width: 0;
     }
 
     &__account-name {
-        font-size: 11px;
+        font-size: 12px;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--text-general, #ffffff);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -405,7 +446,7 @@
     &__account-id {
         font-family: 'JetBrains Mono', monospace;
         font-size: 9px;
-        color: rgba(255, 255, 255, 0.35);
+        color: var(--text-less-prominent, rgba(255, 255, 255, 0.45));
         font-weight: 500;
     }
 
@@ -415,10 +456,6 @@
         color: var(--ph-primary, #f5c542);
         white-space: nowrap;
         flex-shrink: 0;
-
-        .acc-panel__tab--active-real & {
-            color: #ffffff;
-        }
     }
 
     // ── Footer ─────────────────────────────────────────────────
