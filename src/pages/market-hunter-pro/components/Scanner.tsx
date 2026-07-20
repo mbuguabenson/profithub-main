@@ -7,14 +7,10 @@ import {
   TrendingDown,
   Download,
   Play,
-  X,
   Check,
   AlertTriangle,
   Layers,
   Target,
-  Minimize2,
-  Maximize2,
-  GripVertical,
   Sparkles,
   BarChart2,
 } from 'lucide-react';
@@ -23,6 +19,7 @@ import { useDerivWS } from '../hooks/useDerivWS';
 import { analyzeMultiWindow, MultiWindowAnalysis } from '../lib/analysis';
 import { generateCombinedRankedSignals, Signal, SignalType } from '../lib/signals';
 import { SYMBOLS } from '../lib/symbols';
+import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { useStore } from '@/hooks/useStore';
 import '../index.css';
 
@@ -409,7 +406,6 @@ export default function Scanner() {
   const [combinedSignals, setCombinedSignals] = useState<Signal[]>([]);
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null);
   const [showSymbolPicker, setShowSymbolPicker] = useState(false);
-  const [minimized, setMinimized] = useState(false);
   const [predictionChoice, setPredictionChoice] = useState<number | null>(null);
   const [autoScan, setAutoScan] = useState(false);
   const [signalShift, setSignalShift] = useState(false);
@@ -432,7 +428,6 @@ export default function Scanner() {
   const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
 
   const { isConnected, subscriptionState, subscribeSymbol } = useDerivWS();
   const orb = useDraggableOrb();
@@ -669,7 +664,7 @@ export default function Scanner() {
           <div className="relative z-10 flex flex-col items-center leading-none">
             {step === 'orb' ? (
               <>
-                <span className="text-[7px] font-black text-white tracking-widest">PRO AI</span>
+                <span className="text-base font-black text-white tracking-wide" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>AI</span>
               </>
             ) : step === 'scanning' ? (
               <div className="flex items-end gap-[2px] h-4">
@@ -693,50 +688,18 @@ export default function Scanner() {
 
   // ── Scanner Panel (floating card) ──
   const panel = step !== 'orb' && (
-    <div
-      ref={panelRef}
-      className="fixed z-[55] rounded-3xl"
-      style={{
-        top: '50%',
-        left: '50%',
-        transform: minimized ? 'translate(-50%, -50%) scale(0.95)' : 'translate(-50%, -50%) scale(1)',
-        width: minimized ? '320px' : 'min(480px, 92vw)',
-        maxHeight: minimized ? 'auto' : '85vh',
-        overflowY: minimized ? 'hidden' : 'auto',
-        background: 'linear-gradient(135deg, rgba(15,10,30,0.95), rgba(10,5,25,0.97))',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 25px 80px rgba(0,0,0,0.6), 0 0 60px rgba(245,197,66,0.15)',
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
+    <DraggableResizeWrapper
+      boundary=".main"
+      header="AI Scanner"
+      onClose={() => setStep('orb')}
+      modalWidth={526}
+      modalHeight={595}
+      minWidth={526}
+      minHeight={524}
+      enableResizing={true}
     >
-      {/* Header bar */}
-      <div className="relative px-5 py-4 flex items-center justify-between select-none"
-        style={{
-          background: 'linear-gradient(135deg, rgba(245,197,66,0.3), rgba(230,126,34,0.2))',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-        }}>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <GripVertical size={14} className="text-white/30" />
-            <span className="text-[10px] font-black tracking-wide text-white/90">
-              Pro <span className="text-[#f5c542]">AI</span>
-            </span>
-          </div>
-          <span className="text-[10px] text-white/40">{isConnected ? 'Connected' : 'Connecting...'}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => setMinimized((v) => !v)} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition text-white/50 hover:text-white/80">
-            {minimized ? <Maximize2 size={12} /> : <Minimize2 size={12} />}
-          </button>
-          <button onClick={() => setStep('orb')} className="w-7 h-7 rounded-full flex items-center justify-center hover:bg-white/10 transition text-white/50 hover:text-white/80">
-            <X size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Tab bar */}
+      <div className="flex flex-col h-full w-full bg-[#0e0e12] overflow-y-auto text-white">
+        {/* Tab bar */}
       {!minimized && (
         <div className="flex border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           {([
@@ -1160,7 +1123,8 @@ export default function Scanner() {
           )}
         </>
       )}
-    </div>
+      </div>
+    </DraggableResizeWrapper>
   );
 
   return (

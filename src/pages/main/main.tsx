@@ -53,6 +53,7 @@ const EasyTool = lazy(() => import('../easy-tool'));
 const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
+const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
 
 
 
@@ -649,6 +650,9 @@ const AppWrapper = observer(() => {
                 onCancel={getTradeTypeModalProps().onCancel}
             />
             <Scanner />
+            <Suspense fallback={null}>
+                <MarketHunterPro />
+            </Suspense>
         </React.Fragment>
     );
 });
