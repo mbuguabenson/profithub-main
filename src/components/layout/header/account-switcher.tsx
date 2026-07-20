@@ -233,7 +233,7 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
     return (
         <div className='acc-info__wrapper' ref={wrapperRef}>
             <AccountInfoWrapper>
-                {/* ── Header Chip ─────────────────────────────────────────── */}
+                {/* ── Header Account Button ──────────────────────────────── */}
                 <div
                     data-testid='dt_acc_info'
                     id='dt_core_account-info_acc-info'
@@ -254,26 +254,44 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                         }
                     }}
                 >
-                    {/* Flag / Demo icon */}
-                    <div className='acc-chip__avatar'>
-                        {isVirtual ? (
-                            <DemoIcon />
-                        ) : (
-                            <span className='acc-chip__flag' role='img' aria-label={currency}>
-                                {getCurrencyFlag(currency || 'USD')}
+                    {/* Two-line text block */}
+                    <div className='acc-chip__text-block'>
+                        {/* Line 1: Account label + chevron */}
+                        <div className='acc-chip__label-row'>
+                            <span className='acc-chip__account-label'>
+                                {isVirtual ? localize('Demo account') : localize('Real account')}
                             </span>
-                        )}
-                    </div>
+                            {showChevron && (
+                                <svg
+                                    className={classNames('acc-chip__chevron', {
+                                        'acc-chip__chevron--open': isOpen,
+                                    })}
+                                    width='10'
+                                    height='10'
+                                    viewBox='0 0 12 12'
+                                    fill='none'
+                                >
+                                    <path
+                                        d='M2 4L6 8L10 4'
+                                        stroke='currentColor'
+                                        strokeWidth='1.8'
+                                        strokeLinecap='round'
+                                        strokeLinejoin='round'
+                                    />
+                                </svg>
+                            )}
+                        </div>
 
-                    {/* Balance */}
-                    <span
-                        data-testid='dt_balance'
-                        className={classNames('acc-chip__balance', {
-                            'acc-chip__balance--no-currency': !currency && !isVirtual,
-                        })}
-                    >
-                        {isBalanceVisible ? chipBalance : '••••'}
-                    </span>
+                        {/* Line 2: Balance */}
+                        <span
+                            data-testid='dt_balance'
+                            className={classNames('acc-chip__balance', {
+                                'acc-chip__balance--no-currency': !currency && !isVirtual,
+                            })}
+                        >
+                            {isBalanceVisible ? chipBalance : '••••'}
+                        </span>
+                    </div>
 
                     {/* Eye toggle button */}
                     <button
@@ -294,36 +312,19 @@ const AccountSwitcher = observer(({ activeAccount }: TAccountSwitcher) => {
                             </svg>
                         )}
                     </button>
-
-                    {/* Chevron */}
-                    {showChevron && (
-                        <svg
-                            className={classNames('acc-chip__chevron', {
-                                'acc-chip__chevron--open': isOpen,
-                            })}
-                            width='12'
-                            height='12'
-                            viewBox='0 0 12 12'
-                            fill='none'
-                        >
-                            <path
-                                d='M2 4L6 8L10 4'
-                                stroke='currentColor'
-                                strokeWidth='1.8'
-                                strokeLinecap='round'
-                                strokeLinejoin='round'
-                            />
-                        </svg>
-                    )}
-
-                    {/* Right border accent */}
-                    <div
-                        className={classNames('acc-chip__border-accent', {
-                            'acc-chip__border-accent--demo': isVirtual,
-                            'acc-chip__border-accent--real': !isVirtual,
-                        })}
-                    />
                 </div>
+
+                {/* ── Deposit Button ─────────────────────────────────────── */}
+                <button
+                    type='button'
+                    className='acc-chip__deposit-btn'
+                    onClick={e => {
+                        e.stopPropagation();
+                        window.open('https://app.deriv.com/cashier/deposit', '_blank');
+                    }}
+                >
+                    <Localize i18n_default_text='Deposit' />
+                </button>
             </AccountInfoWrapper>
 
             {/* ── Dropdown Panel ──────────────────────────────────────────── */}
