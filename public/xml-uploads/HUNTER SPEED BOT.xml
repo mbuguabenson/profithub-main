@@ -9,7 +9,7 @@
     <variable id="%L?;380E6Lr^3b.%}t5Q">stake 2</variable>
     <variable id="1Au``*:jqrtvs.EH8;.y">text3</variable>
   </variables>
-  <block type="trade_definition" id=".Ap1C68tn||^/W{CwfDN" deletable="false" x="0" y="110">
+  <block type="trade_definition" id=".Ap1C68tn||^/W{CwfDN" deletable="false" x="0" y="0">
     <statement name="TRADE_OPTIONS">
       <block type="trade_definition_market" id="@8WWhteAen-@3VcN6F5b" deletable="false" movable="false">
         <field name="MARKET_LIST">synthetic_index</field>
@@ -21,7 +21,7 @@
             <field name="TRADETYPE_LIST">overunder</field>
             <next>
               <block type="trade_definition_contracttype" id="vK`Bs1XgOim*fNDDzca:" deletable="false" movable="false">
-                <field name="TYPE_LIST">DIGITUNDER</field>
+                <field name="TYPE_LIST">both</field>
                 <next>
                   <block type="trade_definition_candleinterval" id="U[#.=Vp{!S+|+LdUpm|+" deletable="false" movable="false">
                     <field name="CANDLEINTERVAL_LIST">60</field>
@@ -44,10 +44,10 @@
       </block>
     </statement>
     <statement name="INITIALIZATION">
-      <block type="text_print" id="pWT.9S]f^7aa8oA(v{r@">
+      <block type="text_print" id="pWT.9S]f^7aa8oA(v{r@" collapsed="true">
         <value name="TEXT">
           <shadow type="text" id="3o;|BRdHUtb}Z}b0kPw#">
-            <field name="TEXT">ALEXSPEEDBOT2_PRO✅️</field>
+            <field name="TEXT">HUNTER SPEED BOT</field>
           </shadow>
         </value>
         <next>
@@ -108,14 +108,14 @@
         </value>
         <value name="PREDICTION">
           <shadow type="math_number_positive" id="cf;XjD?0cvuRS+~)nOBW" inline="true">
-            <field name="NUM">7</field>
+            <field name="NUM">1</field>
           </shadow>
         </value>
       </block>
     </statement>
   </block>
-  <block type="during_purchase" id="7;3PhAM{ZGmfi@iv2VhS" collapsed="true" x="714" y="110"></block>
-  <block type="after_purchase" id="O?E-aUHHo%Y}p+4X/e7i" x="714" y="256">
+  <block type="during_purchase" id="7;3PhAM{ZGmfi@iv2VhS" collapsed="true" x="714" y="0"></block>
+  <block type="after_purchase" id="O?E-aUHHo%Y}p+4X/e7i" x="714" y="96">
     <statement name="AFTERPURCHASE_STACK">
       <block type="controls_if" id="kW+U17Xz-#YF_?P=FYX|">
         <mutation xmlns="http://www.w3.org/1999/xhtml" else="1"></mutation>
@@ -397,17 +397,17 @@
       </block>
     </statement>
   </block>
-  <block type="before_purchase" id="{QHiH0lL)i0)LMJ#hX8;" collapsed="true" deletable="false" x="0" y="968">
+  <block type="before_purchase" id="{QHiH0lL)i0)LMJ#hX8;" collapsed="true" deletable="false" x="0" y="820">
     <statement name="BEFOREPURCHASE_STACK">
       <block type="purchase" id="+4r}AkvWxWT*+N:`THSQ">
         <field name="PURCHASE_LIST">DIGITUNDER</field>
       </block>
     </statement>
   </block>
-  <block type="math_number" id="~/l#.jh(@JLXbBF.,=1L" disabled="true" x="0" y="1856">
+  <block type="math_number" id="~/l#.jh(@JLXbBF.,=1L" disabled="true" x="0" y="1714">
     <field name="NUM">5</field>
   </block>
-  <block type="text" id="60G8r3Mt*0m.xe#^=TZ[" collapsed="true" disabled="true" x="0" y="1944">
+  <block type="text" id="60G8r3Mt*0m.xe#^=TZ[" collapsed="true" disabled="true" x="0" y="1802">
     <field name="TEXT">Expert  Speed Bot</field>
   </block>
 </xml>
