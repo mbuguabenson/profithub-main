@@ -9,7 +9,7 @@ import { isDemoAccount } from '@/utils/account-helpers';
 import { Localize, localize } from '@deriv-com/translations';
 import { TAccountSwitcher } from './common/types';
 import AccountInfoWrapper from './account-info-wrapper';
-import realAccountImg from '../../../../images.jpg';
+const realAccountImg = '/real-account.jpg';
 import './account-switcher.scss';
 
 
