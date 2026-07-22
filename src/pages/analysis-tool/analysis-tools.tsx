@@ -5,6 +5,10 @@ import Dcircles from './dcircles';
 import AllAnalysis from './all-analysis';
 import Signals from '../signals';
 import TickAnalyser from './tick-analyser';
+import CirclesAnalysis from '../circles-analysis';
+import DigitCracker from '../digit-cracker';
+import AccountFlipper from '../account-flipper';
+import OverUnderTab from '../over-under';
 import IframeWrapper from '@/components/iframe-wrapper';
 import { useStore } from '@/hooks/useStore';
 import { ApiHelpers } from '@/external/bot-skeleton';
@@ -18,6 +22,10 @@ type AnalysisToolSubTab =
     | 'smart-analysis'
     | 'all-analysis'
     | 'tick-analyser'
+    | 'circles-analysis'
+    | 'digit-cracker'
+    | 'account-flipper'
+    | 'over-under'
     | 'xenon-ai';
 
 const AnalysisTools: React.FC = () => {
@@ -673,6 +681,14 @@ const AnalysisTools: React.FC = () => {
                 return <AllAnalysis />;
             case 'tick-analyser':
                 return <TickAnalyser />;
+            case 'circles-analysis':
+                return <CirclesAnalysis />;
+            case 'digit-cracker':
+                return <DigitCracker />;
+            case 'account-flipper':
+                return <AccountFlipper />;
+            case 'over-under':
+                return <OverUnderTab />;
             case 'xenon-ai':
                 return <IframeWrapper src='/xenon-ai.html' title='Xenon AI' className='xenon-ai-container' />;
             default:
@@ -737,6 +753,46 @@ const AnalysisTools: React.FC = () => {
                 >
                     <div className='analysis-tools__card-content'>
                         <span className='analysis-tools__card-label'>Smart Analysis</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'circles-analysis' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('circles-analysis')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Circles Analysis</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'digit-cracker' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('digit-cracker')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Digit Cracker</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'account-flipper' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('account-flipper')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Account Flipper</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'over-under' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('over-under')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Over Under</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'xenon-ai' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('xenon-ai')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Xenon AI</span>
                     </div>
                 </div>
             </div>
