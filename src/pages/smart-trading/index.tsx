@@ -2,7 +2,6 @@ import { observer } from 'mobx-react-lite';
 import ToggleSwitch from '@/components/shared_ui/toggle-switch';
 import { useStore } from '@/hooks/useStore';
 import DigitCracker from '@/pages/digit-cracker';
-import AutomatedTradingView from './components/automated-trading-view';
 import BulkTradingView from './components/bulk-trading-view';
 import MarketSelector from './components/market-selector';
 import SCPTab from './components/scp-tab';
