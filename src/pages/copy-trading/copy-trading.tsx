@@ -1278,6 +1278,7 @@ const CopyTrading = observer(() => {
                             </div>
                         </div>
                     </div>
+                )}
                 {/* Error / Real Account Token Dialog */}
                 <Dialog
                     is_visible={errorModalVisible}

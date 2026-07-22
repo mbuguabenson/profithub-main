@@ -25,7 +25,7 @@ type TDialog = {
     onCancel?: () => void;
     onClose?: () => void;
     onConfirm: () => void;
-    login: () => void;
+    login?: () => void;
     onEscapeButtonCancel?: () => void;
     portal_element_id?: string;
     title?: React.ReactNode;
