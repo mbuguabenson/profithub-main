@@ -10,7 +10,6 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import { ErrorLogger } from '@/utils/error-logger';
 import type { Balance } from '@deriv/api-types';
 import {
-    authData$,
     setAccountList,
     setAuthData,
     setIsAuthorized,
