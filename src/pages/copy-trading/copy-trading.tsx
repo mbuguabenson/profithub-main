@@ -88,6 +88,11 @@ const CopyTrading = observer(() => {
     const [termsAccepted2, setTermsAccepted2] = useState(false);
 
 
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+    const refreshClientList = useCallback(() => {
+        setCopierList([...getCopyTokensArray()]);
+    }, []);
+
     // Auto-detect connected account on mount
     useEffect(() => {
         const active = getActiveLoginId();
@@ -296,7 +301,7 @@ const CopyTrading = observer(() => {
             const keys = Object.keys(client.accounts);
             const realKey = keys.find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
             if (realKey) {
-                const token = (client as any).getTokenForAccount?.(realKey) || client.accounts[realKey]?.token;
+                const token = (client as any).getTokenForAccount?.(realKey) || (client.accounts[realKey] as any)?.token;
                 if (token) return { loginid: realKey, token };
             }
         }

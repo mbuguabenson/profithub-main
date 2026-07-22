@@ -33,13 +33,7 @@ const getGreeting = () => {
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
 };
-const simpleHash = (str: string): number => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return hash;
-};
+const getGreeting = () => {
 
 // ─── Minimal SVG Icons ────────────────────────────────────────────────────────
 const Icons = {
@@ -206,6 +200,7 @@ const AdminDashboard = observer(() => {
         if (p.includes('/admin/platform-updates')) return 'platform-updates';
         if (p.includes('/admin/system-logs')) return 'system-logs';
         if (p.includes('/admin/account')) return 'account';
+        if (p.includes('/admin/settings')) return 'settings';
         return 'dashboard';
     }, [location.pathname]);
 
