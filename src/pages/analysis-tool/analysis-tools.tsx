@@ -17,7 +17,8 @@ type AnalysisToolSubTab =
     | 'dp-tools'
     | 'smart-analysis'
     | 'all-analysis'
-    | 'tick-analyser';
+    | 'tick-analyser'
+    | 'xenon-ai';
 
 const AnalysisTools: React.FC = () => {
     const { run_panel } = useStore();
@@ -729,6 +730,14 @@ const AnalysisTools: React.FC = () => {
                 >
                     <div className='analysis-tools__card-content'>
                         <span className='analysis-tools__card-label'>ProfitHub Analysis</span>
+                    </div>
+                </div>
+                <div
+                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'smart-analysis' ? 'analysis-tools__card--active' : ''}`}
+                    onClick={() => handleCardClick('smart-analysis')}
+                >
+                    <div className='analysis-tools__card-content'>
+                        <span className='analysis-tools__card-label'>Smart Analysis</span>
                     </div>
                 </div>
             </div>

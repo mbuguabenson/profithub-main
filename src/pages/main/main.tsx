@@ -634,8 +634,8 @@ const AppWrapper = observer(() => {
             </div>
             <DesktopWrapper>
                 <div className='main__run-strategy-wrapper'>
-                    {active_tab !== DBOT_TABS.TRADING_BOTS && <RunStrategy />}
-                    <RunPanel />
+                    {active_tab !== DBOT_TABS.TRADING_BOTS && active_tab !== DBOT_TABS.MANUAL_TRADING && <RunStrategy />}
+                    {active_tab !== DBOT_TABS.MANUAL_TRADING && <RunPanel />}
                 </div>
                 <ChartModal />
                 <TradingViewModal />
@@ -643,7 +643,7 @@ const AppWrapper = observer(() => {
                 <ProToolAiModal />
             </DesktopWrapper>
             <MobileWrapper>
-                {!is_open && <RunPanel />}
+                {!is_open && active_tab !== DBOT_TABS.MANUAL_TRADING && <RunPanel />}
             </MobileWrapper>
 
             <Dialog
