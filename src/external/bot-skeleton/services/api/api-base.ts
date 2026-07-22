@@ -4,7 +4,6 @@ import { getAccountId, getAccountType, isDemoAccount, removeUrlParameter } from 
 import CommonStore from '@/stores/common-store';
 import { DerivWSAccountsService } from '@/services/derivws-accounts.service';
 import { isProduction } from '@/components/shared/utils/config/config';
-import { TAuthData } from '@/types/api-types';
 import { clearAuthData } from '@/utils/auth-utils';
 import { handleBackendError, isBackendError } from '@/utils/error-handler';
 import { activeSymbolsProcessorService } from '../../../../services/active-symbols-processor.service';
