@@ -1,4 +1,4 @@
-import { getAppId } from '@deriv/shared';
+import { getAppId } from '@/components/shared/utils/config/config';
 
 type TCallback = (data: any) => void;
 
