@@ -616,10 +616,10 @@ const AppWrapper = observer(() => {
                         'main__container--active': active_tour && active_tab === DASHBOARD && !isDesktop,
                     })}
                 >
-                    <div>
+                    <div style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <Tabs active_index={filteredActiveIndex} className='main__tabs' onTabItemClick={handleFilteredTabChange} history={window.history as any} top>
                             {activeTabsList.map(tab => (
-                                <div key={tab.key} label={tab.label} id={tab.id}>
+                                <div key={tab.key} label={tab.label} id={tab.id} style={{ height: '100%', overflowY: 'auto' }}>
                                     {tab.content}
                                 </div>
                             ))}
