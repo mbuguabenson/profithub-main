@@ -552,7 +552,6 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
                 adjust_start_time: 1,
                 count: MAX_TICKS,
                 end: 'latest',
-                start: 1,
                 style: 'ticks',
                 ticks_history: selectedSymbol,
             });

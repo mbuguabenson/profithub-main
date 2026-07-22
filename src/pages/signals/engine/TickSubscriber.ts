@@ -115,7 +115,6 @@ export class TickSubscriber {
                             adjust_start_time: 1,
                             count: 100,
                             end: 'latest',
-                            start: 1,
                             style: 'ticks',
                             subscribe: 1
                         }));

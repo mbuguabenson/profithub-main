@@ -290,7 +290,6 @@ const Hyperbot = observer(() => {
                     adjust_start_time: 1,
                     count: Math.min(tickCount, 1000),
                     end: 'latest',
-                    start: 1,
                     style: 'ticks',
                 });
 

@@ -532,7 +532,6 @@ function subscribe(symbol) {
                 adjust_start_time: 1,
                 count: MAX_SAMPLES,
                 end: 'latest',
-                start: 1,
                 style: 'ticks',
             })
         );
@@ -565,7 +564,6 @@ ticksWindowEl.addEventListener('change', () => {
                 adjust_start_time: 1,
                 count: MAX_SAMPLES,
                 end: 'latest',
-                start: 1,
                 style: 'ticks',
             })
         );

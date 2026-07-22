@@ -557,7 +557,6 @@ const ManualTrading = observer(() => {
                 adjust_start_time: 1,
                 end: 'latest',
                 count: activeTickCount,
-                start: 1,
                 style: 'ticks',
             });
             if (requestVersionRef.current !== requestVersion) return;
@@ -689,7 +688,6 @@ const ManualTrading = observer(() => {
                             adjust_start_time: 1,
                             count: Math.max(activeTickCount, MONITOR_HISTORY_TICKS),
                             end: 'latest',
-                            start: 1,
                             style: 'ticks',
                             ticks_history: market.symbol,
                         });

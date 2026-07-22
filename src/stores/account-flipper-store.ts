@@ -129,7 +129,6 @@ export default class AccountFlipperStore {
             adjust_start_time: 1,
             count: 200,
             end: 'latest',
-            start: 1,
             style: 'ticks',
         }).then((res: any) => {
             if (res.history) {
