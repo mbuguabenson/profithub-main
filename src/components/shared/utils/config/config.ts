@@ -1013,9 +1013,14 @@ export const getSocketURL = async (): Promise<string> => {
         }
         if (authInfo?.access_token) {
             console.log('[getSocketURL] PKCE user detected - fetching authenticated WebSocket URL');
-            // Use the DerivWSAccountsService to get authenticated WebSocket URL
-            const wsUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(authInfo.access_token);
-            return wsUrl;
+            try {
+                // Use the DerivWSAccountsService to get authenticated WebSocket URL
+                const wsUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(authInfo.access_token);
+                return wsUrl;
+            } catch (pkceError) {
+                // OTP endpoint unreachable — fall through to legacy URL fallback
+                console.warn('[getSocketURL] PKCE OTP fetch failed, falling back to legacy WS URL:', pkceError);
+            }
         }
 
         // Check for legacy token in localStorage (legacy platform users)
@@ -1043,6 +1048,14 @@ export const getSocketURL = async (): Promise<string> => {
             } catch (e) {
                 console.error('[getSocketURL] Error parsing legacy accountsList:', e);
             }
+        }
+
+        // PKCE user whose OTP failed OR no auth found — use legacy WS as safe fallback
+        // This prevents the infinite ws/public reconnect loop
+        if (authInfo?.access_token) {
+            const legacyWsUrl = getLegacyServerURL();
+            console.log('[getSocketURL] PKCE OTP unavailable - using legacy WebSocket URL as fallback');
+            return legacyWsUrl;
         }
 
         // No authentication found

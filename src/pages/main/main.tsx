@@ -60,7 +60,12 @@ const AICompoundingEngine = lazy(() => import('../ai-compounding-engine/ai-compo
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
-    const { dashboard, load_modal, run_panel, quick_strategy, summary_card, blockly_store } = useStore();
+    const store = useStore();
+
+    // Guard: store is null during async initialization — prevents MobX crash on active_tab
+    if (!store) return null;
+
+    const { dashboard, load_modal, run_panel, quick_strategy, summary_card, blockly_store } = store;
     const { is_loading } = blockly_store;
     const {
         active_tab,

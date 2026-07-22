@@ -190,6 +190,9 @@ export class DerivWSAccountsService {
 
         // Create new fetch promise and cache it
         const otpPromise = (async () => {
+            const controller = new AbortController();
+            // Abort after 10 seconds to prevent indefinite blocking
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
             try {
                 const baseURL = this.getDerivWSBaseURL();
                 const optionsDir = brandConfig.platform.derivws.directories.options;
@@ -200,6 +203,7 @@ export class DerivWSAccountsService {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
                     },
+                    signal: controller.signal,
                 });
 
                 if (!response.ok) {
@@ -220,6 +224,7 @@ export class DerivWSAccountsService {
                 this.otpFetchPromises.delete(cacheKey);
                 throw error;
             } finally {
+                clearTimeout(timeoutId);
                 // Clear the promise after completion (success or failure)
                 // This allows fresh OTP fetches on subsequent calls
                 setTimeout(() => {

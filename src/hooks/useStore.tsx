@@ -38,8 +38,14 @@ const StoreProvider: React.FC<TStoreProvider> = ({ children, mockStore }) => {
 
 const useStore = () => {
     const store = useContext(StoreContext);
-
+    // Store can be null during async initialization — callers must guard against null
     return store as RootStore;
+};
+
+/** Returns true only once the store has been fully initialized */
+export const useStoreReady = () => {
+    const store = useContext(StoreContext);
+    return store !== null;
 };
 
 export { StoreProvider, useStore };
