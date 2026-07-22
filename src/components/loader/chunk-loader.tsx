@@ -27,13 +27,8 @@ export default function ChunkLoader({ message, isWelcome }: { message?: string; 
                         <h1 className='welcome-loader-title'>PROFIT<span className='accent'>HUB</span></h1>
                     </div>
 
-                    {/* Smooth Bouncing Animation Loader */}
-                    <div className='bouncing-loader'>
-                        <div className='bounce-dot dot-1' />
-                        <div className='bounce-dot dot-2' />
-                        <div className='bounce-dot dot-3' />
-                        <div className='bounce-dot dot-4' />
-                    </div>
+                    {/* Concentric Spinner Loader */}
+                    <div className='spinner' />
 
                     <div className='welcome-loader-meta'>
                         {message && <span className='welcome-loader-msg'>{message}</span>}
@@ -50,13 +45,8 @@ export default function ChunkLoader({ message, isWelcome }: { message?: string; 
     return (
         <div className='chunk-loader-overlay clean'>
             <div className='bouncing-loader-wrapper'>
-                {/* Smooth Bouncing Animation Loader - No Card */}
-                <div className='bouncing-loader'>
-                    <div className='bounce-dot dot-1' />
-                    <div className='bounce-dot dot-2' />
-                    <div className='bounce-dot dot-3' />
-                    <div className='bounce-dot dot-4' />
-                </div>
+                {/* Concentric Spinner Loader - No Card */}
+                <div className='spinner' />
                 {message && <span className='bouncing-loader-msg'>{message}</span>}
             </div>
         </div>
