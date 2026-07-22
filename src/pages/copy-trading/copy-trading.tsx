@@ -207,55 +207,32 @@ const CopyTrading = observer(() => {
 
     // ─── Account Details Poller ───────────────────────────────────────────────
     useEffect(() => {
-        const updateAccountDetails = async () => {
-            const allTokens = getAllStoredTokens();
-            const copyTokensArray = getCopyTokensArray();
-            const uniqueTokens = Array.from(new Set([...allTokens, ...copyTokensArray].filter(Boolean)));
-
-            if (uniqueTokens.length === 0) {
+        const updateAccountDetails = () => {
+            const activeId = client.loginid || getActiveLoginId();
+            if (activeId) {
+                setLoginIdDisplay(activeId.startsWith('VR') ? `Demo: ${activeId}` : activeId);
+                const bal = Number(client.balance);
+                const curr = client.currency || 'USD';
+                if (!isNaN(bal) && bal > 0) {
+                    setBalanceDisplay(`${bal.toFixed(2)} ${curr}`);
+                } else {
+                    const m = managerRef.current;
+                    if (m?.master?.balance) {
+                        setBalanceDisplay(`${m.master.balance.toFixed(2)} ${curr}`);
+                    } else {
+                        setBalanceDisplay(`0.00 ${curr}`);
+                    }
+                }
+            } else {
                 setLoginIdDisplay('Not logged in');
                 setBalanceDisplay('------');
-                return;
             }
-
-            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
-            const baseURL = isProduction()
-                ? 'https://api.derivws.com/trading/v1/'
-                : 'https://staging-api.derivws.com/trading/v1/';
-
-            for (const token of uniqueTokens) {
-                try {
-                    const res = await fetch(`${baseURL}options/accounts`, {
-                        method: 'GET',
-                        headers: { Authorization: `Bearer ${token}`, 'Deriv-App-ID': appId },
-                    });
-                    if (res.ok) {
-                        const data = await res.json();
-                        const accounts = data?.data || [];
-                        const realAcc = accounts.find((acc: any) =>
-                            !acc.account_id.startsWith('VR') && !acc.account_id.startsWith('VRT')
-                        );
-                        if (realAcc) {
-                            localStorage.setItem('cr_loginid', realAcc.account_id);
-                            const active = getActiveLoginId();
-                            setLoginIdDisplay(active?.startsWith('VR') ? `ROT: ${realAcc.account_id}` : realAcc.account_id);
-                            const balNum = parseFloat(realAcc.balance?.toString() || '0');
-                            setBalanceDisplay(`${balNum.toFixed(2)} ${realAcc.currency || 'USD'}`);
-                            return;
-                        }
-                    }
-                } catch {
-                    /* Ignore per-token failures */
-                }
-            }
-            setLoginIdDisplay('ROT — not linked yet');
-            setBalanceDisplay('------');
         };
 
-        const interval = setInterval(updateAccountDetails, 10000);
+        const interval = setInterval(updateAccountDetails, 2000);
         updateAccountDetails();
         return () => clearInterval(interval);
-    }, [client]);
+    }, [client.loginid, client.balance, client.currency]);
 
     // ─── Fetch Admin Copy Request Status ─────────────────────────────────────
     const fetchAdminStatus = useCallback(async () => {

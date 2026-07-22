@@ -310,121 +310,71 @@ export function initReplicator(manager: CopyTradingManager) {
                 contract_parameters.amount = Number(amt.toFixed(2));
             }
 
-            // ── Resolve all tokens to account IDs asynchronously ──
-            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
-            const environment = isProduction() ? 'production' : 'staging';
-            const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
+            // ── Execute trade purchases in parallel across all accounts via WebSocket ──
+            const connectedClients = manager.getConnectedClients();
+            let successCount = 0;
+            let failCount = 0;
 
-            const demoAccounts: Array<{ token: string; account_id: string }> = [];
-            const realAccounts: Array<{ token: string; account_id: string }> = [];
-            const unresolvedTokens: string[] = [];
-
-            // Resolve all tokens in parallel
-            const resolutions = await Promise.allSettled(
-                tokens.map(async (token) => {
-                    const resolved = await resolveTokenToAccount(token, manager, appId, baseURL);
-                    return { token, resolved };
-                })
-            );
-
-            for (const result of resolutions) {
-                if (result.status === 'fulfilled' && result.value.resolved) {
-                    const { token, resolved } = result.value;
-                    if (resolved.is_demo) {
-                        demoAccounts.push({ token, account_id: resolved.account_id });
-                    } else {
-                        realAccounts.push({ token, account_id: resolved.account_id });
+            const executionPromises = tokens.map(async (token) => {
+                let targetClient = connectedClients.find(c => c.client.loginId && (token === c.client.loginId || token.includes(c.client.loginId)))?.client;
+                
+                // If client not connected in manager, try finding in manager copierClients map
+                if (!targetClient) {
+                    for (const [, client] of (manager as any).copierClients.entries()) {
+                        if (client.status === 'connected') {
+                            targetClient = client;
+                            break;
+                        }
                     }
-                } else if (result.status === 'fulfilled') {
-                    unresolvedTokens.push(result.value.token);
-                }
-            }
-
-            if (unresolvedTokens.length > 0) {
-                console.warn(`[Replicator] ⚠️ ${unresolvedTokens.length} token(s) could not be resolved to account IDs`);
-                tradeLogs.push({
-                    id: 'resolve-warn',
-                    accountId: 'system',
-                    payload: { unresolvedCount: unresolvedTokens.length },
-                    time: Date.now(),
-                    error: `${unresolvedTokens.length} token(s) could not be resolved — check if tokens are valid`,
-                });
-            }
-
-            const totalResolved = demoAccounts.length + realAccounts.length;
-            if (totalResolved === 0) {
-                updateReplicationStatus('error', 'No accounts could be resolved from tokens');
-                tradeLogs.push({
-                    id: 'no-accounts',
-                    accountId: 'system',
-                    payload: contract_parameters,
-                    time: Date.now(),
-                    error: 'No accounts could be resolved from tokens. Verify your tokens are valid API tokens with trading scope.',
-                });
-                return;
-            }
-
-            const buyForGroup = async (groupAccounts: typeof demoAccounts, isDemo: boolean) => {
-                if (groupAccounts.length === 0) return;
-
-                const endpoint = `${baseURL}options/contracts/bulk-purchase/${isDemo ? 'demo' : 'real'}`;
-
-                // Use the first account's token for authorization
-                const authToken = groupAccounts[0].token;
-
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Deriv-App-ID': appId,
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                    body: JSON.stringify({
-                        contract_parameters,
-                        accounts: groupAccounts,
-                    }),
-                });
-
-                if (!response.ok) {
-                    const errorBody = await response.text().catch(() => '');
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}${errorBody ? ` — ${errorBody}` : ''}`);
                 }
 
-                const result = await response.json();
-                if (result.error) {
-                    throw result.error;
+                try {
+                    if (targetClient && targetClient.status === 'connected') {
+                        const buyRes = await targetClient.buyContract(contract_parameters);
+                        successCount++;
+                        tradeLogs.push({
+                            id: `trade-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                            accountId: targetClient.loginId || 'Connected Account',
+                            payload: contract_parameters,
+                            time: Date.now(),
+                        });
+                        return buyRes;
+                    } else {
+                        // Fallback: connect standalone client for this token
+                        const { DerivClient } = await import('./copy-trading-manager-singleton').then(m => m) as any;
+                        const standalone = new DerivClient();
+                        await standalone.connectAndAuthorize(token);
+                        const buyRes = await standalone.buyContract(contract_parameters);
+                        standalone.disconnect();
+                        successCount++;
+                        tradeLogs.push({
+                            id: `trade-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                            accountId: standalone.loginId || 'Copier Account',
+                            payload: contract_parameters,
+                            time: Date.now(),
+                        });
+                        return buyRes;
+                    }
+                } catch (tradeErr: any) {
+                    failCount++;
+                    const errorMsg = tradeErr?.message || 'Trade purchase failed';
+                    console.warn(`[Replicator] ⚠️ Purchase failed for token ${token.slice(0, 6)}...:`, errorMsg);
+                    tradeLogs.push({
+                        id: `err-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+                        accountId: 'Copier Account',
+                        payload: contract_parameters,
+                        time: Date.now(),
+                        error: errorMsg,
+                    });
                 }
-                return result;
-            };
+            });
 
-            try {
-                if (demoAccounts.length > 0) {
-                    await buyForGroup(demoAccounts, true);
-                    console.log(`[Replicator] ✅ Demo bulk purchase sent for ${demoAccounts.length} account(s)`);
-                }
-                if (realAccounts.length > 0) {
-                    await buyForGroup(realAccounts, false);
-                    console.log(`[Replicator] ✅ Real bulk purchase sent for ${realAccounts.length} account(s)`);
-                }
+            await Promise.allSettled(executionPromises);
 
-                updateReplicationStatus('success', `Copied to ${totalResolved} account(s) successfully`);
-                tradeLogs.push({
-                    id: `copy-${Date.now()}`,
-                    accountId: `${demoAccounts.length} demo, ${realAccounts.length} real`,
-                    payload: contract_parameters,
-                    time: Date.now(),
-                });
-            } catch (e: any) {
-                const errorMsg = e?.error?.message || e?.message || 'Unknown error';
-                const errorCode = e?.error?.code || e?.code || 'Unknown';
-                updateReplicationStatus('error', `Failed: ${errorMsg} (${errorCode})`);
-                tradeLogs.push({
-                    id: `copy-err-${Date.now()}`,
-                    accountId: 'multiple',
-                    payload: contract_parameters,
-                    time: Date.now(),
-                    error: `${errorMsg} (${errorCode})`,
-                });
+            if (successCount > 0) {
+                updateReplicationStatus('success', `Copied to ${successCount} account(s) successfully${failCount > 0 ? ` (${failCount} failed)` : ''}`);
+            } else {
+                updateReplicationStatus('error', `Trade replication failed for all accounts`);
             }
 
             cleanupKeys();

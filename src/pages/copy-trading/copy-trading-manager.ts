@@ -28,125 +28,174 @@ const LS_KEYS = {
     SETTINGS: 'copy_trading.settings',
 };
 
-// Lightweight Deriv API client wrapper for isolated connections per token using the new API flow
+// Lightweight Deriv API client wrapper for isolated connections per token using native WebSocket
 class DerivClient {
     api: any | null = null;
     status: TConnectionStatus = 'disconnected';
     loginId?: string;
     balance?: number;
-    private balanceSub: any | null = null;
-    private ws: WebSocket | null = null;
+    currency?: string;
+    email?: string;
+    ws: WebSocket | null = null;
 
     async connectAndAuthorize(token: string) {
         this.status = 'connecting';
-        
-        const environment = isProduction() ? 'production' : 'staging';
-        const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
-        const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
+        const cleanToken = token.trim();
 
-        try {
-            // 1. Fetch Options accounts to find the account_id
-            const accountsResponse = await fetch(`${baseURL}options/accounts`, {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Deriv-App-ID': appId,
-                },
-            });
-
-            if (!accountsResponse.ok) {
-                throw new Error(`Failed to fetch accounts list: ${accountsResponse.statusText}`);
-            }
-
-            const accountsData = await accountsResponse.json();
-            const accounts = accountsData?.data || [];
-            if (accounts.length === 0) {
-                throw new Error('No options accounts found for this token.');
-            }
-
-            // Use the first account
-            const activeAccount = accounts[0];
-            const accountId = activeAccount.account_id;
-            this.loginId = accountId;
-            this.balance = typeof activeAccount.balance === 'number' ? activeAccount.balance : parseFloat(activeAccount.balance || '0');
-
-            // 2. Fetch OTP and WebSocket URL
-            const otpResponse = await fetch(`${baseURL}options/accounts/${accountId}/otp`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Deriv-App-ID': appId,
-                },
-            });
-
-            if (!otpResponse.ok) {
-                throw new Error(`Failed to fetch OTP: ${otpResponse.statusText}`);
-            }
-
-            const otpData = await otpResponse.json();
-            const wsUrl = otpData?.data?.url;
-            if (!wsUrl) {
-                throw new Error('WebSocket URL not found in OTP response.');
-            }
-
-            // 3. Connect to the WebSocket
-            this.ws = new WebSocket(wsUrl);
-            this.api = new DerivAPIBasic({ connection: this.ws });
-
-            // wait for socket open
-            await new Promise<void>((resolve, reject) => {
-                const onOpen = () => {
-                    this.ws?.removeEventListener?.('open', onOpen);
-                    resolve();
-                };
-                const onErr = () => {
-                    this.ws?.removeEventListener?.('error', onErr);
-                    reject(new Error('WebSocket connection error'));
-                };
-                this.ws?.addEventListener?.('open', onOpen);
-                this.ws?.addEventListener?.('error', onErr);
-                // fallback timeout
-                setTimeout(() => resolve(), 3000);
-            });
-
-            this.status = 'connected';
-
-            // Try to subscribe to balance (optional)
+        return new Promise<any>((resolve, reject) => {
             try {
-                const res = await this.api.send({ balance: 1, subscribe: 1 });
-                if (!res?.error) {
-                    this.balance = res?.balance?.balance;
-                    if (res?.subscription?.id) {
-                        this.balanceSub = this.api.onMessage()?.subscribe(({ data }: any) => {
-                            if (data?.msg_type === 'balance') {
-                                this.balance = data?.balance?.balance;
-                            }
-                        });
-                    }
-                }
-            } catch (balanceError: any) {
-                // Ignore balance subscription failure if connection was successful
-            }
+                const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '68249';
+                const wsUrl = `wss://ws.derivws.com/websockets/v3?app_id=${appId}`;
+                const ws = new WebSocket(wsUrl);
+                this.ws = ws;
 
-            // Return mock authorize-like response structure for compatibility
-            return {
-                loginid: accountId,
-                email: activeAccount.email || '',
-                currency: activeAccount.currency || 'USD',
-            };
-        } catch (error: any) {
-            this.status = 'error';
-            throw error;
+                const timeout = setTimeout(() => {
+                    if (this.status === 'connecting') {
+                        this.status = 'error';
+                        ws.close();
+                        reject(new Error('WebSocket connection timeout'));
+                    }
+                }, 10000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ authorize: cleanToken }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.msg_type === 'authorize') {
+                            clearTimeout(timeout);
+                            if (data.error) {
+                                this.status = 'error';
+                                ws.close();
+                                reject(new Error(data.error.message || 'Authorization failed'));
+                                return;
+                            }
+                            const auth = data.authorize;
+                            this.loginId = auth.loginid;
+                            this.balance = typeof auth.balance === 'number' ? auth.balance : parseFloat(auth.balance || '0');
+                            this.currency = auth.currency || 'USD';
+                            this.email = auth.email || '';
+                            this.status = 'connected';
+                            this.api = new DerivAPIBasic({ connection: this.ws });
+
+                            // Subscribe to balance updates
+                            ws.send(JSON.stringify({ balance: 1, subscribe: 1 }));
+                            resolve(auth);
+                        } else if (data.msg_type === 'balance') {
+                            if (data.balance) {
+                                this.balance = typeof data.balance.balance === 'number'
+                                    ? data.balance.balance
+                                    : parseFloat(data.balance.balance || '0');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[DerivClient] Error parsing message:', e);
+                    }
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                    if (this.status === 'connecting') {
+                        this.status = 'error';
+                        reject(new Error('WebSocket connection failed'));
+                    }
+                };
+
+                ws.onclose = () => {
+                    if (this.status === 'connecting') {
+                        clearTimeout(timeout);
+                        this.status = 'disconnected';
+                    }
+                };
+            } catch (err: any) {
+                this.status = 'error';
+                reject(err);
+            }
+        });
+    }
+
+    async buyContract(params: any): Promise<any> {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            throw new Error('WebSocket connection is not active');
         }
+
+        const ws = this.ws;
+        const reqId = Math.floor(Math.random() * 1000000);
+
+        return new Promise<any>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                ws.removeEventListener('message', handleMessage);
+                reject(new Error('Proposal/Buy request timeout'));
+            }, 10000);
+
+            const handleMessage = (event: MessageEvent) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // Match proposal or buy response
+                    if (data.req_id === reqId || data.msg_type === 'proposal') {
+                        if (data.error) {
+                            clearTimeout(timeout);
+                            ws.removeEventListener('message', handleMessage);
+                            reject(new Error(data.error.message || 'Proposal failed'));
+                            return;
+                        }
+                        if (data.proposal?.id) {
+                            // Send buy request for this proposal
+                            const buyReqId = reqId + 1;
+                            ws.send(
+                                JSON.stringify({
+                                    buy: data.proposal.id,
+                                    price: params.amount || params.price || data.proposal.ask_price,
+                                    req_id: buyReqId,
+                                })
+                            );
+                        }
+                    } else if (data.msg_type === 'buy') {
+                        clearTimeout(timeout);
+                        ws.removeEventListener('message', handleMessage);
+                        if (data.error) {
+                            reject(new Error(data.error.message || 'Buy failed'));
+                        } else {
+                            resolve(data.buy);
+                        }
+                    }
+                } catch {
+                    /* Ignore JSON parse errors */
+                }
+            };
+
+            ws.addEventListener('message', handleMessage);
+
+            // Construct proposal request
+            const proposalReq = {
+                proposal: 1,
+                amount: params.amount || params.price || 1,
+                basis: params.basis || 'stake',
+                contract_type: params.contract_type,
+                currency: params.currency || this.currency || 'USD',
+                duration: params.duration || 1,
+                duration_unit: params.duration_unit || 't',
+                symbol: params.underlying_symbol || params.symbol,
+                ...(params.barrier !== undefined && { barrier: String(params.barrier) }),
+                ...(params.barrier2 !== undefined && { barrier2: String(params.barrier2) }),
+                ...(params.prediction !== undefined && { prediction: Number(params.prediction) }),
+                req_id: reqId,
+            };
+
+            ws.send(JSON.stringify(proposalReq));
+        });
     }
 
     disconnect() {
-        try {
-            this.balanceSub?.unsubscribe?.();
-        } catch {}
-        try {
-            this.api?.disconnect?.();
-        } catch {}
+        if (this.ws) {
+            try {
+                this.ws.close();
+            } catch {}
+            this.ws = null;
+        }
         this.status = 'disconnected';
     }
 }
