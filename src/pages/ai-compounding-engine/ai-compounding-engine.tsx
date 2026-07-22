@@ -143,6 +143,7 @@ const AICompoundingEngine = observer(() => {
                         setBotStatus={setBotStatus}
                         activeMarketData={activeMarketData}
                         balance={balance}
+                        tradeLogs={tradeLogs}
                     />
                 )}
 

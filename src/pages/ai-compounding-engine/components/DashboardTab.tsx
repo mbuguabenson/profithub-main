@@ -8,6 +8,7 @@ interface DashboardTabProps {
     setBotStatus: (s: string) => void;
     activeMarketData?: SymbolMarketData;
     balance: number;
+    tradeLogs?: any[];
 }
 
 export const DashboardTab: React.FC<DashboardTabProps> = ({
@@ -16,10 +17,17 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
     setBotStatus,
     activeMarketData,
     balance,
+    tradeLogs = [],
 }) => {
+    const wins = tradeLogs.filter(t => t.result === 'WIN').length;
+    const losses = tradeLogs.filter(t => t.result === 'LOSS').length;
+    const totalTrades = tradeLogs.length;
+    const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
+
+    const netProfit = tradeLogs.reduce((acc, curr) => acc + (curr.pnl || 0), 0);
+
     const currentStake = summary.projectedStake;
-    const todayProfit = 18.40;
-    const remainingProfit = summary.targetBalance - balance;
+    const remainingProfit = Math.max(0, summary.targetBalance - balance);
     const challengeProgress = Math.min(parseFloat(((balance / summary.targetBalance) * 100).toFixed(1)), 100);
 
     return (
@@ -27,14 +35,16 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             {/* Top Stat Cards Grid */}
             <div className="ace-grid">
                 <div className="ace-card">
-                    <div className="ace-card-title">Current Balance</div>
+                    <div className="ace-card-title">Current Real Balance</div>
                     <div className="ace-card-value positive">${balance > 0 ? balance.toFixed(2) : summary.initialBalance.toFixed(2)}</div>
                     <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>Target: ${summary.targetBalance}</div>
                 </div>
 
                 <div className="ace-card">
-                    <div className="ace-card-title">Today's Profit</div>
-                    <div className="ace-card-value positive">+${todayProfit.toFixed(2)}</div>
+                    <div className="ace-card-title">Session Realized Profit</div>
+                    <div className={`ace-card-value ${netProfit >= 0 ? 'positive' : 'negative'}`}>
+                        {netProfit >= 0 ? `+$${netProfit.toFixed(2)}` : `-$${Math.abs(netProfit).toFixed(2)}`}
+                    </div>
                     <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.2rem' }}>Daily Target: ${summary.targetDailyProfit.toFixed(2)}</div>
                 </div>
 
@@ -72,14 +82,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
                 <div className="ace-card">
                     <div className="ace-card-title">Current Win Rate</div>
-                    <div className="ace-card-value positive">82.4%</div>
-                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.2rem' }}>14 Wins / 3 Losses</div>
+                    <div className="ace-card-value positive">{winRate}%</div>
+                    <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.2rem' }}>{wins} Wins / {losses} Losses</div>
                 </div>
 
                 <div className="ace-card">
-                    <div className="ace-card-title">Consecutive Wins</div>
-                    <div className="ace-card-value positive">5 🔥</div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>Max Consecutive: 8</div>
+                    <div className="ace-card-title">Total Trades</div>
+                    <div className="ace-card-value accent">{totalTrades}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>Live Deriv Stream</div>
                 </div>
 
                 <div className="ace-card">

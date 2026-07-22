@@ -13,6 +13,14 @@ export const PerformanceTab: React.FC<PerformanceTabProps> = ({
     balance,
     tradeLogs,
 }) => {
+    const wins = tradeLogs.filter(t => t.result === 'WIN').length;
+    const totalTrades = tradeLogs.length;
+    const winRate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) : '0.0';
+
+    const netPnl = tradeLogs.reduce((acc, curr) => acc + (curr.pnl || 0), 0);
+    const initial = summary.initialBalance || 100;
+    const netRoi = ((netPnl / initial) * 100).toFixed(1);
+
     const chartData = summary.daysPlan.slice(0, 30).map((d) => ({
         day: `Day ${d.day}`,
         Projected: d.targetBalance,
@@ -22,15 +30,15 @@ export const PerformanceTab: React.FC<PerformanceTabProps> = ({
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="ace-card">
-                <h3 style={{ margin: '0 0 0.3rem 0', fontSize: '1.1rem' }}>Compounding Growth & Performance Analytics</h3>
+                <h3 style={{ margin: '0 0 0.3rem 0', fontSize: '1.1rem' }}>Compounding Growth & Real Performance Analytics</h3>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-                    Visualizing actual growth trajectory against projected compounding goals.
+                    Visualizing live account trajectory against target compounding curves.
                 </p>
             </div>
 
             {/* Growth Curve Chart Card */}
             <div className="ace-card">
-                <h4 style={{ margin: '0 0 1rem 0' }}>📈 Compounding Curve vs. Actual Balance (First 30 Days)</h4>
+                <h4 style={{ margin: '0 0 1rem 0' }}>📈 Compounding Curve vs. Real Balance (First 30 Days)</h4>
                 <div style={{ width: '100%', height: 320 }}>
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={chartData}>
@@ -54,19 +62,23 @@ export const PerformanceTab: React.FC<PerformanceTabProps> = ({
             <div className="ace-grid">
                 <div className="ace-card">
                     <div className="ace-card-title">Total Trades Executed</div>
-                    <div className="ace-card-value">{tradeLogs.length > 0 ? tradeLogs.length : 17}</div>
+                    <div className="ace-card-value accent">{totalTrades}</div>
                 </div>
                 <div className="ace-card">
                     <div className="ace-card-title">Overall Win Rate</div>
-                    <div className="ace-card-value positive">82.4%</div>
+                    <div className="ace-card-value positive">{winRate}%</div>
                 </div>
                 <div className="ace-card">
                     <div className="ace-card-title">Net ROI (%)</div>
-                    <div className="ace-card-value positive">+18.5%</div>
+                    <div className={`ace-card-value ${parseFloat(netRoi) >= 0 ? 'positive' : 'negative'}`}>
+                        {parseFloat(netRoi) >= 0 ? `+${netRoi}%` : `${netRoi}%`}
+                    </div>
                 </div>
                 <div className="ace-card">
-                    <div className="ace-card-title">Max Drawdown</div>
-                    <div className="ace-card-value negative">-2.4%</div>
+                    <div className="ace-card-title">Realized Session P/L</div>
+                    <div className={`ace-card-value ${netPnl >= 0 ? 'positive' : 'negative'}`}>
+                        {netPnl >= 0 ? `+$${netPnl.toFixed(2)}` : `-$${Math.abs(netPnl).toFixed(2)}`}
+                    </div>
                 </div>
             </div>
         </div>

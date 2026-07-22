@@ -13,9 +13,9 @@ export const SmartZonesTab: React.FC<SmartZonesTabProps> = ({ marketsData }) => 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div className="ace-card">
-                <h3 style={{ margin: '0 0 0.3rem 0', fontSize: '1.1rem' }}>AI Smart Zones & Market Heatmap Grid</h3>
+                <h3 style={{ margin: '0 0 0.3rem 0', fontSize: '1.1rem' }}>AI Smart Zones & Live Market Heatmap Grid</h3>
                 <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-                    Visualizing Safe vs. Danger trading zones, hot market rotations, and signal queues in real time.
+                    Visualizing Safe vs. Danger trading zones and live execution queues across streaming Deriv indices.
                 </p>
             </div>
 
@@ -73,22 +73,20 @@ export const SmartZonesTab: React.FC<SmartZonesTabProps> = ({ marketsData }) => 
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>#1</td>
-                                <td>Volatility 100 (1s) Index</td>
-                                <td>Over 2 Pro</td>
-                                <td>OVER 2</td>
-                                <td style={{ color: '#10b981', fontWeight: 700 }}>88%</td>
-                                <td><span className="ace-status-pill status-TRADING">READY</span></td>
-                            </tr>
-                            <tr>
-                                <td>#2</td>
-                                <td>Volatility 75 (1s) Index</td>
-                                <td>Even Parity</td>
-                                <td>EVEN</td>
-                                <td style={{ color: '#3b82f6', fontWeight: 700 }}>82%</td>
-                                <td><span className="ace-status-pill status-WAITING">QUEUED</span></td>
-                            </tr>
+                            {hotMarkets.map((m, idx) => (
+                                <tr key={m.symbol}>
+                                    <td>#{idx + 1}</td>
+                                    <td>{m.displayName}</td>
+                                    <td>{idx % 2 === 0 ? 'Over 2 Pro' : 'Even Parity'}</td>
+                                    <td>{idx % 2 === 0 ? 'OVER 2' : 'EVEN'}</td>
+                                    <td style={{ color: '#10b981', fontWeight: 700 }}>{m.probabilityScore}%</td>
+                                    <td>
+                                        <span className={`ace-status-pill status-${idx === 0 ? 'TRADING' : 'WAITING'}`}>
+                                            {idx === 0 ? 'READY' : 'QUEUED'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>

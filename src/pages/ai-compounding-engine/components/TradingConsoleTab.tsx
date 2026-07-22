@@ -50,6 +50,8 @@ export const TradingConsoleTab: React.FC<TradingConsoleTabProps> = ({
                     recoveryUsed: false,
                 };
                 onAddTradeLog(log);
+            } else {
+                alert(res.message || 'Trade execution failed. Please ensure you are logged into your real Deriv account.');
             }
         } finally {
             setIsExecuting(false);
