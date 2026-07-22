@@ -31,8 +31,8 @@ export default class BlocklyStore {
         if (!workspace) return false;
 
         // Check if there are any blocks in the workspace
-        const top_blocks = workspace.getTopBlocks();
-        return top_blocks && top_blocks.length > 0;
+        const top_blocks = (workspace as any).getTopBlocks?.();
+        return Boolean(top_blocks && top_blocks.length > 0);
     }
 
     // Computed property to check if there are saved bots
