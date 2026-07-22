@@ -584,7 +584,7 @@ const AppWrapper = observer(() => {
             });
     }, [siteConfig, allTabDescriptors]);
 
-    const currentTabKey = hash[active_tab] || hash[0];
+    const currentTabKey = hash[active_hash_tab] ?? hash[0];
     const filteredActiveIndex = Math.max(0, activeTabsList.findIndex(t => t.key === currentTabKey));
 
     const handleFilteredTabChange = React.useCallback(
@@ -594,6 +594,7 @@ const AppWrapper = observer(() => {
                 const globalIndex = hash.indexOf(targetTab.key);
                 if (globalIndex > -1) {
                     setActiveTab(globalIndex);
+                    window.location.hash = targetTab.key;
                     const el_id = targetTab.id;
                     if (el_id) {
                         const el_tab = document.getElementById(el_id);
