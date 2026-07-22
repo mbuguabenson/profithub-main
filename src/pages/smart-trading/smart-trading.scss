@@ -69,37 +69,44 @@
 
         .sub-tab-btn {
             position: relative;
-            padding: to-rem(12px) to-rem(24px);
-            background: transparent;
-            border: none;
-            color: rgb(255 255 255 / 50%);
-            font-size: to-rem(14px);
+            padding: to-rem(10px) to-rem(22px);
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+            font-size: to-rem(13px);
             font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
             white-space: nowrap;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: to-rem(12px);
+            user-select: none;
 
-            &:hover {
-                color: #fff;
-                background: rgb(255 255 255 / 5%);
+            &:hover:not(.active) {
+                color: #ffffff;
+                background: rgba(30, 41, 59, 0.8);
+                border-color: rgba(0, 210, 255, 0.3);
+                transform: translateY(-1px);
             }
 
             &.active {
-                color: #fff;
-                background: linear-gradient(135deg, rgb(0 198 255 / 20%), rgb(0 114 255 / 20%));
-                box-shadow: inset 0 0 0 1px rgb(255 255 255 / 20%);
+                color: #ffffff;
+                background: linear-gradient(135deg, #0052ff 0%, #00c6ff 100%);
+                border-color: transparent;
+                box-shadow: 0 4px 18px rgba(0, 198, 255, 0.4);
+                transform: translateY(-1px);
 
                 .active-indicator {
                     position: absolute;
-                    bottom: to-rem(6px);
+                    bottom: to-rem(4px);
                     left: 50%;
                     transform: translateX(-50%);
-                    width: to-rem(20px);
+                    width: to-rem(18px);
                     height: to-rem(3px);
-                    background: #00c6ff;
+                    background: #ffffff;
                     border-radius: to-rem(10px);
-                    box-shadow: 0 0 to-rem(10px) #00c6ff;
+                    box-shadow: 0 0 to-rem(8px) #ffffff;
                 }
             }
         }
