@@ -3,14 +3,14 @@
 .digit-cracker-page {
     min-height: 100%;
     background:
-        radial-gradient(circle at 0% 0%, rgb(99 102 241 / 15%) 0%, transparent 50%),
-        radial-gradient(circle at 100% 100%, rgb(236 72 153 / 10%) 0%, transparent 50%), #05070a;
+        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 100% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%), #090d16;
     color: #f8fafc;
-    padding: to-rem(24px);
+    padding: to-rem(16px);
     font-family: var(--font-body);
     display: flex;
     flex-direction: column;
-    gap: to-rem(24px);
+    gap: to-rem(16px);
     overflow-x: hidden;
 
     // --- Typographic Tokens ---
@@ -28,13 +28,13 @@
     }
 
     @include tablet-screen {
-        padding: to-rem(100px) to-rem(20px) to-rem(24px);
-        gap: to-rem(20px);
+        padding: to-rem(16px);
+        gap: to-rem(16px);
     }
 
     @include mobile-screen {
-        padding: to-rem(90px) to-rem(12px) to-rem(16px);
-        gap: to-rem(16px);
+        padding: to-rem(12px);
+        gap: to-rem(12px);
     }
 
     // --- Glassmorphism Core ---

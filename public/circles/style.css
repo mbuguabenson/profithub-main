@@ -1254,60 +1254,73 @@ select:focus {
 }
 
 /* Remove extra internal rounded background on sections */
-.embedded .ou-section,
-.embedded .eo-section,
-.embedded .md-section,
-.embedded .box {
-    border-radius: 0 !important;
+.embedded body,
+.embedded.dark body,
+body.embedded,
+html.embedded {
+    background: #090d16 !important;
+    color: #f8fafc !important;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
-/* Large/desktop layout: left 75% fixed, right 25% spacer for host run panel */
+.embedded .box,
+.embedded.dark .box {
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    padding: 1.25rem !important;
+    overflow-y: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #090d16 !important;
+}
+
+.embedded .right-spacer {
+    display: none !important;
+}
+
 @media (min-width: 1024px) {
     html,
     body {
         padding: 0 !important;
         margin: 0 !important;
         min-height: 100vh;
-        height: 100vh;
-        overflow: hidden;
+        height: 100%;
+        overflow-y: auto;
     }
 
-    /* Place main content fixed to left 75% */
     .box {
-        position: fixed !important;
+        position: relative !important;
         left: 0;
         top: 0;
-        width: 75vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         border-radius: 0 !important;
-        padding: 1rem;
+        padding: 1.25rem;
         overflow: auto;
         box-shadow: none !important;
-        background-clip: padding-box;
     }
 
-    /* Spacer on the right to leave room for host run panel */
     .right-spacer {
-        position: fixed;
-        right: 0;
-        top: 0;
-        width: 25vw;
-        height: 100vh;
-        pointer-events: none;
-        background: transparent;
+        display: none !important;
     }
 
-    /* Make market-top touch the app nav (reduce top spacing) */
     .market-top {
         margin-top: 0 !important;
         padding-top: 0.5rem !important;
     }
 
-    /* Floating adjustments for the current-price-card and market-select-card to visually align */
     .market-select-card,
     .current-price-card {
         min-height: 64px;
         padding: 0.6rem;
         border-radius: 12px;
+        background: #1e293b !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
 }

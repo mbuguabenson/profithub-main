@@ -19,14 +19,12 @@ type AnalysisToolSubTab =
     | 'signals'
     | 'analysis-tool'
     | 'dp-tools'
-    | 'smart-analysis'
     | 'all-analysis'
     | 'tick-analyser'
     | 'circles-analysis'
     | 'digit-cracker'
     | 'account-flipper'
-    | 'over-under'
-    | 'xenon-ai';
+    | 'over-under';
 
 const AnalysisTools: React.FC = () => {
     const { run_panel } = useStore();
@@ -669,14 +667,6 @@ const AnalysisTools: React.FC = () => {
                 return <AnalysisTool />;
             case 'dp-tools':
                 return <DpTools />;
-            case 'smart-analysis':
-                return (
-                    <IframeWrapper
-                        src='https://www.smartanalysistool.com/signal-center'
-                        title='Smart Analysis'
-                        className='smart-analysis-container'
-                    />
-                );
             case 'all-analysis':
                 return <AllAnalysis />;
             case 'tick-analyser':
@@ -689,8 +679,6 @@ const AnalysisTools: React.FC = () => {
                 return <AccountFlipper />;
             case 'over-under':
                 return <OverUnderTab />;
-            case 'xenon-ai':
-                return <IframeWrapper src='/xenon-ai.html' title='Xenon AI' className='xenon-ai-container' />;
             default:
                 return null;
         }
@@ -749,14 +737,6 @@ const AnalysisTools: React.FC = () => {
                         </div>
                     </div>
                     <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'smart-analysis' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('smart-analysis')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Smart Analysis</span>
-                        </div>
-                    </div>
-                    <div
                         className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'circles-analysis' ? 'analysis-tools__card--active' : ''}`}
                         onClick={() => handleCardClick('circles-analysis')}
                     >
@@ -786,14 +766,6 @@ const AnalysisTools: React.FC = () => {
                     >
                         <div className='analysis-tools__card-content'>
                             <span className='analysis-tools__card-label'>Over Under</span>
-                        </div>
-                    </div>
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'xenon-ai' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('xenon-ai')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Xenon AI</span>
                         </div>
                     </div>
                 </div>

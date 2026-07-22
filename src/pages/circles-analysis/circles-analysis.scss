@@ -2,20 +2,20 @@
 @import 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap';
 
 .smart-auto-v3 {
-    min-height: 100vh;
-    padding: to-rem(24px);
+    min-height: 100%;
+    padding: to-rem(16px);
     background:
-        radial-gradient(circle at 100% 0%, rgb(6 182 212 / 5%) 0%, transparent 50%),
-        radial-gradient(circle at 0% 100%, rgb(16 185 129 / 3%) 0%, transparent 50%), #05080c;
+        radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.05) 0%, transparent 50%), #090d16;
     color: #e2e8f0;
     font-family: var(--font-body);
     display: flex;
     flex-direction: column;
-    gap: to-rem(20px);
+    gap: to-rem(16px);
 
     @include mobile-screen {
-        padding: to-rem(16px);
-        gap: to-rem(16px);
+        padding: to-rem(12px);
+        gap: to-rem(12px);
     }
 
     .num {
