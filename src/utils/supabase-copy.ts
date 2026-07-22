@@ -24,10 +24,27 @@ export interface CopyRequest {
 // Ensure the tables copy_traders and copy_requests are populated/stored.
 // Since Supabase REST works on tables via endpoints, let's wrap them in try/catch fetch.
 
+let isUnreachable = false;
+let lastFailTime = 0;
+
+const safeFetch = async (url: string, options: RequestInit): Promise<Response | null> => {
+    if (isUnreachable && Date.now() - lastFailTime < 60000) {
+        return null;
+    }
+    try {
+        const response = await fetch(url, options);
+        isUnreachable = false;
+        return response;
+    } catch {
+        isUnreachable = true;
+        lastFailTime = Date.now();
+        return null;
+    }
+};
+
 export const publishTraderProfile = async (profile: CopyTraderProfile): Promise<boolean> => {
     try {
-        // Upsert or insert via POST with resolution
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/copy_traders`, {
+        const response = await safeFetch(`${SUPABASE_URL}/rest/v1/copy_traders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -37,16 +54,15 @@ export const publishTraderProfile = async (profile: CopyTraderProfile): Promise<
             },
             body: JSON.stringify(profile),
         });
-        return response.ok;
-    } catch (e) {
-        console.error('Failed to publish trader profile to Supabase:', e);
+        return !!response?.ok;
+    } catch {
         return false;
     }
 };
 
 export const getPublicTraders = async (): Promise<CopyTraderProfile[]> => {
     try {
-        const response = await fetch(
+        const response = await safeFetch(
             `${SUPABASE_URL}/rest/v1/copy_traders?is_public=eq.true&select=*`,
             {
                 method: 'GET',
@@ -57,7 +73,7 @@ export const getPublicTraders = async (): Promise<CopyTraderProfile[]> => {
                 },
             }
         );
-        if (!response.ok) return [];
+        if (!response?.ok) return [];
         return await response.json();
     } catch {
         return [];
@@ -66,7 +82,7 @@ export const getPublicTraders = async (): Promise<CopyTraderProfile[]> => {
 
 export const getTraderProfile = async (loginid: string): Promise<CopyTraderProfile | null> => {
     try {
-        const response = await fetch(
+        const response = await safeFetch(
             `${SUPABASE_URL}/rest/v1/copy_traders?loginid=eq.${encodeURIComponent(loginid)}&select=*`,
             {
                 method: 'GET',
@@ -77,7 +93,7 @@ export const getTraderProfile = async (loginid: string): Promise<CopyTraderProfi
                 },
             }
         );
-        if (!response.ok) return null;
+        if (!response?.ok) return null;
         const data = await response.json();
         return data && data.length > 0 ? data[0] : null;
     } catch {
@@ -103,7 +119,7 @@ export const requestFollowProvider = async (
         // First clean up any existing request for the same pair
         await deleteRequest(requesterLoginid, providerLoginid);
 
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/copy_requests`, {
+        const response = await safeFetch(`${SUPABASE_URL}/rest/v1/copy_requests`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -112,16 +128,15 @@ export const requestFollowProvider = async (
             },
             body: JSON.stringify(requestData),
         });
-        return response.ok;
-    } catch (e) {
-        console.error('Failed to request follow from Supabase:', e);
+        return !!response?.ok;
+    } catch {
         return false;
     }
 };
 
 export const deleteRequest = async (requesterLoginid: string, providerLoginid: string): Promise<boolean> => {
     try {
-        const response = await fetch(
+        const response = await safeFetch(
             `${SUPABASE_URL}/rest/v1/copy_requests?requester_loginid=eq.${encodeURIComponent(
                 requesterLoginid
             )}&provider_loginid=eq.${encodeURIComponent(providerLoginid)}`,
@@ -133,7 +148,7 @@ export const deleteRequest = async (requesterLoginid: string, providerLoginid: s
                 },
             }
         );
-        return response.ok;
+        return !!response?.ok;
     } catch {
         return false;
     }
@@ -144,7 +159,7 @@ export const getCopyRequestStatus = async (
     providerLoginid: string
 ): Promise<CopyRequest | null> => {
     try {
-        const response = await fetch(
+        const response = await safeFetch(
             `${SUPABASE_URL}/rest/v1/copy_requests?requester_loginid=eq.${encodeURIComponent(
                 requesterLoginid
             )}&provider_loginid=eq.${encodeURIComponent(providerLoginid)}&select=*`,
@@ -157,7 +172,7 @@ export const getCopyRequestStatus = async (
                 },
             }
         );
-        if (!response.ok) return null;
+        if (!response?.ok) return null;
         const data = await response.json();
         return data && data.length > 0 ? data[0] : null;
     } catch {
@@ -169,7 +184,7 @@ export const getCopyRequestStatus = async (
 
 export const getPendingRequestsForProvider = async (providerLoginid: string): Promise<CopyRequest[]> => {
     try {
-        const response = await fetch(
+        const response = await safeFetch(
             `${SUPABASE_URL}/rest/v1/copy_requests?provider_loginid=eq.${encodeURIComponent(
                 providerLoginid
             )}&select=*`,
