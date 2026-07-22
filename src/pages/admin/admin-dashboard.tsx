@@ -577,33 +577,70 @@ const AdminDashboard = observer(() => {
     [copyRequests, searchQuery]);
 
     // ─── Live Market Digits & Tick Monitor ───────────────────────────────────
+    // ─── Real Market WebSocket Fetch Engine ─────────────────────────────────
     const [marketTicks, setMarketTicks] = useState<Record<string, { price: number; lastDigit: number; history: number[] }>>({
-        'Volatility 10 Index': { price: 6812.42, lastDigit: 2, history: [1,2,5,3,9,8,2,0,1,2] },
-        'Volatility 25 Index': { price: 245.18, lastDigit: 8, history: [8,3,4,6,7,9,2,8,8,8] },
-        'Volatility 50 Index': { price: 42189.15, lastDigit: 5, history: [4,5,1,2,3,9,5,6,2,5] },
-        'Volatility 75 Index': { price: 92831.60, lastDigit: 0, history: [9,2,0,1,3,4,6,8,9,0] },
-        'Volatility 100 Index': { price: 341.29, lastDigit: 9, history: [1,4,2,3,9,8,9,9,0,9] }
+        'Volatility 100 (1s) Index': { price: 4210.82, lastDigit: 2, history: [1,2,5,3,9,8,2,0,1,2] },
+        'Volatility 75 (1s) Index': { price: 92831.60, lastDigit: 0, history: [9,2,0,1,3,4,6,8,9,0] },
+        'Volatility 50 (1s) Index': { price: 42189.15, lastDigit: 5, history: [4,5,1,2,3,9,5,6,2,5] },
+        'Volatility 100 Index': { price: 341.29, lastDigit: 9, history: [1,4,2,3,9,8,9,9,0,9] },
+        'Volatility 75 Index': { price: 1245.18, lastDigit: 8, history: [8,3,4,6,7,9,2,8,8,8] },
     });
 
     useEffect(() => {
-        if (activeSubPage !== 'market-data' || !isAuthenticated) return;
-        const iv = setInterval(() => {
-            setMarketTicks(prev => {
-                const next = { ...prev };
-                Object.keys(next).forEach(market => {
-                    const data = next[market];
-                    const change = (Math.random() - 0.5) * (data.price * 0.0002);
-                    const newPrice = parseFloat((data.price + change).toFixed(2));
-                    const priceString = newPrice.toFixed(2);
-                    const newDigit = parseInt(priceString.charAt(priceString.length - 1));
-                    const newHistory = [...data.history, newDigit].slice(-100); // Track last 100 ticks
-                    next[market] = { price: newPrice, lastDigit: newDigit, history: newHistory };
+        if (!isAuthenticated) return;
+        let ws: WebSocket | null = null;
+        try {
+            const appId = getAppId() || '3Mmq9JHMrJaUKT2KIhKZ';
+            ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
+
+            ws.onopen = () => {
+                const symbols = ['1HZ100V', '1HZ75V', '1HZ50V', 'R_100', 'R_75'];
+                symbols.forEach((sym, idx) => {
+                    ws?.send(JSON.stringify({
+                        ticks_history: sym,
+                        count: 50,
+                        end: 'latest',
+                        style: 'ticks',
+                        subscribe: 1,
+                        req_id: idx + 100
+                    }));
                 });
-                return next;
-            });
-        }, 1000);
-        return () => clearInterval(iv);
-    }, [activeSubPage, isAuthenticated]);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.msg_type === 'tick' && data.tick) {
+                        const symbol = data.tick.symbol;
+                        const price = data.tick.quote;
+                        const s = price.toString();
+                        const digit = parseInt(s[s.length - 1], 10);
+                        const labelMap: Record<string, string> = {
+                            '1HZ100V': 'Volatility 100 (1s) Index',
+                            '1HZ75V': 'Volatility 75 (1s) Index',
+                            '1HZ50V': 'Volatility 50 (1s) Index',
+                            'R_100': 'Volatility 100 Index',
+                            'R_75': 'Volatility 75 Index',
+                        };
+                        const name = labelMap[symbol] || symbol;
+
+                        setMarketTicks(prev => {
+                            const cur = prev[name] || { price, lastDigit: digit, history: [] };
+                            const newHist = [...cur.history, digit].slice(-100);
+                            return {
+                                ...prev,
+                                [name]: { price, lastDigit: digit, history: newHist }
+                            };
+                        });
+                    }
+                } catch { /* parse error */ }
+            };
+        } catch { /* connection error */ }
+
+        return () => {
+            if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+        };
+    }, [isAuthenticated]);
 
     // ─── MPESA STK Push Payment Simulator ────────────────────────────────────
     const [mpesaPhone, setMpesaPhone] = useState('254712345678');
@@ -1757,77 +1794,149 @@ Status: Systems functional. Replicator nodes ready.
                         </div>
                     )}
 
-                    {/* ═══════════════ COMMISSION ═══════════════ */}
-                    {activeSubPage === 'commission' && (
-                        <div className='adm-card'>
-                            <div className='adm-card__header'>
-                                <div>
-                                    <h3 className='adm-card__title'>💰 Affiliate Markup & Commissions Hub</h3>
-                                    <p className='adm-card__subtitle'>Track 20% profit share splits and withdrawals</p>
-                                </div>
-                                <div className='adm-chart-filters'>
-                                    {(['daily', 'weekly', 'monthly', 'custom'] as const).map(range => (
-                                        <button key={range} className={`adm-chip ${commFilterRange === range ? 'adm-chip--active' : ''}`}
-                                            onClick={() => setCommFilterRange(range)}>{range.toUpperCase()}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {commFilterRange === 'custom' && (
-                                <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-                                    <div className='adm-form-field' style={{ width: 140 }}>
-                                        <label>Start Date</label>
-                                        <input type='date' className='adm-form-input' value={commStartDate} onChange={e => setCommStartDate(e.target.value)} />
+                    {/* ═══════════════ COMMISSION & EARNINGS ═══════════════ */}
+                    {(activeSubPage === 'commission' || (activeSubPage as string) === 'earnings') && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                            {/* App ID & Commission Header Card */}
+                            <div className='adm-card'>
+                                <div className='adm-card__header'>
+                                    <div>
+                                        <h3 className='adm-card__title'>💰 ProfitHub App Earnings & Commission Analytics</h3>
+                                        <p className='adm-card__subtitle'>
+                                            Application: <strong>ProfitHub Trading Suite</strong> | App ID: <code className='adm-mono' style={{ color: 'var(--color-blue)' }}>3Mmq9JHMrJaUKT2KIhKZ</code>
+                                        </p>
                                     </div>
-                                    <div className='adm-form-field' style={{ width: 140 }}>
-                                        <label>End Date</label>
-                                        <input type='date' className='adm-form-input' value={commEndDate} onChange={e => setCommEndDate(e.target.value)} />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className='adm-table-wrap'>
-                                <table className='adm-table'>
-                                    <thead><tr>
-                                        <th>Commission ID</th><th>Date</th><th>Client ID</th><th>Trade Volume</th><th>Net Profit Split</th><th>Earnings (USD)</th><th>Deriv Paid Status</th><th>Actions</th>
-                                    </tr></thead>
-                                    <tbody>
-                                        {filteredCommissions.map(comm => (
-                                            <tr key={comm.id}>
-                                                <td>{comm.id}</td>
-                                                <td>{new Date(comm.date).toLocaleDateString()}</td>
-                                                <td>{comm.clientId}</td>
-                                                <td>${comm.volume.toFixed(2)}</td>
-                                                <td>${comm.profitShare.toFixed(2)}</td>
-                                                <td style={{ color: 'var(--color-green)', fontWeight: 800 }}>+${comm.amount.toFixed(2)}</td>
-                                                <td>
-                                                    <span className={`adm-tag adm-tag--${comm.status === 'paid' ? 'accepted' : comm.status === 'pending' ? 'pending' : 'rejected'}`}>
-                                                        {comm.status === 'paid' ? 'Paid by Deriv' : comm.status === 'pending' ? 'Pending Payout' : 'Unpaid Markup'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    {comm.status !== 'paid' && (
-                                                        <button className='adm-act adm-act--green' onClick={() => {
-                                                            updateCommissionStatus(comm.id, 'paid');
-                                                            setCommissionsState(getCommissions());
-                                                        }}>
-                                                            Verify Paid
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
+                                    <div className='adm-chart-filters'>
+                                        {(['all', '7d', '30d', '3m', '6m', '12m', 'custom'] as const).map(range => (
+                                            <button key={range} className={`adm-chip ${commFilterRange === range ? 'adm-chip--active' : ''}`}
+                                                onClick={() => setCommFilterRange(range)}>{range.toUpperCase()}</button>
                                         ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
-                                <button className='adm-act adm-act--blue' onClick={() => {
-                                    alert('Request sent to Deriv affiliate portal to withdraw commissions.');
-                                    addSystemLog('info', 'Affiliate portal withdrawal request submitted.', 'Affiliate API');
-                                }}>
-                                    Withdraw Commission Balance
-                                </button>
+                                    </div>
+                                </div>
+
+                                {commFilterRange === 'custom' && (
+                                    <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+                                        <div className='adm-form-field' style={{ width: 160 }}>
+                                            <label>Start Date</label>
+                                            <input type='date' className='adm-form-input' value={commStartDate} onChange={e => setCommStartDate(e.target.value)} />
+                                        </div>
+                                        <div className='adm-form-field' style={{ width: 160 }}>
+                                            <label>End Date</label>
+                                            <input type='date' className='adm-form-input' value={commEndDate} onChange={e => setCommEndDate(e.target.value)} />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 4 Key Metric Cards */}
+                                <div className='adm-metrics-grid' style={{ marginBottom: 20 }}>
+                                    <div className='adm-metric-card'>
+                                        <div className='adm-metric-card__title'>Total Trades Executed</div>
+                                        <div className='adm-metric-card__value'>1,482</div>
+                                    </div>
+                                    <div className='adm-metric-card'>
+                                        <div className='adm-metric-card__title'>Active Copier Clients</div>
+                                        <div className='adm-metric-card__value'>{onlineUsers > 0 ? onlineUsers : 12}</div>
+                                    </div>
+                                    <div className='adm-metric-card'>
+                                        <div className='adm-metric-card__title'>Markup Commission ($)</div>
+                                        <div className='adm-metric-card__value' style={{ color: 'var(--color-green)' }}>+$2,840.50</div>
+                                    </div>
+                                    <div className='adm-metric-card'>
+                                        <div className='adm-metric-card__title'>Total Volume ($)</div>
+                                        <div className='adm-metric-card__value' style={{ color: 'var(--color-blue)' }}>${tradingVolume > 0 ? tradingVolume.toFixed(2) : '142,025.00'}</div>
+                                    </div>
+                                </div>
+
+                                {/* Contract Types Distribution & Revenue Trend Grid */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+                                    <div style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 13, color: '#94a3b8' }}>Contract Types Volume Distribution</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {[
+                                                { type: 'Rise / Fall', pct: 42, color: '#10b981' },
+                                                { type: 'Digits Over / Under', pct: 28, color: '#3b82f6' },
+                                                { type: 'Matches / Differs', pct: 15, color: '#8b5cf6' },
+                                                { type: 'High / Low Ticks', pct: 10, color: '#f59e0b' },
+                                                { type: 'Touch / No Touch', pct: 5, color: '#ec4899' },
+                                            ].map(item => (
+                                                <div key={item.type}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
+                                                        <span>{item.type}</span>
+                                                        <span style={{ fontWeight: 700, color: item.color }}>{item.pct}%</span>
+                                                    </div>
+                                                    <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 6, overflow: 'hidden' }}>
+                                                        <div style={{ width: `${item.pct}%`, height: '100%', background: item.color, borderRadius: 6 }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div style={{ padding: 16, background: 'rgba(255,255,255,0.02)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 13, color: '#94a3b8' }}>Volume & Commission Growth</h4>
+                                        <ResponsiveContainer width='100%' height={160}>
+                                            <AreaChart data={[
+                                                { day: 'Mon', Volume: 12000, Commission: 240 },
+                                                { day: 'Tue', Volume: 18000, Commission: 360 },
+                                                { day: 'Wed', Volume: 15000, Commission: 300 },
+                                                { day: 'Thu', Volume: 24000, Commission: 480 },
+                                                { day: 'Fri', Volume: 32000, Commission: 640 },
+                                                { day: 'Sat', Volume: 28000, Commission: 560 },
+                                                { day: 'Sun', Volume: 35000, Commission: 700 },
+                                            ]}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                                <XAxis dataKey="day" stroke="#94a3b8" fontSize={10} />
+                                                <YAxis stroke="#94a3b8" fontSize={10} />
+                                                <Tooltip contentStyle={{ background: '#0a0e17', borderRadius: 8, fontSize: 11 }} />
+                                                <Area type="monotone" dataKey="Commission" stroke="#10b981" fill="rgba(16,185,129,0.2)" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                <div className='adm-table-wrap'>
+                                    <table className='adm-table'>
+                                        <thead><tr>
+                                            <th>Commission ID</th><th>Date</th><th>Client ID</th><th>Trade Volume</th><th>Net Profit Split</th><th>Earnings (USD)</th><th>Deriv Paid Status</th><th>Actions</th>
+                                        </tr></thead>
+                                        <tbody>
+                                            {filteredCommissions.map(comm => (
+                                                <tr key={comm.id}>
+                                                    <td>{comm.id}</td>
+                                                    <td>{new Date(comm.date).toLocaleDateString()}</td>
+                                                    <td>{comm.clientId}</td>
+                                                    <td>${comm.volume.toFixed(2)}</td>
+                                                    <td>${comm.profitShare.toFixed(2)}</td>
+                                                    <td style={{ color: 'var(--color-green)', fontWeight: 800 }}>+${comm.amount.toFixed(2)}</td>
+                                                    <td>
+                                                        <span className={`adm-tag adm-tag--${comm.status === 'paid' ? 'accepted' : comm.status === 'pending' ? 'pending' : 'rejected'}`}>
+                                                            {comm.status === 'paid' ? 'Paid by Deriv' : comm.status === 'pending' ? 'Pending Payout' : 'Unpaid Markup'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        {comm.status !== 'paid' && (
+                                                            <button className='adm-act adm-act--green' onClick={() => {
+                                                                updateCommissionStatus(comm.id, 'paid');
+                                                                setCommissionsState(getCommissions());
+                                                            }}>
+                                                                Verify Paid
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button className='adm-act adm-act--blue' onClick={() => {
+                                        alert('Request sent to Deriv affiliate portal to withdraw commissions.');
+                                        addSystemLog('info', 'Affiliate portal withdrawal request submitted.', 'Affiliate API');
+                                    }}>
+                                        Withdraw Commission Balance
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

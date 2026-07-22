@@ -54,7 +54,6 @@ const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
 const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
-const Earnings = lazy(() => import('../earnings'));
 const AICompoundingEngine = lazy(() => import('../ai-compounding-engine/ai-compounding-engine'));
 
 
@@ -109,7 +108,6 @@ const AppWrapper = observer(() => {
         'signal_centre',
         'marketkiller',
         'multi_trader',
-        'earnings',
         'ai_compounding_engine',
     ];
     const { isDesktop } = useDevice();
@@ -546,21 +544,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Multi Trader...')} />}>
                     <MultiTrader />
-                </Suspense>
-            )
-        },
-        {
-            key: 'earnings',
-            id: 'id-earnings',
-            label: (
-                <>
-                    <LabelPairedObjectsColumnCaptionRegularIcon height='28px' width='28px' fill='#10b981' />
-                    <Localize i18n_default_text='Earnings' />
-                </>
-            ),
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Earnings...')} />}>
-                    <Earnings />
                 </Suspense>
             )
         },
