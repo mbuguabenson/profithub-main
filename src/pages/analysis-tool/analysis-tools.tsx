@@ -9,7 +9,6 @@ import CirclesAnalysis from '../circles-analysis';
 import DigitCracker from '../digit-cracker';
 import AccountFlipper from '../account-flipper';
 import OverUnderTab from '../over-under';
-import IframeWrapper from '@/components/iframe-wrapper';
 import { useStore } from '@/hooks/useStore';
 import { ApiHelpers } from '@/external/bot-skeleton';
 import './analysis-tools.scss';
