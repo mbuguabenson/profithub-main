@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Maximize2, RefreshCw, BarChart2 } from 'lucide-react';
+import { Maximize2, RefreshCw, BarChart2 } from 'lucide-react';
 import './tradingview.scss';
 
 const TradingView: React.FC = () => {
