@@ -235,9 +235,25 @@ const labelOuEl = document.getElementById('label-ou');
     }
 })();
 
+function getDecimalsFromPip(pipSize) {
+    if (typeof pipSize === 'number') {
+        if (pipSize >= 1 && Number.isInteger(pipSize)) return pipSize;
+        const str = pipSize.toString();
+        if (str.includes('e-')) {
+            return parseInt(str.split('e-')[1], 10);
+        }
+        if (str.includes('.')) {
+            return str.split('.')[1].length;
+        }
+    } else if (typeof pipSize === 'string' && pipSize.includes('.')) {
+        return pipSize.split('.')[1].length;
+    }
+    return 2;
+}
+
 function toFixedWithPip(price, pipSize) {
-    const ps = Number.isFinite(pipSize) ? pipSize : 2;
-    return Number(price).toFixed(ps);
+    const decimals = getDecimalsFromPip(pipSize);
+    return Number(price).toFixed(decimals);
 }
 
 function formatPriceWithHighlight(price, pipSize) {
@@ -359,7 +375,7 @@ function connect() {
     ws = new WebSocket(ENDPOINT);
 
     ws.onopen = () => {
-        ws.send(JSON.stringify({ active_symbols: 'brief', product_type: 'basic' }));
+        ws.send(JSON.stringify({ active_symbols: 'brief' }));
         if (currentSymbol) {
             // fetch historical ticks to seed the distribution
             ws.send(

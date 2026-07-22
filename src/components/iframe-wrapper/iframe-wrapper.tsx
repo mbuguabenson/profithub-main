@@ -41,7 +41,7 @@ const IframeWrapper: React.FC<IframeWrapperProps> = observer(({ src, title, clas
         const sendAuthData = () => {
             const tokenData = getToken();
             const rawToken = typeof tokenData === 'string' ? tokenData : (tokenData?.token?.token || tokenData?.token);
-            const token = rawToken || client?.token || localStorage.getItem('token') || (client as any)?.active_account?.token;
+            const token = rawToken || (client as any)?.token || localStorage.getItem('token') || (client as any)?.active_account?.token;
             const loginid = getLoginId() || client?.loginid || localStorage.getItem('active_loginid');
             const appId = getAppId(); // Get the current app ID
 

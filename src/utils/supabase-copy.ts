@@ -197,7 +197,7 @@ export const getPendingRequestsForProvider = async (providerLoginid: string): Pr
                 },
             }
         );
-        if (!response.ok) return [];
+        if (!response?.ok) return [];
         return await response.json();
     } catch {
         return [];
