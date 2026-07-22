@@ -79,7 +79,7 @@ const Dialog = ({
 
     const handleCancel = () => {
         if (cancel_button_text === localize('Log in')) {
-            login();
+            login?.();
         } else {
             if (is_closed_on_cancel && enableApp) {
                 enableApp();
