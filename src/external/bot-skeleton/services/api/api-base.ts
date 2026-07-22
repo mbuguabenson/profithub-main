@@ -259,18 +259,54 @@ class APIBase {
         setIsAuthorizing(true);
 
         try {
-            const { balance, error } = await (this.api as any).balance();
+            const activeAccountId = getAccountId();
+            const accountsList_raw = localStorage.getItem('accountsList');
+            let token = '';
 
-            if (error) {
-                const errorMessage = isBackendError(error)
-                    ? handleBackendError(error)
-                    : error.message || 'Authorization failed';
+            if (accountsList_raw && activeAccountId) {
+                try {
+                    const accountsList = JSON.parse(accountsList_raw);
+                    token = accountsList[activeAccountId] || '';
+                } catch {}
+            }
+
+            if (!token) {
+                token = localStorage.getItem('active_token') || localStorage.getItem('token') || localStorage.getItem('deriv_api_token') || '';
+            }
+
+            let authResult: any = null;
+
+            if (token) {
+                try {
+                    const res = await this.api.authorize(token);
+                    if (res?.authorize) {
+                        authResult = { balance: res.authorize };
+                    } else if (res?.error) {
+                        console.warn('[APIBase] Token authorize returned error, falling back to balance:', res.error);
+                    }
+                } catch (tokErr) {
+                    console.warn('[APIBase] Token authorize failed:', tokErr);
+                }
+            }
+
+            if (!authResult) {
+                const res = await (this.api as any).balance();
+                authResult = res;
+            }
+
+            const balance = authResult?.balance;
+            const error = authResult?.error;
+
+            if (error || !balance) {
+                const errorMessage = error
+                    ? (isBackendError(error) ? handleBackendError(error) : error.message || 'Authorization failed')
+                    : 'No balance data received';
 
                 // Authorization error
                 console.error('Authorization error:', errorMessage);
 
                 setIsAuthorizing(false);
-                return { ...error, localizedMessage: errorMessage };
+                return { localizedMessage: errorMessage };
             }
 
             this.account_info = {

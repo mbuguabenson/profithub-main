@@ -2,15 +2,11 @@ import { observer as globalObserver } from '@/external/bot-skeleton/utils/observ
 import CopyTradingManager from './copy-trading-manager';
 import { getToken } from '@/external/bot-skeleton/services/api/appId';
 import { isSpecialCRAccount, getDemoAccountIdForSpecialCR } from '@/utils/special-accounts-config';
-import { getAppId, isProduction } from '@/components/shared/utils/config/config';
 import DBot from '@/external/bot-skeleton/scratch/dbot';
 
 // Simple duplicate guard by purchase_reference or timestamp
 const recentKeys = new Set<string>();
 const RECENT_TTL_MS = 15000;
-
-// Cache for token → account_id lookups so we don't hit the API repeatedly
-const tokenAccountCache = new Map<string, { account_id: string; is_demo: boolean }>();
 
 // Status update function for UI - exported for use in copy-trading.tsx
 export function updateReplicationStatus(
@@ -66,84 +62,7 @@ function cleanupKeys() {
 /**
  * Resolve a token to its account_id by querying the REST API.
  * Results are cached to avoid repeated API calls.
- */
-async function resolveTokenToAccount(
-    token: string,
-    manager: CopyTradingManager,
-    appId: string,
-    baseURL: string
-): Promise<{ account_id: string; is_demo: boolean } | null> {
-    // 1. Check cache first
-    if (tokenAccountCache.has(token)) {
-        return tokenAccountCache.get(token)!;
-    }
 
-    // 2. Check manager copiers
-    const copier = manager.copiers.find(c => c.token === token);
-    if (copier?.loginId) {
-        const is_demo = copier.loginId.startsWith('VR') || copier.loginId.startsWith('VRT');
-        const result = { account_id: copier.loginId, is_demo };
-        tokenAccountCache.set(token, result);
-        return result;
-    }
-
-    // 3. Check manager master
-    if (manager.master.token === token && manager.master.loginId) {
-        const is_demo = manager.master.loginId.startsWith('VR') || manager.master.loginId.startsWith('VRT');
-        const result = { account_id: manager.master.loginId, is_demo };
-        tokenAccountCache.set(token, result);
-        return result;
-    }
-
-    // 4. Check localStorage accountsList
-    try {
-        const accountsList = JSON.parse(localStorage.getItem('accountsList') || '{}');
-        for (const loginId of Object.keys(accountsList)) {
-            if (accountsList[loginId] === token) {
-                const is_demo = loginId.startsWith('VR') || loginId.startsWith('VRT');
-                const result = { account_id: loginId, is_demo };
-                tokenAccountCache.set(token, result);
-                return result;
-            }
-        }
-    } catch {}
-
-    // 5. Fetch from REST API — this is the key fix for external tokens
-    try {
-        const res = await fetch(`${baseURL}options/accounts`, {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Deriv-App-ID': appId,
-            },
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            const accounts = data?.data || [];
-            if (accounts.length > 0) {
-                const account = accounts[0];
-                const accountId = account.account_id;
-                const is_demo = accountId.startsWith('VR') || accountId.startsWith('VRT');
-                const result = { account_id: accountId, is_demo };
-                tokenAccountCache.set(token, result);
-
-                // Also update the copier in manager so future lookups are instant
-                if (copier) {
-                    copier.loginId = accountId;
-                }
-
-                console.log(`[Replicator] ✅ Resolved token to account: ${accountId}`);
-                return result;
-            }
-        }
-    } catch (e) {
-        console.warn('[Replicator] Failed to resolve token via API:', e);
-    }
-
-    console.warn('[Replicator] ⚠️ Could not resolve account_id for token:', token.slice(0, 6) + '...');
-    return null;
-}
 
 export function initReplicator(manager: CopyTradingManager) {
     const sub = async (payload: any) => {

@@ -1,5 +1,6 @@
+// @ts-ignore
 import DerivAPIBasic from '@deriv/deriv-api/dist/DerivAPIBasic';
-import { getAppId, isProduction } from '@/components/shared/utils/config/config';
+import { getAppId } from '@/components/shared/utils/config/config';
 
 export type TConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 

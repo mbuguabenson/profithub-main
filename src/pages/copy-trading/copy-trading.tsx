@@ -4,8 +4,6 @@ import CopyTradingManager from './copy-trading-manager';
 import { getGlobalCopyTradingManager } from './copy-trading-manager-singleton';
 import Dialog from '@/components/shared_ui/dialog';
 import { useStore } from '@/hooks/useStore';
-import { getAppId, isProduction } from '@/components/shared/utils/config/config';
-import { api_base } from '@/external/bot-skeleton';
 import { getTradeLogs } from './replicator';
 import {
     requestFollowProvider,
@@ -29,11 +27,6 @@ const getActiveToken = (): string | null => {
     const list = getAccountsList();
     const id = getActiveLoginId();
     return list[id] || null;
-};
-
-const getAllStoredTokens = (): string[] => {
-    const list = getAccountsList();
-    return Object.values(list).filter(Boolean);
 };
 
 const getCopyTokensArray = (): string[] => {
