@@ -406,14 +406,11 @@ const AdminDashboard = observer(() => {
                         throw new Error('Fallback needed');
                     }
                 } catch {
-                    // Pre-fill realistic mock values if token is not queryable (offline / local testing)
-                    const mockNames = ['Ken Ndungu', 'Waweru Benson', 'Mercy Wanjiku', 'Ochieng Steve', 'Farah Amina'];
-                    const mockIndex = Math.abs(simpleHash(loginid)) % mockNames.length;
                     updated[loginid] = {
-                        name: mockNames[mockIndex],
-                        realBalance: parseFloat((Math.sin(mockIndex) * 450 + 1200).toFixed(2)),
-                        demoBalance: 10000.00,
-                        drawdown: parseFloat((3.14 + mockIndex * 1.2).toFixed(2))
+                        name: loginid,
+                        realBalance: 0,
+                        demoBalance: 0,
+                        drawdown: 0
                     };
                 }
             }

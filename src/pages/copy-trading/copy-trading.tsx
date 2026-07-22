@@ -289,26 +289,61 @@ const CopyTrading = observer(() => {
         return () => clearInterval(poll);
     }, []);
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-    const refreshClientList = useCallback(() => {
-        setCopierList([...getCopyTokensArray()]);
-    }, []);
+    // ─── Real Account Helper ──────────────────────────────────────────────────
+    const findRealAccountToken = useCallback((): { loginid: string; token: string } | null => {
+        // 1. Check MobX client store
+        if (client?.accounts) {
+            const keys = Object.keys(client.accounts);
+            const realKey = keys.find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
+            if (realKey) {
+                const token = (client as any).getTokenForAccount?.(realKey) || client.accounts[realKey]?.token;
+                if (token) return { loginid: realKey, token };
+            }
+        }
+        // 2. Check localStorage accountsList
+        const accountsList = getAccountsList();
+        const realKey = Object.keys(accountsList).find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
+        if (realKey && accountsList[realKey]) {
+            return { loginid: realKey, token: accountsList[realKey] };
+        }
+
+        // 3. Check client.accounts in localStorage
+        try {
+            const clientAccounts = JSON.parse(localStorage.getItem('client.accounts') || '{}');
+            const cKey = Object.keys(clientAccounts).find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
+            if (cKey && clientAccounts[cKey]?.token) {
+                return { loginid: cKey, token: clientAccounts[cKey].token };
+            }
+        } catch {
+            /* Ignore */
+        }
+
+        // 4. Check cr_loginid in localStorage & active token
+        const crLoginid = localStorage.getItem('cr_loginid');
+        const activeToken = getActiveToken() || localStorage.getItem('active_token') || localStorage.getItem('token');
+        if (crLoginid && !crLoginid.startsWith('VR') && activeToken) {
+            return { loginid: crLoginid, token: activeToken };
+        }
+
+        return null;
+    }, [client]);
 
     // ─── Handlers ─────────────────────────────────────────────────────────────
     const handleDemoToReal = async () => {
         const isStart = !demoToRealActive;
-        const accounts_list = getAccountsList();
         const manager = managerRef.current;
         if (!manager) return;
 
+        const realAccount = findRealAccountToken();
+
         if (isStart) {
-            const key = Object.keys(accounts_list).find(k => !k.startsWith('VR'));
-            if (key) {
-                const value = accounts_list[key];
+            if (realAccount) {
+                const { loginid, token: value } = realAccount;
                 let arr = getCopyTokensArray();
                 if (!arr.includes(value)) arr.push(value);
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
                 localStorage.setItem('demo_to_real', 'true');
+                localStorage.setItem('cr_loginid', loginid);
                 manager.setMasterToken(value);
                 if (localStorage.getItem('iscopyTrading') === 'true') {
                     try {
@@ -331,40 +366,27 @@ const CopyTrading = observer(() => {
                     }
                 }
 
-                setSuccessMessage('✅ Demo to Real copy trading activated');
+                setSuccessMessage(`✅ Demo to Real copy trading activated for account ${loginid}`);
                 setTimeout(() => setSuccessMessage(''), 6000);
                 refreshClientList();
             } else {
-                setErrorMessage('No real account (ROT) found. Please log in to a real account first.');
+                setErrorMessage('No real account (CR/ROT) found in your session. Please make sure you are logged into a real Deriv account or add your real account token.');
                 setErrorModalVisible(true);
             }
         } else {
-            const key = Object.keys(accounts_list).find(k => !k.startsWith('VR'));
-            if (key) {
-                const value = accounts_list[key];
+            if (realAccount) {
+                const { token: value } = realAccount;
                 let arr = getCopyTokensArray().filter((t: string) => t !== value);
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
-                localStorage.setItem('demo_to_real', 'false');
-                manager.disconnectMaster();
-                manager.setMasterToken('');
-                setDemoToRealActive(false);
-
-                // Reconnect WebSocket to restore the native Real account connection
-                const active = getActiveLoginId();
-                if (active && !active.startsWith('VR')) {
-                    try {
-                        const { clearDerivApiInstance } = await import('@/external/bot-skeleton/services/api/appId');
-                        clearDerivApiInstance();
-                        void api_base.init(true);
-                    } catch (err) {
-                        console.error('Error switching connection to Real:', err);
-                    }
-                }
-
-                setSuccessMessage('⏹️ Demo to Real stopped');
-                setTimeout(() => setSuccessMessage(''), 6000);
-                refreshClientList();
             }
+            localStorage.setItem('demo_to_real', 'false');
+            manager.disconnectMaster();
+            manager.setMasterToken('');
+            setDemoToRealActive(false);
+
+            setSuccessMessage('⏹️ Demo to Real stopped');
+            setTimeout(() => setSuccessMessage(''), 6000);
+            refreshClientList();
         }
     };
 
