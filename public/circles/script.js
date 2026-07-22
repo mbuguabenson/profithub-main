@@ -393,6 +393,7 @@ function connect() {
     ws.onmessage = msg => {
         const data = JSON.parse(msg.data);
 
+        if (data.active_symbols) {
             const vols = data.active_symbols.filter(
                 s => /Volatility/i.test(s.display_name) || (s.symbol && (s.symbol.startsWith('R_') || s.symbol.startsWith('1HZ')))
             );
