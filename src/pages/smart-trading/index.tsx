@@ -57,7 +57,6 @@ const SmartTrading = observer(() => {
                     { id: 'vsense_turbo', label: 'VSense Turbo' },
                     { id: 'money_maker_ultra', label: 'Money Maker Ultra' },
                     { id: 'digit_cracker', label: 'Digit Cracker' },
-                    { id: 'automated', label: 'SmartAuto' },
                     { id: 'signal_centre', label: 'Signal Centre' },
                     { id: 'bulk', label: 'Bulk Trading' },
                     { id: 'scp', label: 'SCP Analysis' },
@@ -79,7 +78,6 @@ const SmartTrading = observer(() => {
             {active_subtab === 'vsense_turbo' && <VSenseTurboTab />}
             {active_subtab === 'money_maker_ultra' && <MoneyMakerUltraTab />}
             {active_subtab === 'digit_cracker' && <DigitCracker />}
-            {active_subtab === 'automated' && <AutomatedTradingView />}
 
             {/^(speed|vsense_turbo)$/.test(active_subtab) && (
                 <>

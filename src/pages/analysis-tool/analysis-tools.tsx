@@ -708,7 +708,7 @@ const AnalysisTools: React.FC = () => {
                         onClick={() => handleCardClick('all-analysis')}
                     >
                         <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>All Analysis</span>
+                            <span className='analysis-tools__card-label'>All Markets</span>
                         </div>
                     </div>
                     <div
