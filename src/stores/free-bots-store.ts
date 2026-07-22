@@ -149,7 +149,7 @@ export default class FreeBotsStore {
     fetchMarkets = async () => {
         try {
             if (!api_base.api) return;
-            const res = await api_base.api.send({ active_symbols: 'brief', product_type: 'basic' });
+            const res = await api_base.api.send({ active_symbols: 'brief' });
             if (res?.active_symbols?.length) {
                 const groups: Record<string, { group: string; items: { value: string; label: string }[] }> = {};
                 res.active_symbols.forEach((s: any) => {

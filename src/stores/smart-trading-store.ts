@@ -570,7 +570,7 @@ export default class SmartTradingStore {
         );
 
         reaction(
-            () => this.root_store.dashboard.active_tab,
+            () => this.root_store?.dashboard?.active_tab,
             active_tab => {
                 if (active_tab === DBOT_TABS.SMART_AUTO24) {
                     this.setActiveSubtab('automated');
@@ -811,7 +811,7 @@ export default class SmartTradingStore {
         let symbols: any[] = [];
         try {
             if (api_base.api) {
-                const response = await api_base.api.send({ active_symbols: 'brief', product_type: 'basic' });
+                const response = await api_base.api.send({ active_symbols: 'brief' });
                 if (response.active_symbols && response.active_symbols.length > 0) {
                     symbols = response.active_symbols;
                 }

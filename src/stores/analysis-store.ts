@@ -564,7 +564,7 @@ export default class AnalysisStore {
         let symbols: any[] = [];
         try {
             if (api_base.api) {
-                const response = (await api_base.api.send({ active_symbols: 'brief', product_type: 'basic' })) as unknown as any;
+                const response = (await api_base.api.send({ active_symbols: 'brief' })) as unknown as any;
                 if (response && response.active_symbols && response.active_symbols.length > 0) {
                     symbols = response.active_symbols;
                 }

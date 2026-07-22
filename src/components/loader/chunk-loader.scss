@@ -76,23 +76,43 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
-    padding: 3.5rem 4.5rem;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(28px);
-    -webkit-backdrop-filter: blur(28px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 28px;
+    gap: 2.25rem;
+    padding: 3.75rem 4.75rem;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.88) 0%, rgba(9, 13, 22, 0.92) 100%);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 32px;
     box-shadow:
-        0 25px 60px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    animation: welcome-card-pop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        0 30px 70px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    animation: welcome-card-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6, #ec4899, #10b981);
+        background-size: 200% 100%;
+        animation: wl-border-flow 3s ease infinite;
+    }
+}
+
+@keyframes wl-border-flow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 @keyframes welcome-card-pop {
     from {
         opacity: 0;
-        transform: scale(0.92) translateY(16px);
+        transform: scale(0.9) translateY(20px);
     }
     to {
         opacity: 1;
@@ -102,23 +122,23 @@
 
 .welcome-loader-glow {
     position: absolute;
-    inset: -20px;
-    border-radius: 40px;
-    background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.2) 0%, rgba(16, 185, 129, 0.1) 60%, transparent 80%);
-    filter: blur(20px);
+    inset: -30px;
+    border-radius: 50px;
+    background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.25) 0%, rgba(16, 185, 129, 0.15) 50%, transparent 80%);
+    filter: blur(25px);
     pointer-events: none;
-    animation: welcome-glow-pulse 3s ease-in-out infinite alternate;
+    animation: welcome-glow-pulse 3.5s ease-in-out infinite alternate;
 }
 
 @keyframes welcome-glow-pulse {
-    0% { opacity: 0.5; transform: scale(0.96); }
-    100% { opacity: 1; transform: scale(1.04); }
+    0% { opacity: 0.4; transform: scale(0.95); }
+    100% { opacity: 0.9; transform: scale(1.05); }
 }
 
 .welcome-loader-brand {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.25rem;
     z-index: 1;
 }
 
@@ -126,23 +146,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    width: 62px;
+    height: 62px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .welcome-loader-title {
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 900;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: #ffffff;
     margin: 0;
 
     .accent {
-        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+        background: linear-gradient(135deg, #10b981 0%, #3b82f6 50%, #8b5cf6 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -153,42 +175,45 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.85rem;
     z-index: 1;
 }
 
 .welcome-loader-msg {
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: 0.92rem;
+    font-weight: 600;
     color: #94a3b8;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .welcome-loader-deriv-badge {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.9rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #cbd5e1;
+    gap: 0.6rem;
+    padding: 0.4rem 1.1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e2e8f0;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 
     .deriv-dot {
-        width: 6px;
-        height: 6px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
         background: #ef4444;
-        box-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
-        animation: deriv-dot-pulse 1.5s ease-in-out infinite;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.9);
+        animation: deriv-dot-pulse 1.4s ease-in-out infinite;
     }
 }
 
 @keyframes deriv-dot-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.85); }
 }
 
 

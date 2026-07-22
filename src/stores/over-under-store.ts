@@ -82,7 +82,7 @@ export default class OverUnderStore {
     @action
     private fetchActiveSymbols() {
         if (!this.isApiReady()) return;
-        api_base.api!.send({ active_symbols: 'brief', product_type: 'basic' }).then((res: any) => {
+        api_base.api!.send({ active_symbols: 'brief' }).then((res: any) => {
             if (res?.active_symbols) {
                 const filtered = res.active_symbols
                     .filter((s: any) => s.market === 'synthetic_index' && s.submarket === 'random_index')
