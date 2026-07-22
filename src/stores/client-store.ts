@@ -63,6 +63,7 @@ export default class ClientStore {
         }
     };
 
+    constructor() {
         // Hydrate immediately from localStorage cache for instant account details display (<1ms)
         try {
             const cachedLoginid = localStorage.getItem('active_loginid') || '';
