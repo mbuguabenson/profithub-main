@@ -63,9 +63,28 @@ export default class ClientStore {
         }
     };
 
-    constructor() {
-        // Subscribe to auth data changes
-        this.authDataSubscription = authData$.subscribe(() => {});
+        // Hydrate immediately from localStorage cache for instant account details display (<1ms)
+        try {
+            const cachedLoginid = localStorage.getItem('active_loginid') || '';
+            const cachedDetails = localStorage.getItem('client_account_details');
+            if (cachedLoginid) {
+                this.loginid = cachedLoginid;
+                this.is_logged_in = true;
+            }
+            if (cachedDetails) {
+                const list = JSON.parse(cachedDetails);
+                if (Array.isArray(list) && list.length > 0) {
+                    this.setAccountList(list);
+                    const active = list.find((a: any) => a.loginid === cachedLoginid) || list[0];
+                    if (active) {
+                        this.currency = active.currency || 'USD';
+                        if (active.balance !== undefined && active.balance !== null) {
+                            this.balance = active.balance.toString();
+                        }
+                    }
+                }
+            }
+        } catch {}
 
         observer.register('api.authorize', this.onAuthorizeEvent);
 

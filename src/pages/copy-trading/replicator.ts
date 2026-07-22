@@ -59,9 +59,7 @@ function cleanupKeys() {
     }
 }
 
-/**
- * Resolve a token to its account_id by querying the REST API.
- * Results are cached to avoid repeated API calls.
+
 
 
 export function initReplicator(manager: CopyTradingManager) {
