@@ -21,6 +21,7 @@ export default class CommonStore {
     update_time_interval: NodeJS.Timeout | undefined;
     current_language = '';
     is_socket_opened = false;
+    latency = 0;
     error: Partial<Error> | undefined;
     has_error = false;
 
@@ -29,6 +30,7 @@ export default class CommonStore {
             current_language: observable,
             server_time: observable,
             is_socket_opened: observable,
+            latency: observable,
             error: observable,
             has_error: observable,
             setServerTime: action,

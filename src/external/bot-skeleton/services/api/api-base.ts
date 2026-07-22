@@ -37,7 +37,8 @@ type TApiBaseApi = {
         addEventListener: (event: string, callback: () => void) => void;
         removeEventListener: (event: string, callback: () => void) => void;
     };
-    send: (data: unknown) => void;
+    send: (data: any) => Promise<any>;
+    subscribe?: (data: any) => Promise<any>;
     disconnect: () => void;
     authorize: (token: string) => Promise<{ authorize: TAuthData; error: unknown }>;
 
@@ -46,6 +47,7 @@ type TApiBaseApi = {
             unsubscribe: () => void;
         };
     };
+    [key: string]: any;
 } & ReturnType<typeof generateDerivApiInstance>;
 
 class APIBase {
