@@ -31,24 +31,7 @@ type SubscriptionPromise = Promise<{
     subscription: CurrentSubscription;
 }>;
 
-type TApiBaseApi = {
-    connection: {
-        readyState: keyof typeof socket_state;
-        addEventListener: (event: string, callback: () => void) => void;
-        removeEventListener: (event: string, callback: () => void) => void;
-    };
-    send: (data: any) => Promise<any>;
-    subscribe?: (data: any) => Promise<any>;
-    disconnect: () => void;
-    authorize: (token: string) => Promise<{ authorize: TAuthData; error: unknown }>;
-
-    onMessage: () => {
-        subscribe: (callback: (message: unknown) => void) => {
-            unsubscribe: () => void;
-        };
-    };
-    [key: string]: any;
-} & ReturnType<typeof generateDerivApiInstance>;
+type TApiBaseApi = any;
 
 class APIBase {
     api: TApiBaseApi | null = null;
