@@ -431,7 +431,11 @@ function connect() {
 
         // Errors
         if (data.error) {
-            console.error('Deriv error:', data.error);
+            console.warn('Deriv error:', data.error.message || data.error.code || data.error);
+            if (data.error.code === 'InvalidSymbol' && currentSymbol !== 'R_100') {
+                console.warn('Falling back to default symbol R_100 due to InvalidSymbol');
+                subscribe('R_100');
+            }
         }
     };
 
