@@ -58,6 +58,9 @@ const SmartTrading = observer(() => {
                     { id: 'money_maker_ultra', label: 'Money Maker Ultra' },
                     { id: 'digit_cracker', label: 'Digit Cracker' },
                     { id: 'automated', label: 'SmartAuto' },
+                    { id: 'signal_centre', label: 'Signal Centre' },
+                    { id: 'bulk', label: 'Bulk Trading' },
+                    { id: 'scp', label: 'SCP Analysis' },
                 ].map(tab => (
                     <button
                         key={tab.id}

@@ -299,10 +299,11 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
     { key: 'signal_centre', label: 'Signal Centre', enabled: true, order: 14 },
     { key: 'marketkiller', label: 'MarketKiller', enabled: true, order: 15 },
     { key: 'multi_trader', label: 'Multi Trader', enabled: true, order: 16 },
+    { key: 'ai_compounding_engine', label: 'AI Compounding Engine', enabled: true, order: 17 },
 ];
 
 // Bump this when new tabs are added to force clients to pick up new defaults
-const TAB_CONFIG_VERSION = 4;
+const TAB_CONFIG_VERSION = 5;
 
 export const getSiteConfig = (): SiteConfig => {
     try {

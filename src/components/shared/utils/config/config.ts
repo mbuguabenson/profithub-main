@@ -1000,7 +1000,33 @@ const getLegacyServerURL = () => {
  */
 export const getSocketURL = async (): Promise<string> => {
     try {
-        // Check PKCE OAuth first (new platform users)
+        // ── FAST PATH ──────────────────────────────────────────────────────────
+        // Check legacy tokens FIRST (stored by storeLegacyAccounts from OAuth params).
+        // This lets the WS connect in <1ms for users who already logged in,
+        // without hitting the slow PKCE OTP endpoint at all.
+        const accountsList_raw = localStorage.getItem('accountsList');
+        const pendingApiToken = getPendingApiToken();
+
+        if (pendingApiToken) {
+            console.log('[getSocketURL] API token login detected - using classic WebSocket URL');
+            return getLegacyServerURL();
+        }
+
+        if (accountsList_raw) {
+            try {
+                const accountsList = JSON.parse(accountsList_raw);
+                const active_loginid = localStorage.getItem('active_loginid');
+                if (active_loginid && accountsList[active_loginid]) {
+                    console.log('[getSocketURL] Legacy token found - fast-pathing to classic WebSocket URL');
+                    return getLegacyServerURL();
+                }
+            } catch (e) {
+                console.error('[getSocketURL] Error parsing legacy accountsList:', e);
+            }
+        }
+
+        // ── PKCE PATH ─────────────────────────────────────────────────────────
+        // Only reached for PKCE-only users (no legacy token in localStorage).
         let authInfo = OAuthTokenExchangeService.getAuthInfo();
         if (!authInfo) {
             const expiredAuthInfo = OAuthTokenExchangeService.getAuthInfo({ allowExpiredWithRefresh: true });
@@ -1011,51 +1037,17 @@ export const getSocketURL = async (): Promise<string> => {
                 }
             }
         }
+
         if (authInfo?.access_token) {
             console.log('[getSocketURL] PKCE user detected - fetching authenticated WebSocket URL');
             try {
-                // Use the DerivWSAccountsService to get authenticated WebSocket URL
                 const wsUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(authInfo.access_token);
                 return wsUrl;
             } catch (pkceError) {
                 // OTP endpoint unreachable — fall through to legacy URL fallback
                 console.warn('[getSocketURL] PKCE OTP fetch failed, falling back to legacy WS URL:', pkceError);
+                return getLegacyServerURL();
             }
-        }
-
-        // Check for legacy token in localStorage (legacy platform users)
-        // Legacy tokens are stored by storeLegacyAccounts() from OAuth redirect params
-        const accountsList_raw = localStorage.getItem('accountsList');
-        const pendingApiToken = getPendingApiToken();
-        if (pendingApiToken) {
-            const legacyWsUrl = getLegacyServerURL();
-            console.log('[getSocketURL] API token login detected - using classic WebSocket URL');
-            return legacyWsUrl;
-        }
-
-        if (accountsList_raw) {
-            try {
-                const accountsList = JSON.parse(accountsList_raw);
-                const active_loginid = localStorage.getItem('active_loginid');
-                if (active_loginid && accountsList[active_loginid]) {
-                    const legacyWsUrl = getLegacyServerURL();
-                    console.log('[getSocketURL] Legacy user detected with token - using classic WebSocket URL');
-                    // For legacy users, DerivAPIBasic must connect to classic `/websockets/v3`.
-                    // The newer DerivWS `/trading/v1/options/ws/public` endpoint can open, but
-                    // legacy `api.authorize(token)` will not complete there.
-                    return legacyWsUrl;
-                }
-            } catch (e) {
-                console.error('[getSocketURL] Error parsing legacy accountsList:', e);
-            }
-        }
-
-        // PKCE user whose OTP failed OR no auth found — use legacy WS as safe fallback
-        // This prevents the infinite ws/public reconnect loop
-        if (authInfo?.access_token) {
-            const legacyWsUrl = getLegacyServerURL();
-            console.log('[getSocketURL] PKCE OTP unavailable - using legacy WebSocket URL as fallback');
-            return legacyWsUrl;
         }
 
         // No authentication found
