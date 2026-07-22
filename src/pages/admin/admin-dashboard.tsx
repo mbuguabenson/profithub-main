@@ -361,7 +361,7 @@ const AdminDashboard = observer(() => {
         if (!isAuthenticated || copyRequests.length === 0) return;
         
         const loadConnectedUserBalances = async () => {
-            const appId = getAppId() || '114292';
+            const appId = getAppId() || '3Mmq9JHMrJaUKT2KIhKZ';
             const baseURL = isProduction()
                 ? 'https://api.derivws.com/trading/v1/'
                 : 'https://staging-api.derivws.com/trading/v1/';
@@ -500,7 +500,7 @@ const AdminDashboard = observer(() => {
         if (!isAuthenticated) return;
         const fetchBalances = async () => {
             const tokens = getCopyTokensArray();
-            const appId = getAppId?.() ?? process.env.APP_ID ?? localStorage.getItem('APP_ID') ?? '114292';
+            const appId = getAppId?.() ?? process.env.APP_ID ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
             const baseURL = isProduction()
                 ? 'https://api.derivws.com/trading/v1/'
                 : 'https://staging-api.derivws.com/trading/v1/';

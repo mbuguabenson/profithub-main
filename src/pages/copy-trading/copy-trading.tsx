@@ -80,6 +80,7 @@ const CopyTrading = observer(() => {
     // Profithubadmin Follow state
     const [adminFollowStatus, setAdminFollowStatus] = useState<'none' | 'pending' | 'accepted' | 'rejected'>('none');
     const [isLoadingAdminStatus, setIsLoadingAdminStatus] = useState(false);
+    const [showAccountPublic, setShowAccountPublic] = useState(() => localStorage.getItem('show_account_public') === 'true');
     
     // Copy Trading Terms & Disclaimer states
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
@@ -212,7 +213,7 @@ const CopyTrading = observer(() => {
                 return;
             }
 
-            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
             const baseURL = isProduction()
                 ? 'https://api.derivws.com/trading/v1/'
                 : 'https://staging-api.derivws.com/trading/v1/';
@@ -1003,6 +1004,24 @@ const CopyTrading = observer(() => {
                                                 Copy
                                             </button>
                                         )}
+                                    </div>
+                                    <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                                            <input
+                                                type='checkbox'
+                                                checked={showAccountPublic}
+                                                onChange={e => {
+                                                    setShowAccountPublic(e.target.checked);
+                                                    localStorage.setItem('show_account_public', String(e.target.checked));
+                                                    setSuccessMessage2(e.target.checked ? '✅ Account is now visible to other users for copy trading' : '🔒 Account hidden from marketplace');
+                                                    setTimeout(() => setSuccessMessage2(''), 5000);
+                                                }}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                            />
+                                            <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-prominent)' }}>
+                                                Show my account to other users for copytrading
+                                            </span>
+                                        </label>
                                     </div>
                                 </div>
                                 {successMessage2 && (

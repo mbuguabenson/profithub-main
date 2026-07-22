@@ -1279,7 +1279,7 @@ export const getAppId = () => {
         // ignore and fallback
     }
     // Fallback to env or localStorage or default
-    return process.env.CLIENT_ID ?? localStorage.getItem('CLIENT_ID') ?? '';
+    return process.env.CLIENT_ID ?? localStorage.getItem('CLIENT_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
 };
 
 

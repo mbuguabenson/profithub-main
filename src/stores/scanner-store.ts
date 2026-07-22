@@ -2,6 +2,7 @@ import { action, makeObservable, observable } from 'mobx';
 import { api_base } from '@/external/bot-skeleton';
 import RootStore from './root-store';
 import { getLastDigitFromQuote } from '@/utils/market-data';
+import { generateBotXML, mapSignalToBestSignal } from '@/utils/bot-xml-generator';
 
 export type TStrategyType = 'even_odd' | 'over_under' | 'matches' | 'differs' | 'rise_fall' | 'pro_even_odd' | 'pro_over_under' | 'pro_differs' | 'under_7' | 'over_2' | 'super' | '';
 export type TSignalStatus = "TRADE NOW" | "WAIT" | "NEUTRAL";
@@ -171,6 +172,7 @@ export default class ScannerStore implements IScannerStore {
       setSymbolAnalysis: action,
       setAutoTrading: action,
       setFullAiAutomation: action,
+      selectSignal: action,
     });
 
     this.root_store = root_store;
@@ -316,21 +318,85 @@ export default class ScannerStore implements IScannerStore {
     }
   };
 
+  selectSignal = async (signal: TScanSignal) => {
+    this.current_signal = signal;
+    this.is_manual_selection = true;
+
+    if (signal && api_base.api) {
+      const symbol = signal.symbol;
+      if (!this.tick_subscriptions.has(symbol)) {
+        this.unsubscribeAllTicks();
+        try {
+          const response = await (api_base.api as any).send({
+            ticks_history: symbol,
+            end: 'latest',
+            count: 120,
+            style: 'ticks',
+            subscribe: 1
+          });
+          if (response && response.history && response.history.prices) {
+            const { prices, times } = response.history;
+            const ticks = [];
+            for (let i = 0; i < prices.length; i++) {
+              ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
+            }
+            this.ticks_cache.set(symbol, ticks);
+            if (response.subscription && response.subscription.id) {
+              this.tick_subscriptions.set(symbol, response.subscription.id);
+            }
+          }
+        } catch (e) {
+          console.warn(`[ScannerStore] Failed to switch active subscription to ${symbol}:`, e);
+        }
+      }
+    }
+  };
+
   private initMarketSubscriptions = async () => {
+    const activeSymbol = this.scan_market_mode === 'single'
+      ? this.single_market_symbol
+      : (this.current_signal?.symbol || this.single_market_symbol);
+
     const symbolsToScan = this.scan_market_mode === 'single'
       ? [this.single_market_symbol]
       : this.selected_symbols;
 
-    await Promise.all(symbolsToScan.map(async (symbol) => {
+    this.unsubscribeAllTicks();
+
+    // Subscribe ONLY to the active symbol for real-time tick updates (keeps client lightweight)
+    try {
+      const response = await (api_base.api as any).send({
+        ticks_history: activeSymbol,
+        end: 'latest',
+        count: 120,
+        style: 'ticks',
+        subscribe: 1
+      });
+      if (response && response.history && response.history.prices) {
+        const { prices, times } = response.history;
+        const ticks = [];
+        for (let i = 0; i < prices.length; i++) {
+          ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
+        }
+        this.ticks_cache.set(activeSymbol, ticks);
+        if (response.subscription && response.subscription.id) {
+          this.tick_subscriptions.set(activeSymbol, response.subscription.id);
+        }
+      }
+    } catch (e) {
+      console.warn(`[ScannerStore] Failed to subscribe to active symbol ${activeSymbol}:`, e);
+    }
+
+    // Snapshot query for other symbols (zero streaming ticks in background = 0% lag)
+    const otherSymbols = symbolsToScan.filter(s => s !== activeSymbol);
+    await Promise.all(otherSymbols.map(async (symbol) => {
       try {
         const response = await (api_base.api as any).send({
           ticks_history: symbol,
           end: 'latest',
           count: 120,
-          style: 'ticks',
-          subscribe: 1
+          style: 'ticks'
         });
-        
         if (response && response.history && response.history.prices) {
           const { prices, times } = response.history;
           const ticks = [];
@@ -338,13 +404,9 @@ export default class ScannerStore implements IScannerStore {
             ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
           }
           this.ticks_cache.set(symbol, ticks);
-          
-          if (response.subscription && response.subscription.id) {
-             this.tick_subscriptions.set(symbol, response.subscription.id);
-          }
         }
       } catch (e) {
-        console.warn(`[ScannerStore] Failed to subscribe to ${symbol}:`, e);
+        console.warn(`[ScannerStore] Failed to query ticks history for ${symbol}:`, e);
       }
     }));
   };
@@ -368,8 +430,32 @@ export default class ScannerStore implements IScannerStore {
     if (this.is_scanning) {
       this.scanning_timeout = setTimeout(async () => {
         try {
-          if (this.ticks_counter >= 5) {
+          if (this.ticks_counter >= 3) { // Scan every 6s (3 * 2s)
             this.ticks_counter = 0;
+            if (this.scan_market_mode === 'multi') {
+              const activeSymbol = this.current_signal?.symbol || this.single_market_symbol;
+              const otherSymbols = this.selected_symbols.filter(s => s !== activeSymbol);
+              await Promise.all(otherSymbols.map(async (symbol) => {
+                try {
+                  const response = await (api_base.api as any).send({
+                    ticks_history: symbol,
+                    end: 'latest',
+                    count: 120,
+                    style: 'ticks'
+                  });
+                  if (response && response.history && response.history.prices) {
+                    const { prices, times } = response.history;
+                    const ticks = [];
+                    for (let i = 0; i < prices.length; i++) {
+                      ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
+                    }
+                    this.ticks_cache.set(symbol, ticks);
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              }));
+            }
             await this.analyzeMarkets();
           } else {
             this.ticks_counter += 1;
@@ -379,7 +465,7 @@ export default class ScannerStore implements IScannerStore {
           console.error('[ScannerStore] Continuous scanning error:', error);
           this.setupContinuousScanning();
         }
-      }, 2000); // 2 seconds delay to prevent overly aggressive polling
+      }, 2000);
     }
   };
 
@@ -1189,80 +1275,67 @@ export default class ScannerStore implements IScannerStore {
   loadBotWithStrategy = async () => {
     if (!this.current_signal) return;
 
-    const { quick_strategy } = this.root_store;
-    const strategyTradetypeMap: Record<TStrategyType, string> = {
-      even_odd: 'evenodd',
-      over_under: 'overunder',
-      matches: 'matchesdiffers',
-      differs: 'matchesdiffers',
-      rise_fall: 'callput',
-      pro_even_odd: 'evenodd',
-      pro_over_under: 'overunder',
-      pro_differs: 'matchesdiffers',
-      under_7: 'overunder',
-      over_2: 'overunder',
-      super: 'evenodd',
-      '': ''
-    };
+    const signalToUse = mapSignalToBestSignal(this.current_signal);
+    const entryDigit = (this as any).prediction_override ?? signalToUse?.targetDigit ?? undefined;
 
-    // Load Martingale template with custom parameters
-    quick_strategy.setSelectedStrategy('MARTINGALE');
+    const strategyName = this.current_signal.strategy;
+    const strategyOptions = [
+      { value: 'even_odd', label: 'Even/Odd' },
+      { value: 'over_under', label: 'Over/Under' },
+      { value: 'matches', label: 'Matches' },
+      { value: 'differs', label: 'Differs' },
+      { value: 'rise_fall', label: 'Rise/Fall' },
+      { value: 'pro_even_odd', label: 'Pro E/O' },
+      { value: 'pro_over_under', label: 'Pro O/U' },
+      { value: 'pro_differs', label: 'Pro Diff' },
+      { value: 'under_7', label: 'Under 7' },
+      { value: 'over_2', label: 'Over 2' },
+      { value: 'super', label: 'Super' },
+    ];
+    const tradeTypeLabel = strategyOptions.find(t => t.value === strategyName)?.label ?? strategyName;
 
-    const formData: any = {
-      symbol: this.current_signal.symbol,
-      tradetype: strategyTradetypeMap[this.current_signal.strategy] || 'evenodd',
-      type: 'DIGITEVEN',
-      durationtype: 't',
-      duration: '1',
-      stake: this.stake.toString(),
-      profit: this.take_profit.toString(),
-      loss: this.stop_loss.toString(),
-      size: this.martingale_multiplier.toString(),
-      action: 'LOAD',
-    };
-
-    // Apply prediction: manual override from UI takes priority, then signal's target digit
-    const predOverride = (this as any).prediction_override;
-    if (predOverride !== null && predOverride !== undefined) {
-      formData.prediction = predOverride.toString();
-    } else if (this.current_signal.details.targetDigit !== undefined) {
-      formData.prediction = this.current_signal.details.targetDigit.toString();
-    }
-
-    const strategy = this.current_signal.strategy;
-    if (strategy === 'matches') {
-      formData.type = 'DIGITMATCH';
-    } else if (strategy === 'differs' || strategy === 'pro_differs') {
-      formData.type = 'DIGITDIFF';
-    } else if (strategy === 'under_7') {
-      formData.type = 'DIGITUNDER';
-      if (!formData.prediction) formData.prediction = '7';
-    } else if (strategy === 'over_2') {
-      formData.type = 'DIGITOVER';
-      if (!formData.prediction) formData.prediction = '2';
-    } else {
-      const bias = this.current_signal.details.signalDetails?.bias;
-      if (bias === 'even') formData.type = 'DIGITEVEN';
-      else if (bias === 'odd') formData.type = 'DIGITODD';
-      else if (bias === 'high') formData.type = 'DIGITOVER';
-      else if (bias === 'low') formData.type = 'DIGITUNDER';
-    }
-
-    // Recovery mode: if enabled, sync alternate_after_losses from UI settings
     const recMode = (this as any).rec_mode;
-    if (recMode) {
-      this.alternate_after_losses = true;
-      this.loss_threshold = (this as any).rec_loss_threshold ?? 3;
-    } else {
-      this.alternate_after_losses = false;
-    }
+    const recovery = recMode
+      ? { lossThreshold: (this as any).rec_loss_threshold ?? 3, altTradeTypeId: (this as any).rec_alt_type ?? 'even_odd' }
+      : undefined;
 
-    await quick_strategy.onSubmit(formData);
+    const xml = generateBotXML({
+      stake: this.stake.toString(),
+      takeProfit: this.take_profit.toString(),
+      stopLoss: this.stop_loss.toString(),
+      martingale: this.martingale_multiplier.toString(),
+      symbol: this.current_signal.symbol,
+      tradeTypeLabel,
+      bestSignal: signalToUse,
+      entryDigit,
+      recovery,
+    });
+
+    try {
+      if (typeof window !== 'undefined' && window.Blockly?.derivWorkspace) {
+        const name = `ProAI_${tradeTypeLabel.replace(/[\s/]/g, '_')}_${this.current_signal.symbol}`;
+        const { load_modal, dashboard } = this.root_store;
+        if (load_modal && dashboard) {
+          await load_modal.loadStrategyToBuilder({
+            id: name,
+            name,
+            xml,
+            save_type: 'local',
+            timestamp: Date.now(),
+          });
+          dashboard.setActiveTab(1);
+        }
+      }
+    } catch (e) {
+      console.error('[ScannerStore] Failed to load strategy XML directly to Blockly:', e);
+    }
   };
 
   loadBotAndRun = async () => {
     await this.loadBotWithStrategy();
-    const { run_panel } = this.root_store;
-    run_panel.onRunButtonClick();
+    setTimeout(() => {
+      const { run_panel } = this.root_store;
+      run_panel.onRunButtonClick();
+    }, 1000);
   };
 }

@@ -311,7 +311,7 @@ export function initReplicator(manager: CopyTradingManager) {
             }
 
             // ── Resolve all tokens to account IDs asynchronously ──
-            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '1069';
+            const appId = getAppId?.() ?? localStorage.getItem('APP_ID') ?? '3Mmq9JHMrJaUKT2KIhKZ';
             const environment = isProduction() ? 'production' : 'staging';
             const baseURL = environment === 'production' ? 'https://api.derivws.com/trading/v1/' : 'https://staging-api.derivws.com/trading/v1/';
 

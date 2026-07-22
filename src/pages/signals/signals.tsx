@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { observer } from 'mobx-react-lite';
 import { tickSubscriber, SignalWithSymbol, EngineState } from './engine/TickSubscriber';
 import { SignalCard } from './components/SignalCard';
@@ -9,6 +9,7 @@ import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 
 const Signals = observer(() => {
     const [market, setMarket] = useState('ALL');
+    const [strategyFilter, setStrategyFilter] = useState('ALL');
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
     const [standard, setStandard] = useState<SignalWithSymbol[]>([]);
     const [pro, setPro] = useState<SignalWithSymbol[]>([]);
@@ -63,6 +64,15 @@ const Signals = observer(() => {
         setMarket(e.target.value);
     };
 
+    const filterSignal = (s: SignalWithSymbol) => {
+        if (strategyFilter === 'ALL') return true;
+        return s.type === strategyFilter;
+    };
+
+    const filteredSuper = useMemo(() => superSignals.filter(filterSignal), [superSignals, strategyFilter]);
+    const filteredPro = useMemo(() => pro.filter(filterSignal), [pro, strategyFilter]);
+    const filteredStandard = useMemo(() => standard.filter(filterSignal), [standard, strategyFilter]);
+
     return (
         <div className="signals-container">
             <div className="signals-header">
@@ -70,14 +80,36 @@ const Signals = observer(() => {
                     <h2>Premium AI Signals</h2>
                     <p>Next-Generation Predictive Analytics & Trade Intelligence</p>
                 </div>
-                <div className="market-selector">
-                    <label>Select Market:</label>
-                    <div className="select-wrapper">
-                        <select value={market} onChange={handleMarketChange}>
-                            {availableMarkets.map(m => (
-                                <option key={m.value} value={m.value}>{m.label}</option>
-                            ))}
-                        </select>
+                
+                <div className="signals-controls-group" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="market-selector">
+                        <label>Market:</label>
+                        <div className="select-wrapper">
+                            <select value={market} onChange={handleMarketChange}>
+                                {availableMarkets.map(m => (
+                                    <option key={m.value} value={m.value}>{m.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="market-selector">
+                        <label>Strategy Filter:</label>
+                        <div className="select-wrapper">
+                            <select value={strategyFilter} onChange={e => setStrategyFilter(e.target.value)}>
+                                <option value="ALL">All Strategies</option>
+                                <option value="even_odd">Even / Odd</option>
+                                <option value="over_under">Over / Under</option>
+                                <option value="matches">Matches</option>
+                                <option value="differs">Differs</option>
+                                <option value="rise_fall">Rise / Fall</option>
+                                <option value="pro_even_odd">Pro Even / Odd</option>
+                                <option value="pro_over_under">Pro Over / Under</option>
+                                <option value="pro_differs">Pro Differs</option>
+                                <option value="under_7">Under 7</option>
+                                <option value="over_2">Over 2</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -114,12 +146,12 @@ const Signals = observer(() => {
                         <span className="badge">LIVE MONITORING</span>
                     </div>
                     <div className="cards-container">
-                        {superSignals.length > 0 ? (
-                            superSignals.map((signal, idx) => (
+                        {filteredSuper.length > 0 ? (
+                            filteredSuper.map((signal, idx) => (
                                 <SignalCard key={`super-${idx}`} signal={signal} isSuper />
                             ))
                         ) : (
-                            <div className="empty-state">No Super Signals currently active. (Requires 65%+ confidence)</div>
+                            <div className="empty-state">No Super Signals matching active strategy filter.</div>
                         )}
                     </div>
                 </div>
@@ -130,12 +162,12 @@ const Signals = observer(() => {
                         <span className="badge pro">ADVANCED</span>
                     </div>
                     <div className="cards-container">
-                        {pro.length > 0 ? (
-                            pro.map((signal, idx) => (
+                        {filteredPro.length > 0 ? (
+                            filteredPro.map((signal, idx) => (
                                 <SignalCard key={`pro-${idx}`} signal={signal} />
                             ))
                         ) : (
-                            <div className="empty-state">No Pro Strategies matching criteria.</div>
+                            <div className="empty-state">No Pro Strategies matching active strategy filter.</div>
                         )}
                     </div>
                 </div>
@@ -146,12 +178,12 @@ const Signals = observer(() => {
                         <span className="badge std">BASIC</span>
                     </div>
                     <div className="cards-container">
-                        {standard.length > 0 ? (
-                            standard.map((signal, idx) => (
+                        {filteredStandard.length > 0 ? (
+                            filteredStandard.map((signal, idx) => (
                                 <SignalCard key={`std-${idx}`} signal={signal} />
                             ))
                         ) : (
-                            <div className="empty-state">No Standard Signals matching criteria.</div>
+                            <div className="empty-state">No Standard Signals matching active strategy filter.</div>
                         )}
                     </div>
                 </div>

@@ -63,18 +63,18 @@
     "strategy": "Rise/Fall"
   },
   {
-    "name": "PROFITHUB UNDER 8 OVER 3 AUTO",
-    "file": "PROFITHUB UNDER 8 OVER 3 AUTO.xml",
-    "description": "Specialized digit bot targeting Under 8 and Over 3 with high win-rate auto-execution.",
-    "difficulty": "Intermediate",
-    "strategy": "Digits"
-  },
-  {
     "name": "Profithub SV1",
     "file": "Profithub SV1.xml",
     "description": "ProfitHub Server V1 — optimized multi-strategy bot with balanced risk and consistent performance.",
     "difficulty": "Beginner",
     "strategy": "Multi-Strategy"
+  },
+  {
+    "name": "PROFITHUB UNDER 8 OVER 3 AUTO",
+    "file": "PROFITHUB UNDER 8 OVER 3 AUTO.xml",
+    "description": "Specialized digit bot targeting Under 8 and Over 3 with high win-rate auto-execution.",
+    "difficulty": "Intermediate",
+    "strategy": "Digits"
   },
   {
     "name": "RISE AND FALL AUTOMATIC X",

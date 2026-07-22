@@ -445,6 +445,7 @@ export function generateProSignals(a: AnalysisResult): Signal[] {
   return [
     proEvenOddSignal(a),
     proOverUnderSignal(a),
+    proDiffersSignal(a),
     under7Signal(a),
     over2Signal(a),
   ].filter((s) => s.status !== 'NEUTRAL' || s.probability >= 55);
@@ -602,6 +603,37 @@ function proOverUnderSignal(a: AnalysisResult): Signal {
     probability: Math.max(highPercentage, lowPercentage),
     recommendation: 'Pro over/under conditions not met',
     entryCondition: 'Waiting for extreme conditions',
+  };
+}
+
+function proDiffersSignal(a: AnalysisResult): Signal {
+  const { digitFrequencies, powerIndex } = a;
+  const rareDigits = digitFrequencies.filter(f => f.percentage < 9);
+
+  if (rareDigits.length >= 2) {
+    const avgRarePct = rareDigits.reduce((acc, f) => acc + f.percentage, 0) / rareDigits.length;
+    const combinedDiffersConfidence = 100 - avgRarePct;
+
+    return {
+      type: 'pro_differs',
+      label: 'Pro Differs',
+      status: 'TRADE NOW',
+      probability: combinedDiffersConfidence,
+      recommendation: `Pro differs on digit ${powerIndex.weakest} (${rareDigits.length} rare digits detected at avg ${avgRarePct.toFixed(1)}%)`,
+      entryCondition: `Wait for digit ${powerIndex.weakest} to appear, then trade DIFFERS`,
+      targetDigit: powerIndex.weakest,
+      entryDigits: [powerIndex.weakest],
+      tradeDirection: `DIFFERS ${powerIndex.weakest}`,
+    };
+  }
+
+  return {
+    type: 'pro_differs',
+    label: 'Pro Differs',
+    status: 'NEUTRAL',
+    probability: 50,
+    recommendation: 'Not enough low frequency digits for Pro Differs',
+    entryCondition: 'Waiting for multiple digits with percentage < 9%',
   };
 }
 
