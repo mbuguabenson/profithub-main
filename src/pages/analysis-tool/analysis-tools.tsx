@@ -249,9 +249,8 @@ const AnalysisTools: React.FC = () => {
             const trade_options_block = trade_def.getChildByType?.('trade_definition_tradeoptions');
             const candle_block = trade_def.getChildByType?.('trade_definition_candleinterval');
 
-            const api = ApiHelpers?.instance;
+            const api = ApiHelpers?.instance as any;
             const active = api?.active_symbols;
-            const contracts = api?.contracts_for;
 
             const marketOptions = active?.getMarketDropdownOptions?.() || [];
             const selectedMarket = ensureValueInOptions(tradeConfig.market, marketOptions, marketOptions[0]?.[1]);
@@ -322,7 +321,7 @@ const AnalysisTools: React.FC = () => {
             ['Stock Indices', 'stock'],
             ['Commodities', 'commodities'],
             ['Cryptocurrencies', 'crypto'],
-        ],
+        ] as Array<[string, string]>,
         submarketsByMarket: {
             derived: [
                 ['Continuous Indices', 'continuous_index'],
@@ -354,7 +353,7 @@ const AnalysisTools: React.FC = () => {
             ['Digits', 'digits'],
             ['Rise/Fall', 'callput'],
             ['Over/Under', 'overunder'],
-        ],
+        ] as Array<[string, string]>,
         tradeTypesByCategory: {
             digits: [
                 ['Even/Odd', 'evenodd'],
@@ -472,7 +471,7 @@ const AnalysisTools: React.FC = () => {
     const loadOptions = async (
         level: 'market' | 'submarket' | 'symbol' | 'tradeTypeCategory' | 'tradeType' | 'contractType'
     ) => {
-        const api = ApiHelpers?.instance;
+        const api = ApiHelpers?.instance as any;
         if (!api) {
             applyFallbacks();
             return;
