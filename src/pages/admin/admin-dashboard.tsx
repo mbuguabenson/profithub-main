@@ -33,7 +33,6 @@ const getGreeting = () => {
     if (h < 17) return 'Good Afternoon';
     return 'Good Evening';
 };
-const getGreeting = () => {
 
 // ─── Minimal SVG Icons ────────────────────────────────────────────────────────
 const Icons = {
