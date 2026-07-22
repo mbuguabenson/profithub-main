@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import RootStore from '@/stores/root-store';
-import { TWebSocket } from '@/Types';
 import Bot from '../external/bot-skeleton/scratch/dbot';
 
 const StoreContext = createContext<null | RootStore>(null);
@@ -50,4 +49,4 @@ export const useStoreReady = () => {
 
 export { StoreProvider, useStore };
 
-export const mockStore = (ws: TWebSocket) => new RootStore(Bot, ws);
+export const mockStore = () => new RootStore(Bot);

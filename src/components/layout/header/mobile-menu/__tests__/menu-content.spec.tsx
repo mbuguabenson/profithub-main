@@ -1,6 +1,5 @@
 import { BrowserRouter } from 'react-router-dom';
 import { mockStore, StoreProvider } from '@/hooks/useStore';
-import { mock_ws } from '@/utils/mock';
 import { useDevice } from '@deriv-com/ui';
 import { render, screen } from '@testing-library/react';
 import MenuContent from '../menu-content';
@@ -14,7 +13,7 @@ jest.mock('@deriv-com/ui', () => ({
 // - Removed Reports menu item
 // - Menu now only shows theme toggle and logout button
 describe('MenuContent Component', () => {
-    const mock_store = mockStore(mock_ws as any);
+    const mock_store = mockStore();
 
     // Mock client as logged in to show logout button
     mock_store.client.is_logged_in = true;
@@ -61,7 +60,7 @@ describe('MenuContent Component', () => {
     });
 
     it('does not render logout button when user is not logged in', () => {
-        const non_logged_in_store = mockStore(mock_ws as any);
+        const non_logged_in_store = mockStore();
         non_logged_in_store.client.is_logged_in = false;
 
         const nonLoggedInWrapper = ({ children }: { children: React.ReactNode }) => (
