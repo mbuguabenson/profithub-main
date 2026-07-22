@@ -55,7 +55,7 @@ const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
 const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
 const Earnings = lazy(() => import('../earnings'));
-const AICompoundingEngine = lazy(() => import('../ai-compounding-engine'));
+const AICompoundingEngine = lazy(() => import('../ai-compounding-engine/ai-compounding-engine'));
 
 
 

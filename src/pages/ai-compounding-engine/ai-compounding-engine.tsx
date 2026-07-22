@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { useCompoundingWS } from './hooks/useCompoundingWS';
 import { calculateCompoundingPlan, CompoundingSummary } from './utils/compounding-calculator';

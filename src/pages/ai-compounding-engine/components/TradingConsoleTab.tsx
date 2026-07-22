@@ -148,6 +148,17 @@ export const TradingConsoleTab: React.FC<TradingConsoleTabProps> = ({
                             onChange={(e) => setSl(parseFloat(e.target.value) || 0)}
                         />
                     </div>
+
+                    <div>
+                        <label style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block', marginBottom: '0.3rem' }}>Martingale Multiplier</label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            className="ace-input"
+                            value={martingale}
+                            onChange={(e) => setMartingale(parseFloat(e.target.value) || 1.5)}
+                        />
+                    </div>
                 </div>
 
                 {/* Control Action Buttons */}
