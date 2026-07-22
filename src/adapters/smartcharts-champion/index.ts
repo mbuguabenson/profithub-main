@@ -239,7 +239,6 @@ export function buildSmartchartsChampionAdapter(
                     ticks_history: request.symbol,
                     end: request.end || 'latest',
                     count: request.count || 1000,
-                    adjust_start_time: 1,
                 };
 
                 // Set style and granularity

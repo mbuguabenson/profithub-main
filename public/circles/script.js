@@ -381,7 +381,6 @@ function connect() {
         ws.send(
             JSON.stringify({
                 ticks_history: symToSub,
-                adjust_start_time: 1,
                 count: MAX_SAMPLES,
                 end: 'latest',
                 style: 'ticks',
@@ -465,7 +464,6 @@ function subscribe(symbol) {
         ws.send(
             JSON.stringify({
                 ticks_history: symbol,
-                adjust_start_time: 1,
                 count: MAX_SAMPLES,
                 end: 'latest',
                 style: 'ticks',
@@ -564,7 +562,6 @@ ticksWindowEl.addEventListener('change', () => {
         ws.send(
             JSON.stringify({
                 ticks_history: currentSymbol,
-                adjust_start_time: 1,
                 count: MAX_SAMPLES,
                 end: 'latest',
                 style: 'ticks',

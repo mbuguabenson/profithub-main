@@ -2378,7 +2378,6 @@ export default class SmartTradingStore {
                 try {
                     const response = await api_base.api.send({
                         ticks_history: symbol,
-                        adjust_start_time: 1,
                         count: 100,
                         end: 'latest',
                         style: 'ticks',
