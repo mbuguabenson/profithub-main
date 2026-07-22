@@ -118,7 +118,7 @@ const generateFakeLogs = () => {
     return line;
 };
 
-const findLeastCommonDigit = (digits: number[]) => {
+export const findLeastCommonDigit = (digits: number[]) => {
     const counts: Record<number, number> = {};
     for (const d of digits) counts[d] = (counts[d] || 0) + 1;
     let leastCommon: number | null = null;

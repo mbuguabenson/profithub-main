@@ -593,7 +593,7 @@ const ManualTrading = observer(() => {
                     const tick = getQuoteFromTick(data);
                     if (tick) applyTick(tick);
                 },
-                streamError => {
+                () => {
                     if (requestVersionRef.current !== requestVersion) return;
 
                     setError(null);
@@ -699,7 +699,7 @@ const ManualTrading = observer(() => {
                             .map((price: unknown) =>
                                 getLastDigitFromQuote(Number(price), market.symbol, market.pip ?? 2)
                             )
-                            .filter(digit => Number.isInteger(digit))
+                            .filter((digit: number) => Number.isInteger(digit))
                             .slice(-Math.max(activeTickCount, MONITOR_HISTORY_TICKS));
 
                         monitorDigitsRef.current[market.symbol] = digits;
