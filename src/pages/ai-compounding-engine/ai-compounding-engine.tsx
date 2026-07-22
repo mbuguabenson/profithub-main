@@ -34,6 +34,10 @@ const AICompoundingEngine = observer(() => {
 
     const {
         isConnected,
+        isAuthorized,
+        accountLoginId,
+        manualToken,
+        updateManualToken,
         activeSymbol,
         changeActiveSymbol,
         balance,
@@ -41,6 +45,7 @@ const AICompoundingEngine = observer(() => {
         buyProposal,
     } = useCompoundingWS();
 
+    const [tokenInput, setTokenInput] = useState<string>(manualToken || '');
     const activeMarketData = marketsData[activeSymbol];
 
     const handleAddTradeLog = (newLog: any) => {
@@ -58,10 +63,28 @@ const AICompoundingEngine = observer(() => {
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(15,23,42,0.8)', padding: '0.3rem 0.6rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>API Token:</span>
+                        <input
+                            type="password"
+                            placeholder="Paste CR / ROT Token"
+                            value={tokenInput}
+                            onChange={(e) => setTokenInput(e.target.value)}
+                            onBlur={() => updateManualToken(tokenInput)}
+                            style={{ background: 'transparent', border: 'none', color: '#10b981', fontSize: '0.8rem', outline: 'none', width: '130px' }}
+                        />
+                        <button
+                            onClick={() => updateManualToken(tokenInput)}
+                            style={{ background: '#10b981', border: 'none', color: '#000', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, padding: '0.2rem 0.5rem', cursor: 'pointer' }}
+                        >
+                            Save
+                        </button>
+                    </div>
+
                     <div style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: isConnected ? '#10b981' : '#ef4444' }} />
-                        {isConnected ? 'Deriv WS Connected' : 'Connecting...'}
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: isAuthorized ? '#10b981' : '#ef4444' }} />
+                        {isAuthorized ? `Real Account: ${accountLoginId || 'Authorized'}` : 'No Session Token'}
                     </div>
 
                     <span className={`ace-status-pill status-${botStatus}`}>

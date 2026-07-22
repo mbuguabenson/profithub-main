@@ -296,38 +296,62 @@ const CopyTrading = observer(() => {
 
     // ─── Real Account Helper ──────────────────────────────────────────────────
     const findRealAccountToken = useCallback((): { loginid: string; token: string } | null => {
+        // 0. Check custom stored tokens first
+        const customToken = localStorage.getItem('ace_deriv_token') ||
+                            localStorage.getItem('deriv_api_token') ||
+                            localStorage.getItem('active_token') ||
+                            localStorage.getItem('token') ||
+                            localStorage.getItem('user_token');
+
         // 1. Check MobX client store
         if (client?.accounts) {
             const keys = Object.keys(client.accounts);
-            const realKey = keys.find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
+            const realKey = keys.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || keys[0];
             if (realKey) {
-                const token = (client as any).getTokenForAccount?.(realKey) || (client.accounts[realKey] as any)?.token;
+                const token = (client as any).getTokenForAccount?.(realKey) || (client.accounts[realKey] as any)?.token || customToken;
                 if (token) return { loginid: realKey, token };
             }
         }
+
         // 2. Check localStorage accountsList
         const accountsList = getAccountsList();
-        const realKey = Object.keys(accountsList).find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
+        const keysList = Object.keys(accountsList);
+        const realKey = keysList.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || keysList[0];
         if (realKey && accountsList[realKey]) {
             return { loginid: realKey, token: accountsList[realKey] };
         }
 
-        // 3. Check client.accounts in localStorage
+        // 3. Check client.accounts / client_accounts in localStorage
         try {
-            const clientAccounts = JSON.parse(localStorage.getItem('client.accounts') || '{}');
-            const cKey = Object.keys(clientAccounts).find(k => !k.startsWith('VR') && !k.startsWith('VRT'));
-            if (cKey && clientAccounts[cKey]?.token) {
-                return { loginid: cKey, token: clientAccounts[cKey].token };
+            const rawAccounts = localStorage.getItem('client.accounts') ||
+                                localStorage.getItem('client_accounts') ||
+                                localStorage.getItem('account_list');
+            if (rawAccounts) {
+                const parsed = JSON.parse(rawAccounts);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    const real = parsed.find((a: any) => a.account?.startsWith('CR') || a.account?.startsWith('ROT')) || parsed[0];
+                    if (real?.token) return { loginid: real.account || 'REAL_ACCOUNT', token: real.token };
+                } else if (typeof parsed === 'object') {
+                    const cKeys = Object.keys(parsed);
+                    const cKey = cKeys.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || cKeys[0];
+                    if (cKey && parsed[cKey]?.token) {
+                        return { loginid: cKey, token: parsed[cKey].token };
+                    }
+                }
             }
         } catch {
             /* Ignore */
         }
 
-        // 4. Check cr_loginid in localStorage & active token
-        const crLoginid = localStorage.getItem('cr_loginid');
-        const activeToken = getActiveToken() || localStorage.getItem('active_token') || localStorage.getItem('token');
-        if (crLoginid && !crLoginid.startsWith('VR') && activeToken) {
-            return { loginid: crLoginid, token: activeToken };
+        // 4. Fallback to active token
+        const crLoginid = localStorage.getItem('cr_loginid') || localStorage.getItem('active_loginid') || 'REAL_ACCOUNT';
+        if (customToken) {
+            return { loginid: crLoginid, token: customToken };
+        }
+
+        // 5. Check any token in accountsList
+        if (keysList.length > 0 && accountsList[keysList[0]]) {
+            return { loginid: keysList[0], token: accountsList[keysList[0]] };
         }
 
         return null;
@@ -1254,7 +1278,44 @@ const CopyTrading = observer(() => {
                             </div>
                         </div>
                     </div>
-                )}
+                {/* Error / Real Account Token Dialog */}
+                <Dialog
+                    is_visible={errorModalVisible}
+                    onConfirm={() => setErrorModalVisible(false)}
+                    onCancel={() => setErrorModalVisible(false)}
+                    confirm_button_text="Close"
+                    title="Account Session Notice"
+                >
+                    <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <p style={{ margin: 0, color: '#f8fafc', fontSize: '0.9rem' }}>{errorMessage}</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <label style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Add Real Account API Token (CR / ROT):</label>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <input
+                                    type="password"
+                                    placeholder="Paste CR / ROT Deriv Token"
+                                    className="ct2-input"
+                                    value={tokenInput}
+                                    onChange={(e) => setTokenInput(e.target.value)}
+                                />
+                                <button
+                                    className="ct2-btn ct2-btn--accent"
+                                    onClick={() => {
+                                        if (tokenInput.trim()) {
+                                            localStorage.setItem('active_token', tokenInput.trim());
+                                            localStorage.setItem('ace_deriv_token', tokenInput.trim());
+                                            setErrorModalVisible(false);
+                                            setSuccessMessage('✅ Real Account token saved!');
+                                            setTimeout(() => setSuccessMessage(''), 5000);
+                                        }
+                                    }}
+                                >
+                                    Save Token
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Dialog>
             </div>
         </div>
     );

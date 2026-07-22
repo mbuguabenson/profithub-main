@@ -17,6 +17,40 @@ export interface SymbolMarketData {
     enabled: boolean;
 }
 
+export function getStoredDerivToken(): string {
+    if (typeof window === 'undefined') return '';
+    
+    // 1. Direct key check
+    const direct = localStorage.getItem('active_token') ||
+                   localStorage.getItem('token') ||
+                   localStorage.getItem('user_token') ||
+                   localStorage.getItem('deriv_api_token') ||
+                   localStorage.getItem('ace_deriv_token');
+    if (direct) return direct;
+
+    // 2. Parsed accounts check
+    try {
+        const raw = localStorage.getItem('client.accounts') ||
+                    localStorage.getItem('client_accounts') ||
+                    localStorage.getItem('account_list');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                const real = parsed.find((a: any) => a.account?.startsWith('CR') || a.account?.startsWith('ROT')) || parsed[0];
+                if (real?.token) return real.token;
+            } else if (typeof parsed === 'object') {
+                const keys = Object.keys(parsed);
+                const realKey = keys.find(k => k.startsWith('CR') || k.startsWith('ROT')) || keys[0];
+                if (realKey && parsed[realKey]?.token) return parsed[realKey].token;
+            }
+        }
+    } catch {
+        /* ignore */
+    }
+
+    return '';
+}
+
 export function useCompoundingWS() {
     const appId = getAppId() || '3Mmq9JHMrJaUKT2KIhKZ';
     const wsRef = useRef<WebSocket | null>(null);
@@ -26,6 +60,8 @@ export function useCompoundingWS() {
     const [balance, setBalance] = useState<number>(0);
     const [currency, setCurrency] = useState<string>('USD');
     const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+    const [accountLoginId, setAccountLoginId] = useState<string>('');
+    const [manualToken, setManualToken] = useState<string>(() => getStoredDerivToken());
 
     const pendingProposals = useRef<Map<number, (res: any) => void>>(new Map());
     const pendingPurchases = useRef<Map<number, (res: any) => void>>(new Map());
@@ -57,6 +93,17 @@ export function useCompoundingWS() {
         },
     });
 
+    const updateManualToken = (newToken: string) => {
+        setManualToken(newToken);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('ace_deriv_token', newToken);
+            localStorage.setItem('active_token', newToken);
+        }
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({ authorize: newToken, req_id: reqId.current++ }));
+        }
+    };
+
     const connect = useCallback(() => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
 
@@ -65,15 +112,11 @@ export function useCompoundingWS() {
 
         ws.onopen = () => {
             setIsConnected(true);
-            // Authorize if token exists
-            const token = localStorage.getItem('active_token') || localStorage.getItem('token');
-            if (token) {
-                ws.send(JSON.stringify({ authorize: token, req_id: reqId.current++ }));
+            const tokenToUse = manualToken || getStoredDerivToken();
+            if (tokenToUse) {
+                ws.send(JSON.stringify({ authorize: tokenToUse, req_id: reqId.current++ }));
             }
-            // Subscribe to balance updates
             ws.send(JSON.stringify({ balance: 1, subscribe: 1, req_id: reqId.current++ }));
-
-            // Subscribe to active symbol ticks history
             ws.send(JSON.stringify({
                 ticks_history: activeSymbol,
                 count: 1000,
@@ -101,6 +144,7 @@ export function useCompoundingWS() {
 
                 if (data.msg_type === 'authorize' && data.authorize) {
                     setIsAuthorized(true);
+                    setAccountLoginId(data.authorize.loginid || '');
                     setBalance(parseFloat(data.authorize.balance || '0'));
                     setCurrency(data.authorize.currency || 'USD');
                 }
@@ -123,7 +167,6 @@ export function useCompoundingWS() {
                         const updatedTicks = [...existing.ticks, digit].slice(-1000);
                         const updatedQuotes = [...existing.quotes, quote].slice(-1000);
                         
-                        // Compute dynamic scores from real ticks
                         const evenCount = updatedTicks.filter(d => d % 2 === 0).length;
                         const evenPct = Math.round((evenCount / (updatedTicks.length || 1)) * 100);
                         const health = Math.min(98, Math.max(50, evenPct + 35));
@@ -169,7 +212,6 @@ export function useCompoundingWS() {
                     }));
                 }
 
-                // Handle proposal & buy callbacks
                 if (data.msg_type === 'proposal' && data.req_id) {
                     const cb = pendingProposals.current.get(data.req_id);
                     if (cb) {
@@ -189,7 +231,7 @@ export function useCompoundingWS() {
                 /* parse error */
             }
         };
-    }, [appId, activeSymbol]);
+    }, [appId, activeSymbol, manualToken]);
 
     useEffect(() => {
         connect();
@@ -219,9 +261,16 @@ export function useCompoundingWS() {
                 return;
             }
 
+            if (!isAuthorized) {
+                resolve({
+                    success: false,
+                    message: 'No authorized Deriv account session. Please add your real account API Token in the header.'
+                });
+                return;
+            }
+
             const currentReqId = reqId.current++;
 
-            // Step 1: Send proposal request
             const req: any = {
                 proposal: 1,
                 amount: stake,
@@ -250,7 +299,6 @@ export function useCompoundingWS() {
                     return;
                 }
 
-                // Step 2: Send buy request
                 const buyReqId = reqId.current++;
                 wsRef.current?.send(JSON.stringify({
                     buy: proposalId,
@@ -266,7 +314,6 @@ export function useCompoundingWS() {
 
                     const buyData = buyRes.buy;
                     if (buyData) {
-                        // Subscribe to proposal_open_contract to track contract settlement
                         const pocReqId = reqId.current++;
                         wsRef.current?.send(JSON.stringify({
                             proposal_open_contract: 1,
@@ -275,7 +322,6 @@ export function useCompoundingWS() {
                             req_id: pocReqId
                         }));
 
-                        // Setup dynamic listener for settlement
                         const handlePOC = (e: MessageEvent) => {
                             try {
                                 const msg = JSON.parse(e.data);
@@ -302,7 +348,6 @@ export function useCompoundingWS() {
 
                         wsRef.current?.addEventListener('message', handlePOC);
 
-                        // Safety timeout
                         setTimeout(() => {
                             wsRef.current?.removeEventListener('message', handlePOC);
                             const pnl = parseFloat((buyData.payout - stake).toFixed(2));
@@ -321,11 +366,14 @@ export function useCompoundingWS() {
 
             wsRef.current.send(JSON.stringify(req));
         });
-    }, [activeSymbol, currency]);
+    }, [activeSymbol, currency, isAuthorized]);
 
     return {
         isConnected,
         isAuthorized,
+        accountLoginId,
+        manualToken,
+        updateManualToken,
         activeSymbol,
         changeActiveSymbol,
         balance,
