@@ -71,7 +71,7 @@ const TradingView: React.FC = () => {
                 <iframe
                     key={iframeKey}
                     id='trading-view-tab-iframe'
-                    src='https://smartcharts.deriv.com/'
+                    src='https://charts.deriv.com/deriv'
                     title='TradingView Charts'
                     allow='fullscreen'
                     onLoad={() => setIsLoading(false)}

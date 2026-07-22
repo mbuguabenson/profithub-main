@@ -824,8 +824,8 @@ const AnalysisTools: React.FC = () => {
                                     value={tradeConfig.market}
                                     onChange={e => setTradeConfig(p => ({ ...p, market: e.target.value }))}
                                 >
-                                    {options.markets.map(([label, value]) => (
-                                        <option key={value} value={value}>
+                                    {options.markets.map(([label, value], idx) => (
+                                        <option key={`${value}-${idx}`} value={value}>
                                             {label}
                                         </option>
                                     ))}
@@ -837,8 +837,8 @@ const AnalysisTools: React.FC = () => {
                                     value={tradeConfig.tradeTypeCategory}
                                     onChange={e => setTradeConfig(p => ({ ...p, tradeTypeCategory: e.target.value }))}
                                 >
-                                    {options.tradeTypeCategories.map(([label, value]) => (
-                                        <option key={value} value={value}>
+                                    {options.tradeTypeCategories.map(([label, value], idx) => (
+                                        <option key={`${value}-${idx}`} value={value}>
                                             {label}
                                         </option>
                                     ))}
@@ -850,8 +850,8 @@ const AnalysisTools: React.FC = () => {
                                     value={tradeConfig.tradeType}
                                     onChange={e => setTradeConfig(p => ({ ...p, tradeType: e.target.value }))}
                                 >
-                                    {options.tradeTypes.map(([label, value]) => (
-                                        <option key={value} value={value}>
+                                    {options.tradeTypes.map(([label, value], idx) => (
+                                        <option key={`${value}-${idx}`} value={value}>
                                             {label}
                                         </option>
                                     ))}
@@ -863,8 +863,8 @@ const AnalysisTools: React.FC = () => {
                                     value={tradeConfig.contract}
                                     onChange={e => setTradeConfig(p => ({ ...p, contract: e.target.value }))}
                                 >
-                                    {options.contractTypes.map(([label, value]) => (
-                                        <option key={value} value={value}>
+                                    {options.contractTypes.map(([label, value], idx) => (
+                                        <option key={`${value}-${idx}`} value={value}>
                                             {label}
                                         </option>
                                     ))}
@@ -905,8 +905,8 @@ const AnalysisTools: React.FC = () => {
                                         value={tradeConfig.durationUnit}
                                         onChange={e => setTradeConfig(p => ({ ...p, durationUnit: e.target.value }))}
                                     >
-                                        {options.durationTypes.map(([label, value]) => (
-                                            <option key={value} value={value}>
+                                        {options.durationTypes.map(([label, value], idx) => (
+                                            <option key={`${value}-${idx}`} value={value}>
                                                 {label}
                                             </option>
                                         ))}
@@ -926,8 +926,8 @@ const AnalysisTools: React.FC = () => {
                                         value={tradeConfig.stakeCurrency}
                                         onChange={e => setTradeConfig(p => ({ ...p, stakeCurrency: e.target.value }))}
                                     >
-                                        {options.currencies.map(([label, value]) => (
-                                            <option key={value} value={value}>
+                                        {options.currencies.map(([label, value], idx) => (
+                                            <option key={`${value}-${idx}`} value={value}>
                                                 {label}
                                             </option>
                                         ))}
