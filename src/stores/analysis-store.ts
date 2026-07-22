@@ -183,26 +183,22 @@ export default class AnalysisStore {
 
     @action
     handleTick = (tick: TTick) => {
-        console.log(`[AnalysisStore] Received tick for ${tick.symbol}: ${tick.quote}`);
         if (tick.symbol !== this.symbol) {
-            console.warn(`[AnalysisStore] Symbol mismatch: ${tick.symbol} !== ${this.symbol}`);
             return;
         }
 
         const price = Number(tick.quote);
         const new_digit = this.stats_engine.extractLastDigit(price);
-        console.log(`[AnalysisStore] Extracted digit: ${new_digit} (pip: ${this.stats_engine.pip})`);
 
         if (!isNaN(new_digit)) {
             const current_ticks = [...this.ticks, new_digit];
             if (current_ticks.length > this.total_ticks) current_ticks.shift();
 
             this.ticks = current_ticks;
-            this.last_digit = this.stats_engine.extractLastDigit(price);
             this.current_price = price;
+            this.last_digit = new_digit;
 
-            // Push to engine
-            this.stats_engine.updateWithHistory(this.ticks, price);
+            this.stats_engine.update(current_ticks, [price]);
             this.refreshStats();
 
             // Push to trade engine

@@ -24,7 +24,6 @@ import TradeTypeConfirmationModal from '@/components/trade-type-confirmation-mod
 import {
     LabelPairedChartLineCaptionRegularIcon,
     LabelPairedObjectsColumnCaptionRegularIcon,
-    LabelPairedPuzzlePieceTwoCaptionBoldIcon,
 } from '@deriv/quill-icons/LabelPaired';
 import { LegacyChartsIcon, LegacyGuide1pxIcon, LegacyIndicatorsIcon } from '@deriv/quill-icons/Legacy';
 import { Localize, localize } from '@deriv-com/translations';
@@ -34,7 +33,6 @@ import ChartModal from '../chart/chart-modal';
 import Dashboard from '../dashboard';
 import RunStrategy from '../dashboard/run-strategy';
 import Scanner from '../bot-builder/scanner/scanner';
-import Tutorials from '../tutorials';
 import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
@@ -103,7 +101,6 @@ const AppWrapper = observer(() => {
         'analysis_tool',
         'copy_trading',
         'tradingview',
-        'tutorials',
         'signals',
         'auto_trades',
         'scanner',
@@ -399,21 +396,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading TradingView...')} />}>
                     <TradingView />
-                </Suspense>
-            )
-        },
-        {
-            key: 'tutorials',
-            id: 'id-tutorials',
-            label: (
-                <>
-                    <LabelPairedPuzzlePieceTwoCaptionBoldIcon height='28px' width='28px' fill='#f5c542' />
-                    <Localize i18n_default_text='Tutorials' />
-                </>
-            ),
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Tutorials...')} />}>
-                    <Tutorials handleTabChange={handleTabChange} />
                 </Suspense>
             )
         },
