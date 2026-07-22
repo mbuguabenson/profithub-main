@@ -376,97 +376,28 @@ function connect() {
 
     ws.onopen = () => {
         ws.send(JSON.stringify({ active_symbols: 'brief' }));
-        if (currentSymbol) {
-            // fetch historical ticks to seed the distribution
-            ws.send(
-                JSON.stringify({
-                    ticks_history: currentSymbol,
-                    adjust_start_time: 1,
-                    count: MAX_SAMPLES,
-                    end: 'latest',
-                    start: 1,
-                    style: 'ticks',
-                })
-            );
-            ws.send(JSON.stringify({ ticks: currentSymbol, subscribe: 1 }));
-        }
+        const symToSub = currentSymbol || window.localStorage.getItem(CIRCLES_SYMBOL_KEY) || '1HZ10V';
+        currentSymbol = symToSub;
+        ws.send(
+            JSON.stringify({
+                ticks_history: symToSub,
+                adjust_start_time: 1,
+                count: MAX_SAMPLES,
+                end: 'latest',
+                style: 'ticks',
+            })
+        );
+        ws.send(JSON.stringify({ ticks: symToSub, subscribe: 1 }));
     };
 
     ws.onmessage = msg => {
         const data = JSON.parse(msg.data);
 
-        if (data.active_symbols) {
-            // Keep Volatility Indices (broad market & symbol check)
-            let vols = data.active_symbols.filter(
+            const vols = data.active_symbols.filter(
                 s => /Volatility/i.test(s.display_name) || (s.symbol && (s.symbol.startsWith('R_') || s.symbol.startsWith('1HZ')))
             );
-
-            // Fallback list if WebSocket filter is empty
-            if (!vols || vols.length === 0) {
-                vols = [
-                    { symbol: '1HZ10V', display_name: 'Volatility 10 (1s) Index', pip: 0.01 },
-                    { symbol: '1HZ25V', display_name: 'Volatility 25 (1s) Index', pip: 0.001 },
-                    { symbol: '1HZ50V', display_name: 'Volatility 50 (1s) Index', pip: 0.001 },
-                    { symbol: '1HZ75V', display_name: 'Volatility 75 (1s) Index', pip: 0.001 },
-                    { symbol: '1HZ100V', display_name: 'Volatility 100 (1s) Index', pip: 0.01 },
-                    { symbol: 'R_10', display_name: 'Volatility 10 Index', pip: 0.001 },
-                    { symbol: 'R_25', display_name: 'Volatility 25 Index', pip: 0.001 },
-                    { symbol: 'R_50', display_name: 'Volatility 50 Index', pip: 0.0001 },
-                    { symbol: 'R_75', display_name: 'Volatility 75 Index', pip: 0.0001 },
-                    { symbol: 'R_100', display_name: 'Volatility 100 Index', pip: 0.01 },
-                ];
-            }
-
-            // gather decimals from pip if present
-            symbolMeta.clear();
-            vols.forEach(s => {
-                const pip = Number(s.pip ?? s.pip_size ?? 0.01);
-                let decimals = 0;
-                if (Number.isFinite(pip)) {
-                    const str = String(pip);
-                    if (str.includes('.')) decimals = str.split('.')[1].length;
-                }
-                symbolMeta.set(s.symbol, { decimals });
-            });
-
-            // Build optgroups: (1s) first, then standard
-            const oneS = vols.filter(s => /(1s)/i.test(s.display_name) || /_1s$/i.test(s.symbol) || s.symbol.startsWith('1HZ'));
-            const std = vols.filter(s => !oneS.includes(s));
-
-            symbolsEl.innerHTML = '';
-            if (oneS.length) {
-                const grp = document.createElement('optgroup');
-                grp.label = 'Volatility (1s)';
-                oneS.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.symbol;
-                    opt.textContent = s.display_name;
-                    grp.appendChild(opt);
-                });
-                symbolsEl.appendChild(grp);
-            }
-            if (std.length) {
-                const grp = document.createElement('optgroup');
-                grp.label = 'Volatility';
-                std.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.symbol;
-                    opt.textContent = s.display_name;
-                    grp.appendChild(opt);
-                });
-                symbolsEl.appendChild(grp);
-            }
-            // Restore previously selected symbol if available and valid
-            try {
-                const saved = window.localStorage.getItem(CIRCLES_SYMBOL_KEY);
-                const allSymbols = vols.map(s => s.symbol);
-                if (saved && allSymbols.includes(saved)) {
-                    subscribe(saved);
-                } else if (vols.length > 0) {
-                    subscribe(vols[0].symbol);
-                }
-            } catch (_) {
-                if (vols.length > 0) subscribe(vols[0].symbol);
+            if (vols && vols.length > 0) {
+                populateSymbolsDropdown(vols);
             }
         }
 
@@ -539,11 +470,78 @@ function subscribe(symbol) {
     }
 }
 
+const DEFAULT_VOLS = [
+    { symbol: '1HZ10V', display_name: 'Volatility 10 (1s) Index', pip: 0.01 },
+    { symbol: '1HZ25V', display_name: 'Volatility 25 (1s) Index', pip: 0.001 },
+    { symbol: '1HZ50V', display_name: 'Volatility 50 (1s) Index', pip: 0.001 },
+    { symbol: '1HZ75V', display_name: 'Volatility 75 (1s) Index', pip: 0.001 },
+    { symbol: '1HZ100V', display_name: 'Volatility 100 (1s) Index', pip: 0.01 },
+    { symbol: 'R_10', display_name: 'Volatility 10 Index', pip: 0.001 },
+    { symbol: 'R_25', display_name: 'Volatility 25 Index', pip: 0.001 },
+    { symbol: 'R_50', display_name: 'Volatility 50 Index', pip: 0.0001 },
+    { symbol: 'R_75', display_name: 'Volatility 75 Index', pip: 0.0001 },
+    { symbol: 'R_100', display_name: 'Volatility 100 Index', pip: 0.01 },
+];
+
+function populateSymbolsDropdown(vols) {
+    if (!vols || !vols.length) vols = DEFAULT_VOLS;
+
+    symbolMeta.clear();
+    vols.forEach(s => {
+        const pip = Number(s.pip ?? s.pip_size ?? 0.01);
+        let decimals = 0;
+        if (Number.isFinite(pip)) {
+            const str = String(pip);
+            if (str.includes('.')) decimals = str.split('.')[1].length;
+        }
+        symbolMeta.set(s.symbol, { decimals });
+    });
+
+    const oneS = vols.filter(s => /(1s)/i.test(s.display_name) || /_1s$/i.test(s.symbol) || s.symbol.startsWith('1HZ'));
+    const std = vols.filter(s => !oneS.includes(s));
+
+    if (!symbolsEl) return;
+    symbolsEl.innerHTML = '';
+    if (oneS.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Volatility (1s)';
+        oneS.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.symbol;
+            opt.textContent = s.display_name;
+            grp.appendChild(opt);
+        });
+        symbolsEl.appendChild(grp);
+    }
+    if (std.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = 'Volatility';
+        std.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.symbol;
+            opt.textContent = s.display_name;
+            grp.appendChild(opt);
+        });
+        symbolsEl.appendChild(grp);
+    }
+
+    try {
+        const saved = window.localStorage.getItem(CIRCLES_SYMBOL_KEY);
+        const allSymbols = vols.map(s => s.symbol);
+        if (saved && allSymbols.includes(saved)) {
+            symbolsEl.value = saved;
+        } else if (vols.length > 0) {
+            symbolsEl.value = vols[0].symbol;
+        }
+    } catch (_) {}
+}
+
 symbolsEl.addEventListener('change', e => {
     subscribe(e.target.value);
 });
 
 initDigitUI();
+populateSymbolsDropdown(DEFAULT_VOLS);
 connect();
 
 // Handle dynamic window changes
