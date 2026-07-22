@@ -380,10 +380,26 @@ function connect() {
         const data = JSON.parse(msg.data);
 
         if (data.active_symbols) {
-            // Keep only Volatility Indices (exclude Crash/Boom, Step, etc.)
-            const vols = data.active_symbols.filter(
-                s => s.market === 'synthetic_index' && /Volatility/i.test(s.display_name)
+            // Keep Volatility Indices (broad market & symbol check)
+            let vols = data.active_symbols.filter(
+                s => /Volatility/i.test(s.display_name) || (s.symbol && (s.symbol.startsWith('R_') || s.symbol.startsWith('1HZ')))
             );
+
+            // Fallback list if WebSocket filter is empty
+            if (!vols || vols.length === 0) {
+                vols = [
+                    { symbol: '1HZ10V', display_name: 'Volatility 10 (1s) Index', pip: 0.01 },
+                    { symbol: '1HZ25V', display_name: 'Volatility 25 (1s) Index', pip: 0.001 },
+                    { symbol: '1HZ50V', display_name: 'Volatility 50 (1s) Index', pip: 0.001 },
+                    { symbol: '1HZ75V', display_name: 'Volatility 75 (1s) Index', pip: 0.001 },
+                    { symbol: '1HZ100V', display_name: 'Volatility 100 (1s) Index', pip: 0.01 },
+                    { symbol: 'R_10', display_name: 'Volatility 10 Index', pip: 0.001 },
+                    { symbol: 'R_25', display_name: 'Volatility 25 Index', pip: 0.001 },
+                    { symbol: 'R_50', display_name: 'Volatility 50 Index', pip: 0.0001 },
+                    { symbol: 'R_75', display_name: 'Volatility 75 Index', pip: 0.0001 },
+                    { symbol: 'R_100', display_name: 'Volatility 100 Index', pip: 0.01 },
+                ];
+            }
 
             // gather decimals from pip if present
             symbolMeta.clear();
@@ -398,7 +414,7 @@ function connect() {
             });
 
             // Build optgroups: (1s) first, then standard
-            const oneS = vols.filter(s => /(1s)/i.test(s.display_name) || /_1s$/i.test(s.symbol));
+            const oneS = vols.filter(s => /(1s)/i.test(s.display_name) || /_1s$/i.test(s.symbol) || s.symbol.startsWith('1HZ'));
             const std = vols.filter(s => !oneS.includes(s));
 
             symbolsEl.innerHTML = '';
@@ -430,11 +446,11 @@ function connect() {
                 const allSymbols = vols.map(s => s.symbol);
                 if (saved && allSymbols.includes(saved)) {
                     subscribe(saved);
-                } else if (!currentSymbol && vols.length > 0) {
+                } else if (vols.length > 0) {
                     subscribe(vols[0].symbol);
                 }
             } catch (_) {
-                if (!currentSymbol && vols.length > 0) subscribe(vols[0].symbol);
+                if (vols.length > 0) subscribe(vols[0].symbol);
             }
         }
 

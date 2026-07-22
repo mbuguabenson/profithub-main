@@ -8,10 +8,11 @@ const TradingView: React.FC = () => {
                 width: '100%',
                 height: 'calc(100vh - 80px)',
                 border: 'none',
-                background: 'white',
+                background: '#0e0e0e',
             }}
-            src='https://charts.deriv.com/deriv?hide-signup=true'
+            src='https://smartcharts.deriv.com/'
             title='TradingView Charts'
+            allow='fullscreen'
         />
     );
 };

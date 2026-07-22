@@ -698,105 +698,105 @@ const AnalysisTools: React.FC = () => {
 
     return (
         <div className='analysis-tools'>
-            <div className='analysis-tools__cards-container'>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--dark ${active_tool === 'dcircles' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('dcircles')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>DCIRCLES</span>
+            <div className='analysis-tools__header'>
+                <div className='analysis-tools__cards-container'>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--dark ${active_tool === 'dcircles' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('dcircles')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>DCIRCLES</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'signals' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('signals')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Signals</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'all-analysis' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('all-analysis')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>All Analysis</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'dp-tools' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('dp-tools')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>DP Tools</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'tick-analyser' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('tick-analyser')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Tick Analyser</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'analysis-tool' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('analysis-tool')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>ProfitHub Analysis</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'smart-analysis' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('smart-analysis')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Smart Analysis</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'circles-analysis' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('circles-analysis')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Circles Analysis</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'digit-cracker' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('digit-cracker')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Digit Cracker</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'account-flipper' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('account-flipper')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Account Flipper</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'over-under' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('over-under')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Over Under</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'xenon-ai' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('xenon-ai')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Xenon AI</span>
+                        </div>
                     </div>
                 </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'signals' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('signals')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Signals</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'all-analysis' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('all-analysis')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>All Analysis</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'dp-tools' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('dp-tools')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>DP Tools</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'tick-analyser' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('tick-analyser')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Tick Analyser</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'analysis-tool' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('analysis-tool')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>ProfitHub Analysis</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'smart-analysis' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('smart-analysis')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Smart Analysis</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'circles-analysis' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('circles-analysis')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Circles Analysis</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'digit-cracker' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('digit-cracker')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Digit Cracker</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'account-flipper' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('account-flipper')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Account Flipper</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'over-under' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('over-under')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Over Under</span>
-                    </div>
-                </div>
-                <div
-                    className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'xenon-ai' ? 'analysis-tools__card--active' : ''}`}
-                    onClick={() => handleCardClick('xenon-ai')}
-                >
-                    <div className='analysis-tools__card-content'>
-                        <span className='analysis-tools__card-label'>Xenon AI</span>
-                    </div>
-                </div>
-            </div>
-            <div className='analysis-tools__actions'>
                 <button type='button' className='analysis-tools__trade-button' onClick={() => setShowTradeConfig(true)}>
                     Trade Set_UP
                 </button>
