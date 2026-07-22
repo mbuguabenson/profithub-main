@@ -10,6 +10,9 @@ class DerivWebSocket {
     private maxReconnectAttempts = 10;
     private endpoint = 'wss://ws.derivws.com/websockets/v3';
 
+    private pingInterval: ReturnType<typeof setInterval> | null = null;
+    private reqIdCounter = 1;
+
     constructor(appId?: string) {
         this.appId = appId || getAppId();
     }
@@ -27,19 +30,26 @@ class DerivWebSocket {
                 this.ws.onopen = () => {
                     console.log('[DerivWebSocket] Connected');
                     this.reconnectAttempts = 0;
+                    this.startKeepAlive();
                     resolve();
                 };
 
                 this.ws.onmessage = event => {
-                    const data = JSON.parse(event.data);
-                    const msgType = data.msg_type;
-                    if (msgType && this.listeners.has(msgType)) {
-                        this.listeners.get(msgType)?.forEach(callback => callback(data));
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.error) {
+                            console.warn('[DerivWebSocket] Response error:', data.error);
+                        }
+                        const msgType = data.msg_type;
+                        if (msgType && this.listeners.has(msgType)) {
+                            this.listeners.get(msgType)?.forEach(callback => callback(data));
+                        }
+                    } catch (e) {
+                        console.error('[DerivWebSocket] Failed to parse message:', e);
                     }
                 };
 
                 this.ws.onerror = error => {
-                    // Only log/reject if we are still active
                     if (this.ws) {
                         console.error('[DerivWebSocket] Error:', error);
                         reject(error);
@@ -48,6 +58,7 @@ class DerivWebSocket {
 
                 this.ws.onclose = event => {
                     console.log('[DerivWebSocket] Disconnected', event.wasClean ? 'Cleanly' : 'Abruptly');
+                    this.stopKeepAlive();
                     if (this.ws) {
                         this.handleReconnect();
                     }
@@ -58,16 +69,37 @@ class DerivWebSocket {
         });
     }
 
+    private startKeepAlive() {
+        this.stopKeepAlive();
+        // 30s keepalive ping interval to keep socket active and detect early disconnects
+        this.pingInterval = setInterval(() => {
+            if (this.isConnected()) {
+                this.send({ ping: 1 });
+            }
+        }, 30000);
+    }
+
+    private stopKeepAlive() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
+    }
+
     private handleReconnect() {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
-            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+            // Exponential backoff capped at 30s + random jitter up to 1000ms
+            const baseDelay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+            const jitter = Math.floor(Math.random() * 1000);
+            const delay = baseDelay + jitter;
             console.log(`[DerivWebSocket] Reconnecting in ${delay}ms (Attempt ${this.reconnectAttempts})`);
             setTimeout(() => this.connect(), delay);
         }
     }
 
     public disconnect(): void {
+        this.stopKeepAlive();
         if (this.ws) {
             this.ws.onclose = null;
             this.ws.onopen = null;
@@ -96,7 +128,11 @@ class DerivWebSocket {
 
     public send(message: any): void {
         if (this.isConnected()) {
-            this.ws?.send(JSON.stringify(message));
+            const reqWithId = {
+                ...message,
+                req_id: message.req_id || this.reqIdCounter++,
+            };
+            this.ws?.send(JSON.stringify(reqWithId));
         } else {
             console.warn('[DerivWebSocket] Cannot send message: Not connected');
         }
