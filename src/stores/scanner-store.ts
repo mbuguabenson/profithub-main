@@ -5,6 +5,7 @@ import { getLastDigitFromQuote } from '@/utils/market-data';
 import { generateBotXML, mapSignalToBestSignal } from '@/utils/bot-xml-generator';
 import { connectionStatus$ } from '@/external/bot-skeleton/services/api/observables/connection-status-stream';
 import { hybridMarketAdapter } from '@/adapters/hybrid-market-adapter';
+import { FullAiTradeEngine } from '@/utils/full-ai-trade-engine';
 
 export type TStrategyType = 'even_odd' | 'over_under' | 'matches' | 'differs' | 'rise_fall' | 'pro_even_odd' | 'pro_over_under' | 'pro_differs' | 'under_7' | 'over_2' | 'super' | '';
 export type TSignalStatus = "TRADE NOW" | "WAIT" | "NEUTRAL";
@@ -81,6 +82,17 @@ interface IScannerStore {
   last_trade_result: 'WIN' | 'LOSS' | null;
   signal_sequence_id: string | null;
 
+  // Full AI Engine - Auto-Pause / Auto-Resume
+  auto_pause_threshold: number;
+  auto_resume_threshold: number;
+  is_auto_paused: boolean;
+  auto_market_switch_enabled: boolean;
+  auto_strategy_rotate_enabled: boolean;
+  engine_activity_log: string[];
+  current_auto_market: string;
+  current_auto_strategy: string;
+  engine_status: 'idle' | 'scanning' | 'trading' | 'paused' | 'switching_market' | 'switching_strategy';
+
   // Trading Console Transaction Stats
   total_runs: number;
   wins: number;
@@ -111,6 +123,11 @@ interface IScannerStore {
   setFullAiAutomation: (is_full: boolean) => void;
   recordTradeResult: (result: 'WIN' | 'LOSS', profit: number, stakeUsed: number) => void;
   resetConsoleStats: () => void;
+  setAutoPauseThreshold: (val: number) => void;
+  setAutoResumeThreshold: (val: number) => void;
+  setAutoMarketSwitch: (val: boolean) => void;
+  setAutoStrategyRotate: (val: boolean) => void;
+  logEngineActivity: (msg: string) => void;
 }
 
 export default class ScannerStore implements IScannerStore {
@@ -153,6 +170,18 @@ export default class ScannerStore implements IScannerStore {
   current_strategy_index = 0;
   selected_trade_type = 'both';
 
+  // Full AI Engine State
+  auto_pause_threshold = 0.60;
+  auto_resume_threshold = 0.65;
+  is_auto_paused = false;
+  auto_market_switch_enabled = true;
+  auto_strategy_rotate_enabled = true;
+  engine_activity_log: string[] = [];
+  current_auto_market = 'R_100';
+  current_auto_strategy = 'even_odd';
+  engine_status: 'idle' | 'scanning' | 'trading' | 'paused' | 'switching_market' | 'switching_strategy' = 'idle';
+  private _auto_switch_cooldown_until = 0;
+
   // Transaction Console Stats
   total_runs = 0;
   wins = 0;
@@ -175,6 +204,7 @@ export default class ScannerStore implements IScannerStore {
   private message_subscription: any = null;
   private candle_cache: Map<string, { direction: 'up' | 'down' | 'neutral'; timestamp: number }> = new Map();
   private is_bot_loading = false;
+  private _full_engine: FullAiTradeEngine | null = null;
 
   constructor(root_store: RootStore) {
     makeObservable(this, {
@@ -217,6 +247,16 @@ export default class ScannerStore implements IScannerStore {
       is_virtual_hook_enabled: observable,
       virtual_loss_threshold: observable,
       virtual_losses_count: observable,
+      // Full AI Engine observables
+      auto_pause_threshold: observable,
+      auto_resume_threshold: observable,
+      is_auto_paused: observable,
+      auto_market_switch_enabled: observable,
+      auto_strategy_rotate_enabled: observable,
+      engine_activity_log: observable,
+      current_auto_market: observable,
+      current_auto_strategy: observable,
+      engine_status: observable,
       setScannerVisibility: action,
       setSelectedStrategy: action,
       setSelectedSymbols: action,
@@ -239,6 +279,11 @@ export default class ScannerStore implements IScannerStore {
       setBulkTradesCount: action,
       setVirtualHookEnabled: action,
       setVirtualLossThreshold: action,
+      setAutoPauseThreshold: action,
+      setAutoResumeThreshold: action,
+      setAutoMarketSwitch: action,
+      setAutoStrategyRotate: action,
+      logEngineActivity: action,
     });
 
     this.root_store = root_store;
@@ -301,14 +346,77 @@ export default class ScannerStore implements IScannerStore {
   setFullAiAutomation = (is_full: boolean) => {
     this.is_full_ai_automation = is_full;
     if (is_full) {
-      // If full AI is enabled, ensure auto trading is enabled
       this.is_auto_trading = true;
+      this.engine_status = 'scanning';
+      this.logEngineActivity('🤖 AI Full Automation Engine ACTIVATED — scanning for signals...');
       this.setupAutomationListeners();
+      // Start native trade engine
+      this._startNativeEngine();
     } else {
-      // If disabled, turn off auto trading
       this.is_auto_trading = false;
+      this.is_auto_paused = false;
+      this.engine_status = 'idle';
+      this.logEngineActivity('⏹ AI Engine deactivated.');
+      this._stopNativeEngine();
     }
   };
+
+  private _buildEngineConfig = () => ({
+    stake: this.stake,
+    martingaleMultiplier: this.martingale_multiplier,
+    takeProfit: this.take_profit,
+    stopLoss: this.stop_loss,
+    autoPauseThreshold: this.auto_pause_threshold,
+    autoResumeThreshold: this.auto_resume_threshold,
+    autoMarketSwitch: this.auto_market_switch_enabled,
+    autoStrategyRotate: this.auto_strategy_rotate_enabled,
+  });
+
+  private _startNativeEngine = () => {
+    if (this._full_engine?.isRunning()) return;
+
+    const startMarket = this.current_signal?.symbol ?? this.current_auto_market;
+    const startStrategy = (this.current_signal?.strategy as string) ?? this.current_auto_strategy;
+
+    this._full_engine = new FullAiTradeEngine(
+      this._buildEngineConfig(),
+      {
+        onLog: (msg) => this.logEngineActivity(msg),
+        onTrade: (result, profit, stake) => this.recordTradeResult(result, profit, stake),
+        onStatusChange: (status) => {
+          this.engine_status = status as any;
+        },
+        getSignals: () => this.signals,
+        getCurrentSignal: () => this.current_signal,
+        getBestMarket: () => this.findBestAvailableMarket(),
+        getBestStrategy: (market) => this.findBestAvailableStrategy(market),
+        switchMarket: (market, signal) => {
+          this.current_auto_market = market;
+          this.single_market_symbol = market;
+          if (signal) {
+            this.current_signal = signal;
+            this.current_auto_strategy = signal.strategy ?? this.current_auto_strategy;
+          }
+        },
+        switchStrategy: (strategy, signal) => {
+          this.current_auto_strategy = strategy;
+          if (signal) this.current_signal = signal;
+        },
+      }
+    );
+
+    this.engine_status = 'trading';
+    this._full_engine.start(startMarket, startStrategy);
+  };
+
+  private _stopNativeEngine = () => {
+    this._full_engine?.stop();
+    this._full_engine = null;
+  };
+
+  // Expose engine pause/resume for external callers
+  pauseNativeEngine = () => this._full_engine?.pause();
+  resumeNativeEngine = () => this._full_engine?.resume();
 
   setBulkTradesEnabled = (enabled: boolean) => {
     this.is_bulk_trades_enabled = enabled;
@@ -324,6 +432,35 @@ export default class ScannerStore implements IScannerStore {
 
   setVirtualLossThreshold = (threshold: number) => {
     this.virtual_loss_threshold = Math.max(1, Math.min(10, threshold));
+  };
+
+  // ─── Full AI Engine Controls ───────────────────────────────────────────────
+  setAutoPauseThreshold = (val: number) => { this.auto_pause_threshold = Math.max(0, Math.min(1, val)); };
+  setAutoResumeThreshold = (val: number) => { this.auto_resume_threshold = Math.max(0, Math.min(1, val)); };
+  setAutoMarketSwitch = (val: boolean) => { this.auto_market_switch_enabled = val; };
+  setAutoStrategyRotate = (val: boolean) => { this.auto_strategy_rotate_enabled = val; };
+
+  logEngineActivity = (msg: string) => {
+    const ts = new Date().toLocaleTimeString();
+    this.engine_activity_log = [`[${ts}] ${msg}`, ...this.engine_activity_log].slice(0, 50);
+  };
+
+  private findBestAvailableMarket = (): string | null => {
+    if (this.signals.length === 0) return null;
+    // Find highest-confidence signal on a different market than current
+    const currentMarket = this.current_auto_market;
+    const best = this.signals
+      .filter(s => s.symbol !== currentMarket && s.confidence >= this.auto_resume_threshold)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    return best ? best.symbol : null;
+  };
+
+  private findBestAvailableStrategy = (market: string): string | null => {
+    if (this.signals.length === 0) return null;
+    const best = this.signals
+      .filter(s => s.symbol === market && s.strategy !== this.current_auto_strategy && s.confidence >= this.auto_resume_threshold)
+      .sort((a, b) => b.confidence - a.confidence)[0];
+    return best ? best.strategy : null;
   };
 
   shouldExecuteRealTrade = (): boolean => {
@@ -1416,32 +1553,109 @@ export default class ScannerStore implements IScannerStore {
   evaluateMarketPower = () => {
     if (!this.is_auto_trading || !this.current_signal) return;
 
+    const now = Date.now();
+    const { run_panel } = this.root_store;
+
     const activeSignal = this.signals.find(
       s => s.symbol === this.current_signal?.symbol && s.strategy === this.current_signal?.strategy
     );
 
-    const { run_panel } = this.root_store;
+    const confidence = activeSignal?.confidence ?? 0;
 
-    if (!activeSignal || activeSignal.confidence < 0.60) {
-      if (run_panel.is_running && !run_panel.is_paused) {
-        console.log(`[ScannerStore] Market power shifted (confidence: ${activeSignal ? activeSignal.confidence : 'none'}). Pausing bot...`);
+    // ── AUTO-PAUSE: signal dropped below threshold ─────────────────────────
+    if (confidence < this.auto_pause_threshold) {
+      if (run_panel.is_running && !run_panel.is_paused && !this.is_auto_paused) {
         run_panel.onPauseButtonClick();
+        this.is_auto_paused = true;
+        this.engine_status = 'paused';
+        this.logEngineActivity(`⏸ Auto-paused: ${this.current_signal?.symbol} confidence dropped to ${(confidence * 100).toFixed(0)}%`);
       }
-    } else if (activeSignal && activeSignal.confidence >= 0.65) {
-      if (run_panel.is_running && run_panel.is_paused) {
-        console.log(`[ScannerStore] Market power aligned (confidence: ${activeSignal.confidence}). Resuming bot...`);
+
+      // ── AUTO MARKET SWITCH: find better market ────────────────────────
+      if (this.auto_market_switch_enabled && now > this._auto_switch_cooldown_until) {
+        const bestMarket = this.findBestAvailableMarket();
+        if (bestMarket) {
+          this._auto_switch_cooldown_until = now + 15000; // 15s cooldown
+          this.engine_status = 'switching_market';
+          this.logEngineActivity(`🔄 Auto-switching market: ${this.current_auto_market} → ${bestMarket}`);
+          this.current_auto_market = bestMarket;
+          this.single_market_symbol = bestMarket;
+
+          const bestSig = this.signals.find(s => s.symbol === bestMarket);
+          if (bestSig) {
+            this.current_signal = bestSig;
+            this.is_manual_selection = false;
+            this.is_auto_paused = false;
+
+            if (!this.is_bot_loading) {
+              this.is_bot_loading = true;
+              this.loadBotWithStrategy().then(() => {
+                setTimeout(() => {
+                  if (run_panel.is_paused) run_panel.onResumeFromPause();
+                  else run_panel.onRunButtonClick();
+                  this.is_bot_loading = false;
+                  this.engine_status = 'trading';
+                  this.logEngineActivity(`▶ Resumed on new market: ${bestMarket}`);
+                }, 1500);
+              }).catch(() => { this.is_bot_loading = false; });
+            }
+          }
+          return;
+        }
+
+        // ── AUTO STRATEGY ROTATE: try different strategy on same market ──
+        if (this.auto_strategy_rotate_enabled) {
+          const bestStrategy = this.findBestAvailableStrategy(this.current_auto_market);
+          if (bestStrategy) {
+            this._auto_switch_cooldown_until = now + 10000; // 10s cooldown
+            this.engine_status = 'switching_strategy';
+            this.logEngineActivity(`🔀 Auto-rotating strategy: ${this.current_auto_strategy} → ${bestStrategy} on ${this.current_auto_market}`);
+            this.current_auto_strategy = bestStrategy;
+
+            const newSig = this.signals.find(s => s.symbol === this.current_auto_market && s.strategy === bestStrategy);
+            if (newSig) {
+              this.current_signal = newSig;
+              this.is_auto_paused = false;
+
+              if (!this.is_bot_loading) {
+                this.is_bot_loading = true;
+                this.loadBotWithStrategy().then(() => {
+                  setTimeout(() => {
+                    if (run_panel.is_paused) run_panel.onResumeFromPause();
+                    else run_panel.onRunButtonClick();
+                    this.is_bot_loading = false;
+                    this.engine_status = 'trading';
+                    this.logEngineActivity(`▶ Resumed with rotated strategy: ${bestStrategy}`);
+                  }, 1200);
+                }).catch(() => { this.is_bot_loading = false; });
+              }
+            }
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    // ── AUTO-RESUME: confidence recovered ─────────────────────────────────
+    if (confidence >= this.auto_resume_threshold) {
+      if (run_panel.is_running && run_panel.is_paused && this.is_auto_paused) {
         run_panel.onResumeFromPause();
+        this.is_auto_paused = false;
+        this.engine_status = 'trading';
+        this.logEngineActivity(`▶ Auto-resumed: ${this.current_signal?.symbol} confidence recovered to ${(confidence * 100).toFixed(0)}%`);
       } else if (!run_panel.is_running && !this.is_bot_loading) {
         this.is_bot_loading = true;
-        console.log(`[ScannerStore] Strong signal detected (confidence: ${activeSignal.confidence}). Loading and starting bot...`);
+        this.engine_status = 'trading';
+        this.logEngineActivity(`🚀 Strong signal detected (${(confidence * 100).toFixed(0)}%) — loading & starting bot on ${this.current_signal?.symbol}`);
+        this.current_auto_market = this.current_signal?.symbol ?? this.current_auto_market;
+        this.current_auto_strategy = (this.current_signal?.strategy as string) ?? this.current_auto_strategy;
         this.loadBotWithStrategy().then(() => {
           setTimeout(() => {
             run_panel.onRunButtonClick();
             this.is_bot_loading = false;
           }, 1500);
-        }).catch(() => {
-          this.is_bot_loading = false;
-        });
+        }).catch(() => { this.is_bot_loading = false; });
       }
     }
   };

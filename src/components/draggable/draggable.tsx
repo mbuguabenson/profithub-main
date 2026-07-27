@@ -26,6 +26,7 @@ const Draggable: React.FC<TDraggableProps> = ({
     enableDragging = true,
     header = '',
     onClose,
+    onMinimize,
 }) => {
     const [position, setPosition] = useState({ x: initialValues.xAxis, y: initialValues.yAxis });
     const [size, setSize] = useState({ width: initialValues.width, height: initialValues.height });
@@ -280,6 +281,12 @@ const Draggable: React.FC<TDraggableProps> = ({
                         <button type='button' className='draggable-zoom-btn' onClick={handleZoomReset} title='Reset Zoom'>{Math.round(zoomScale * 100)}%</button>
                         <button type='button' className='draggable-zoom-btn' onClick={handleZoomIn} title='Zoom In'>🔍+</button>
                     </div>
+
+                    {onMinimize && (
+                        <div className='draggable-dialog__header-minimize' onClick={onMinimize} style={{ marginRight: '8px', cursor: 'pointer' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg>
+                        </div>
+                    )}
 
                     <div
                         className={`draggable-content__header__close`}

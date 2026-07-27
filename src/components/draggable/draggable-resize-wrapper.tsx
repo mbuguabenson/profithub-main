@@ -13,6 +13,7 @@ type DraggableResizeWrapperProps = {
     minWidth?: number;
     modalHeight?: number;
     modalWidth?: number;
+    onMinimize?: () => void;
 };
 
 const DraggableResizeWrapper: React.FC<DraggableResizeWrapperProps> = ({
@@ -26,6 +27,7 @@ const DraggableResizeWrapper: React.FC<DraggableResizeWrapperProps> = ({
     minWidth = 100,
     modalHeight = 400,
     modalWidth = 400,
+    onMinimize,
 }) => {
     const [show, setShow] = useState(false);
     const xAxisValue = (window.innerWidth - modalWidth) / 2;
@@ -73,6 +75,7 @@ const DraggableResizeWrapper: React.FC<DraggableResizeWrapperProps> = ({
                     enableDragging={enableDragging}
                     header={header}
                     onClose={onClose}
+                    onMinimize={onMinimize}
                 >
                     {children}
                 </Draggable>

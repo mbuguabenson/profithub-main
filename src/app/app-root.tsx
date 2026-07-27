@@ -3,6 +3,7 @@ import { observer } from 'mobx-react-lite';
 import ErrorBoundary from '@/components/error-component/error-boundary';
 import ErrorComponent from '@/components/error-component/error-component';
 import ChunkLoader from '@/components/loader/chunk-loader';
+import FloatingMarketHunter from '@/components/floating-market-hunter/floating-market-hunter';
 import { api_base } from '@/external/bot-skeleton';
 import { useStore } from '@/hooks/useStore';
 import { getBrandLabel, getBrandWebsiteName } from '@/components/shared/utils/brand/brand';
@@ -317,6 +318,7 @@ const AppRoot = () => {
         <Suspense fallback={<AppRootLoader />}>
             <ErrorBoundary root_store={store}>
                 <ErrorComponentWrapper />
+                <FloatingMarketHunter />
                 <AppContent />
             </ErrorBoundary>
         </Suspense>

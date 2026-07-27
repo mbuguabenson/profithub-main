@@ -24,7 +24,7 @@ export default Engine =>
                 const lastPurchase = this.lastPurchaseTime || 0;
                 const symbol = this.symbol || this.tradeOptions?.symbol || (this.trade_option && this.trade_option.underlying_symbol) || '';
                 const is1sMarket = symbol && (symbol.startsWith('1HZ') || symbol.includes('1s') || symbol.includes('1S'));
-                const minDelay = speed === '3' ? 50 : (is1sMarket ? 1000 : 2000);
+                const minDelay = speed === '3' ? 10 : (is1sMarket ? 500 : 1000);
                 if (now - lastPurchase < minDelay) {
                     return Promise.resolve();
                 }
@@ -106,7 +106,7 @@ export default Engine =>
 
                 // 🛡️ POC Watchdog Recovery Timer: Auto-poll contract completion if stream is delayed
                 const purchasedContractId = buy.contract_id;
-                const watchdogDuration = (Number(this.tradeOptions?.duration || 5) * 1200) + 3500;
+                const watchdogDuration = (Number(this.tradeOptions?.duration || 5) * 1100) + 1000;
 
                 const watchdogTimer = setTimeout(async () => {
                     if (this.contractId === purchasedContractId && !this.isSold) {

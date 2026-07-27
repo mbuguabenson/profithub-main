@@ -33,21 +33,22 @@ const watchDuring = store =>
         passFlag: 'openContract',
     });
 
-/* The watchScope function is called randomly and resets the prevTick
- * which leads to the same problem we try to solve. So prevTick is isolated
+/* The watchScope function resolves as soon as the store reaches the target scope+flag.
+ * Removed the prevTick guard that caused unnecessary delays between trade cycles.
  */
-let prevTick;
 const watchScope = ({ store, stopScope, passScope, passFlag }) => {
     // in case watch is called after stop is fired
-    if (store.getState().scope === stopScope) {
+    const currentState = store.getState();
+    if (currentState.scope === stopScope) {
         return Promise.resolve(false);
+    }
+    // Immediately resolve if already in the right state
+    if (currentState.scope === passScope && currentState[passFlag]) {
+        return Promise.resolve(true);
     }
     return new Promise(resolve => {
         const unsubscribe = store.subscribe(() => {
             const newState = store.getState();
-
-            if (newState.newTick === prevTick) return;
-            prevTick = newState.newTick;
 
             if (newState.scope === passScope && newState[passFlag]) {
                 unsubscribe();
@@ -130,7 +131,7 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
                                 api_base.api.send({ proposal_open_contract: 1, contract_id: contract.contract_id });
                             }, ['PriceMoved']);
                         }
-                    }, 1500);
+                    }, 600);
                 }
                 resolve();
             });

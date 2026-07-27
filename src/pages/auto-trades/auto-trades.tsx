@@ -736,24 +736,11 @@ const isCandleMatch = (trade_type: TradeType, candle_direction: Direction) => {
     return true;
 };
 
-const getCandleDirectionLabel = (direction: Direction) => {
-    if (direction === 1) return 'Bullish';
-    if (direction === -1) return 'Bearish';
-    return 'Waiting';
-};
-
 const getDirectionCondition = (trade_type: TradeType, target_len: number) => {
     if (trade_type === 'CALL') return `5m candle bullish + consecutive falling ticks ≥ ${target_len}`;
     if (trade_type === 'PUT') return `5m candle bearish + consecutive rising ticks ≥ ${target_len}`;
     if (trade_type === 'RUNHIGH') return `5m candle bullish + consecutive falling ticks ≥ ${target_len}`;
     return `5m candle bearish + consecutive rising ticks ≥ ${target_len}`;
-};
-
-const getDirectionStreakLabel = (trade_type: TradeType) => {
-    if (trade_type === 'CALL') return 'falling ticks + bullish 5m candle';
-    if (trade_type === 'PUT') return 'rising ticks + bearish 5m candle';
-    if (trade_type === 'RUNHIGH') return 'falling ticks + bullish 5m candle';
-    return 'rising ticks + bearish 5m candle';
 };
 
 export const computePercentage = (baseAmount: number, targetAmount: number): number => {
@@ -1115,10 +1102,6 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
         () => AUTO_MARKETS.filter(market => selectedMarketSymbols.includes(market.symbol)),
         [selectedMarketSymbols]
     );
-    const availableMarkets = useMemo(
-        () => AUTO_MARKETS.filter(market => !selectedMarketSymbols.includes(market.symbol)),
-        [selectedMarketSymbols]
-    );
 
     const [totalPnl, setTotalPnl] = useState(0);
     const [totalTrades, setTotalTrades] = useState(0);
@@ -1158,7 +1141,6 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     const consecutiveLossCountRef = useRef(consecutiveLossCount);
     const modeTransitionLockRef = useRef(false);
     const isRecoveringDataRef = useRef(false);
-    const [showDisclaimer, setShowDisclaimer] = useState(false);
     const [showAiStrategy, setShowAiStrategy] = useState(false);
     const [aiStrategyText, setAiStrategyText] = useState('');
     const [aiStrategyResult, setAiStrategyResult] = useState<AiAutoTradeParseResult | null>(null);
@@ -1185,14 +1167,12 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
             return null;
         }
     });
-    const [isAiFabDragging, setIsAiFabDragging] = useState(false);
+
     const [currentStakeDisplay, setCurrentStakeDisplay] = useState(1);
     const [cooldownDisplay, setCooldownDisplay] = useState(0);
     const [dataStreamLoading, setDataStreamLoading] = useState(false);
     const [dataStreamMessage, setDataStreamMessage] = useState('Loading selected market data...');
     const [floatingStrategyAlert, setFloatingStrategyAlert] = useState<FloatingStrategyAlert | null>(null);
-    const [activeAnalysisSymbol, setActiveAnalysisSymbol] = useState<string>('');
-    const [modalTab, setModalTab] = useState<'console' | 'markets' | 'smart'>('console');
 
     const [marketDisplays, setMarketDisplays] = useState<MarketDisplay[]>(
         selectedMarkets.map(m => ({
@@ -1244,16 +1224,6 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     const restartTimerRef = useRef<number | null>(null);
     const modeTransitionTimerRef = useRef<number | null>(null);
     const contractStreamAbortControllersRef = useRef<Set<AbortController>>(new Set());
-    const aiFabDragRef = useRef({
-        active: false,
-        moved: false,
-        pointerId: null as number | null,
-        startX: 0,
-        startY: 0,
-        startLeft: 0,
-        startTop: 0,
-    });
-    const suppressAiFabClickRef = useRef(false);
     const show_auto = active_tab === DBOT_TABS.AUTO_TRADES;
     const show_auto_ref = useRef(show_auto);
     show_auto_ref.current = show_auto;
@@ -1302,60 +1272,6 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
             // Ignore localStorage write failures.
         }
     }, [aiFabPosition]);
-
-    const handleAiFabPointerDown = useCallback(
-        (event: any) => {
-            if (isRunning) return;
-
-            const currentPosition = aiFabPosition ?? getDefaultAiFabPosition();
-            aiFabDragRef.current = {
-                active: true,
-                moved: false,
-                pointerId: event.pointerId,
-                startX: event.clientX,
-                startY: event.clientY,
-                startLeft: currentPosition.left,
-                startTop: currentPosition.top,
-            };
-            setAiFabPosition(currentPosition);
-            setIsAiFabDragging(true);
-            event.currentTarget?.setPointerCapture?.(event.pointerId);
-        },
-        [aiFabPosition, isRunning]
-    );
-
-    const handleAiFabPointerMove = useCallback((event: any) => {
-        const drag = aiFabDragRef.current;
-        if (!drag.active || drag.pointerId !== event.pointerId) return;
-
-        const dx = event.clientX - drag.startX;
-        const dy = event.clientY - drag.startY;
-        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-            drag.moved = true;
-        }
-        setAiFabPosition(clampAiFabPosition(drag.startLeft + dx, drag.startTop + dy));
-    }, []);
-
-    const finishAiFabDrag = useCallback((event: any) => {
-        const drag = aiFabDragRef.current;
-        if (!drag.active || drag.pointerId !== event.pointerId) return;
-
-        aiFabDragRef.current = { ...drag, active: false, pointerId: null };
-        setIsAiFabDragging(false);
-        event.currentTarget?.releasePointerCapture?.(event.pointerId);
-
-        if (drag.moved) {
-            suppressAiFabClickRef.current = true;
-            window.setTimeout(() => {
-                suppressAiFabClickRef.current = false;
-            }, 0);
-        }
-    }, []);
-
-    const handleAiFabClick = useCallback(() => {
-        if (suppressAiFabClickRef.current || isRunning) return;
-        setShowAiStrategy(true);
-    }, [isRunning]);
 
     useEffect(() => {
         configRef.current = {
@@ -2729,10 +2645,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
 
     if (!show_auto) return null;
 
-    const pnlPositive = totalPnl > 0;
-    const pnlNegative = totalPnl < 0;
     const baseStakeNum = Number(stake) || 1;
-    const martingaleActive = currentStakeDisplay > baseStakeNum;
     const inCooldown = cooldownDisplay > 0;
     const selectedMarketDisplayStates = selectedMarkets.map(
         market =>
@@ -3269,26 +3182,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
                                 </div>
 
                                 <div className='auto-trades-controls'>
-                                    <button
-                                        className={classNames('auto-trades-controls__ai', {
-                                            'auto-trades-controls__ai--dragging': isAiFabDragging,
-                                        })}
-                                        onClick={handleAiFabClick}
-                                        onPointerDown={handleAiFabPointerDown}
-                                        onPointerMove={handleAiFabPointerMove}
-                                        onPointerUp={finishAiFabDrag}
-                                        onPointerCancel={finishAiFabDrag}
-                                        disabled={isRunning}
-                                        type='button'
-                                        title='AI strategy setup'
-                                        style={aiFabStyle}
-                                    >
-                                        <span className='auto-trades-controls__ai-orbit'>
-                                            <span className='auto-trades-controls__ai-text'>AI</span>
-                                            <span className='auto-trades-controls__ai-dot' />
-                                        </span>
-                                        <span className='auto-trades-controls__ai-label'>Ai</span>
-                                    </button>
+
                                     {!isRunning ? (
                                         <button
                                             className='auto-trades-controls__run'

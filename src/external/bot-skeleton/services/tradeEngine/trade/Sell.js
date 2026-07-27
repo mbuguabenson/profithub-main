@@ -46,9 +46,9 @@ export default Engine =>
                 const sellContractAndGetContractInfo = () => {
                     return doUntilDone(() => api_base.api.send({ sell: contract_id, price: 0 }))
                         .then(sell_response => {
-                            doUntilDone(() => api_base.api.send({ proposal_open_contract: 1, contract_id })).then(
-                                () => sell_response
-                            );
+                            // Fire and forget the POC update for speed
+                            api_base.api.send({ proposal_open_contract: 1, contract_id }).catch(() => {});
+                            return sell_response;
                         })
                         .catch(e => {
                             const error = e.error;

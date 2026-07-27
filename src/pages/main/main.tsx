@@ -48,9 +48,6 @@ const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
 const MarketHunterPro = lazy(() => import('../market-hunter-pro'));
-const AICompoundingEngine = lazy(() => import('../ai-compounding-engine/ai-compounding-engine'));
-const DTraderPage = lazy(() => import('../dtrader'));
-const AITradingEnginePage = lazy(() => import('../market-hunter-pro'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -105,9 +102,6 @@ const AppWrapper = observer(() => {
         'signal_centre',
         'marketkiller',
         'multi_trader',
-        'ai_compounding_engine',
-        'dtrader',
-        'ai_trading_engine',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -439,36 +433,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Multi Trader...')} />}>
                     <MultiTrader />
-                </Suspense>
-            )
-        },
-        {
-            key: 'ai_compounding_engine',
-            id: 'id-ai-compounding-engine',
-            label: <TabIcon iconKey='ai_compounding_engine' label='AI Compounding Engine ⭐' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading AI Compounding Engine...')} />}>
-                    <AICompoundingEngine />
-                </Suspense>
-            )
-        },
-        {
-            key: 'dtrader',
-            id: 'id-dtrader',
-            label: <TabIcon iconKey='dtrader' label='DTrader' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading DTrader...')} />}>
-                    <DTraderPage />
-                </Suspense>
-            )
-        },
-        {
-            key: 'ai_trading_engine',
-            id: 'id-ai-trading-engine',
-            label: <TabIcon iconKey='ai_trading_engine' label='AI Trading Engine 🤖' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading AI Trading Engine...')} />}>
-                    <AITradingEnginePage />
                 </Suspense>
             )
         }

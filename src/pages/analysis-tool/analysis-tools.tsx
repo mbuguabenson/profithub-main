@@ -711,14 +711,7 @@ const AnalysisTools: React.FC = () => {
                             <span className='analysis-tools__card-label'>All Markets</span>
                         </div>
                     </div>
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'dp-tools' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('dp-tools')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>DP Tools</span>
-                        </div>
-                    </div>
+
                     <div
                         className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'tick-analyser' ? 'analysis-tools__card--active' : ''}`}
                         onClick={() => handleCardClick('tick-analyser')}

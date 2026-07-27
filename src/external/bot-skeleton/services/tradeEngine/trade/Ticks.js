@@ -172,7 +172,7 @@ export default Engine =>
         async fetchStatsForAccumulators() {
             try {
                 // request stats for accumulators
-                const debouncedAccumulatorsRequest = debounce(() => this.requestAccumulatorStats(), 300);
+                const debouncedAccumulatorsRequest = debounce(() => this.requestAccumulatorStats(), 100);
                 debouncedAccumulatorsRequest();
                 // wait for proposal response
                 const ticks_stayed_in_list = await this.handleOnMessageForAccumulators();

@@ -56,6 +56,7 @@ export type TDraggableProps = {
     enableDragging?: boolean;
     header?: string | React.ReactNode;
     onClose?: () => void;
+    onMinimize?: () => void;
 };
 
 export const calculateZindex = ({ setZIndex }: TCalculateZindex) => {
