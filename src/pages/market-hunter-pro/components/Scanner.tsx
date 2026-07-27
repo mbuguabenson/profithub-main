@@ -416,11 +416,29 @@ export default function Scanner() {
   const signalUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showTradeTypePicker, setShowTradeTypePicker] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTab>('scanner');
+  // Bulk trade
+  const [bulkCount, setBulkCount] = useState('3');
+  const [showBulkPanel, setShowBulkPanel] = useState(false);
+  // Recovery mode
+  const [recMode, setRecMode] = useState(false);
+  const [recLossThreshold, setRecLossThreshold] = useState('3');
+  const [recAltType, setRecAltType] = useState('over_under');
+  const [showRecTypePicker, setShowRecTypePicker] = useState(false);
+  const recTypePickerRef = useRef<HTMLDivElement>(null);
+  const tradeTypePickerRef = useRef<HTMLDivElement>(null);
+  const symbolPickerRef = useRef<HTMLDivElement>(null);
+  const prevSignalKeyRef = useRef<string>('');
+  const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const { isConnected, subscriptionState, subscribeSymbol } = useDerivWS();
+  const orb = useDraggableOrb();
 
   // Full AI Automation Engine state
   const [isFullAiAutomation, setIsFullAiAutomation] = useState(false);
-  const [autoPauseThreshold, setAutoPauseThreshold] = useState(0.60);
-  const [autoResumeThreshold, setAutoResumeThreshold] = useState(0.65);
+  const [autoPauseThreshold] = useState(0.60);
+  const [autoResumeThreshold] = useState(0.65);
   const [autoMarketSwitch, setAutoMarketSwitch] = useState(true);
   const [autoStrategyRotate, setAutoStrategyRotate] = useState(true);
   const [engineLogs, setEngineLogs] = useState<string[]>([]);
@@ -458,7 +476,7 @@ export default function Scanner() {
         },
         {
           onLog: msg => addEngineLog(msg),
-          onTrade: (result, profit, tradeStake) => {
+          onTrade: (result, profit) => {
             setEngineStats(prev => ({
               runs: prev.runs + 1,
               wins: result === 'WIN' ? prev.wins + 1 : prev.wins,
@@ -474,7 +492,7 @@ export default function Scanner() {
             const best = combinedSignals.find(s => s.status === 'TRADE NOW' && s.probability >= autoResumeThreshold * 100);
             return best ? selectedSymbol : null;
           },
-          getBestStrategy: (m) => {
+          getBestStrategy: () => {
             const best = combinedSignals.find(s => s.status === 'TRADE NOW');
             return best ? (best.type as string) : null;
           },
