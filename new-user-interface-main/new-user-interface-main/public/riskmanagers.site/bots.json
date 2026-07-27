@@ -1,0 +1,36 @@
+[
+    {
+        "id": "d10-by-mrduke",
+        "name": "D10 BY mrduke",
+        "file": "D10 BY mrduke.xml",
+        "description": "Risk Managers alternating digit bot that cycles between Even/Odd, Over4/Under5, and Rise/Fall with switch-count control, martingale sizing, and take-profit / stop-loss guards.",
+        "emoji": "RM",
+        "priority": 2
+    },
+    {
+        "name": "Percentage Over by Mr Duke",
+        "file": "Percentage Over by Mr Duke.xml",
+        "description": "Risk Managers percentage-over strategy with an elevated VIP presentation."
+    },
+    {
+        "id": "double-under-bot",
+        "name": "Double Under bot",
+        "file": "Double Under bot.xml",
+        "description": "Risk Managers digit bot that trades Under 8 in normal mode, switches to Under 7 after a loss, and waits for two-tick direction confirmation before entries.",
+        "emoji": "VIP",
+        "is_premium": true,
+        "priority": 1
+    },
+    {
+        "name": "grffy v1",
+        "file": "grffy v1.xml"
+    },
+    {
+        "name": "Mr Duke Speed Bot.1",
+        "file": "Mr Duke Speed Bot.1.xml"
+    },
+    {
+        "name": "Wealth Generator",
+        "file": "Wealth Generator.xml"
+    }
+]
