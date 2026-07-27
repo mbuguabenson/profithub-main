@@ -19,9 +19,10 @@ import { useDerivWS } from '../hooks/useDerivWS';
 import { analyzeMultiWindow, MultiWindowAnalysis } from '../lib/analysis';
 import { generateCombinedRankedSignals, Signal, SignalType } from '../lib/signals';
 import { SYMBOLS } from '../lib/symbols';
-import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { useStore } from '@/hooks/useStore';
 import { generateBotXML } from '@/utils/bot-xml-generator';
+import { FullAiTradeEngine } from '@/utils/full-ai-trade-engine';
+import { buyContractForUi } from '@/utils/trade-purchase';
 import '../index.css';
 
 
@@ -415,24 +416,83 @@ export default function Scanner() {
   const signalUpdatedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showTradeTypePicker, setShowTradeTypePicker] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTab>('scanner');
-  // Bulk trade
-  const [bulkCount, setBulkCount] = useState('3');
-  const [showBulkPanel, setShowBulkPanel] = useState(false);
-  // Recovery mode
-  const [recMode, setRecMode] = useState(false);
-  const [recLossThreshold, setRecLossThreshold] = useState('3');
-  const [recAltType, setRecAltType] = useState('over_under');
-  const [showRecTypePicker, setShowRecTypePicker] = useState(false);
-  const recTypePickerRef = useRef<HTMLDivElement>(null);
-  const tradeTypePickerRef = useRef<HTMLDivElement>(null);
-  const symbolPickerRef = useRef<HTMLDivElement>(null);
-  const prevSignalKeyRef = useRef<string>('');
-  const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const { isConnected, subscriptionState, subscribeSymbol } = useDerivWS();
-  const orb = useDraggableOrb();
+  // Full AI Automation Engine state
+  const [isFullAiAutomation, setIsFullAiAutomation] = useState(false);
+  const [autoPauseThreshold, setAutoPauseThreshold] = useState(0.60);
+  const [autoResumeThreshold, setAutoResumeThreshold] = useState(0.65);
+  const [autoMarketSwitch, setAutoMarketSwitch] = useState(true);
+  const [autoStrategyRotate, setAutoStrategyRotate] = useState(true);
+  const [engineLogs, setEngineLogs] = useState<string[]>([]);
+  const [engineStatus, setEngineStatus] = useState<string>('idle');
+  const [engineStats, setEngineStats] = useState({ runs: 0, wins: 0, losses: 0, profit: 0 });
+  const fullEngineRef = useRef<FullAiTradeEngine | null>(null);
+
+  const addEngineLog = useCallback((msg: string) => {
+    const ts = new Date().toLocaleTimeString();
+    setEngineLogs(prev => [`[${ts}] ${msg}`, ...prev].slice(0, 50));
+  }, []);
+
+  const toggleFullAiEngine = useCallback(() => {
+    if (isFullAiAutomation) {
+      fullEngineRef.current?.stop();
+      fullEngineRef.current = null;
+      setIsFullAiAutomation(false);
+      setEngineStatus('idle');
+      addEngineLog('⏹ AI Engine deactivated.');
+    } else {
+      setIsFullAiAutomation(true);
+      setEngineStatus('trading');
+      addEngineLog(`🤖 AI Engine ACTIVATED — Market: ${selectedSymbol} | Strategy: ${selectedTradeType}`);
+
+      const engine = new FullAiTradeEngine(
+        {
+          stake: parseFloat(stake) || 1,
+          martingaleMultiplier: parseFloat(martingale) || 2,
+          takeProfit: parseFloat(takeProfit) || 10,
+          stopLoss: parseInt(stopLoss) || 5,
+          autoPauseThreshold,
+          autoResumeThreshold,
+          autoMarketSwitch,
+          autoStrategyRotate,
+        },
+        {
+          onLog: msg => addEngineLog(msg),
+          onTrade: (result, profit, tradeStake) => {
+            setEngineStats(prev => ({
+              runs: prev.runs + 1,
+              wins: result === 'WIN' ? prev.wins + 1 : prev.wins,
+              losses: result === 'LOSS' ? prev.losses + 1 : prev.losses,
+              profit: prev.profit + profit,
+            }));
+          },
+          onStatusChange: status => setEngineStatus(status),
+          getSignals: () => combinedSignals,
+          getCurrentSignal: () => selectedSignal || combinedSignals[0] || null,
+          getBestMarket: () => {
+            if (combinedSignals.length === 0) return null;
+            const best = combinedSignals.find(s => s.status === 'TRADE NOW' && s.probability >= autoResumeThreshold * 100);
+            return best ? selectedSymbol : null;
+          },
+          getBestStrategy: (m) => {
+            const best = combinedSignals.find(s => s.status === 'TRADE NOW');
+            return best ? (best.type as string) : null;
+          },
+          switchMarket: (m, sig) => {
+            setSelectedSymbol(m);
+            if (sig) setSelectedSignal(sig);
+          },
+          switchStrategy: (strat, sig) => {
+            setSelectedTradeType(strat);
+            if (sig) setSelectedSignal(sig);
+          },
+        }
+      );
+
+      fullEngineRef.current = engine;
+      engine.start(selectedSymbol, selectedTradeType);
+    }
+  }, [isFullAiAutomation, selectedSymbol, selectedTradeType, stake, martingale, takeProfit, stopLoss, autoPauseThreshold, autoResumeThreshold, autoMarketSwitch, autoStrategyRotate, combinedSignals, selectedSignal, addEngineLog]);
 
   const allowedTypes = useMemo(() => {
     const tt = TRADE_TYPES.find((t) => t.id === selectedTradeType);
@@ -730,6 +790,105 @@ export default function Scanner() {
           {/* ── SCANNER TAB ── */}
           {activeTab === 'scanner' && (
             <div className="p-5 space-y-4" style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.02))' }}>
+              
+              {/* 🤖 AI FULL AUTOMATION ENGINE CARD REDESIGN */}
+              <div className="rounded-2xl p-4 border transition-all duration-300"
+                style={{
+                  background: isFullAiAutomation
+                    ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))'
+                    : 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
+                  borderColor: isFullAiAutomation ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)',
+                  boxShadow: isFullAiAutomation ? '0 0 20px rgba(16,185,129,0.15)' : 'none',
+                }}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className={isFullAiAutomation ? 'text-emerald-400 animate-spin' : 'text-amber-400'} />
+                    <span className="text-xs font-black text-white uppercase tracking-wider">AI Full Automation Engine</span>
+                  </div>
+                  <button
+                    onClick={toggleFullAiEngine}
+                    className="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 shadow-md"
+                    style={{
+                      background: isFullAiAutomation ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.1)',
+                      color: isFullAiAutomation ? '#fff' : 'rgba(255,255,255,0.5)',
+                      border: isFullAiAutomation ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    {isFullAiAutomation ? '⚡ ACTIVE' : 'OFF'}
+                  </button>
+                </div>
+                <p className="text-[10px] text-white/50 leading-relaxed">
+                  Autonomously monitors live Deriv market ticks, places trades directly, handles martingale, auto-pauses when market shifts, and switches markets/strategies automatically.
+                </p>
+
+                {/* Status Grid */}
+                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
+                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
+                    <span className="text-[8px] font-bold text-white/40 uppercase block">Engine Status</span>
+                    <span className="text-[11px] font-black uppercase" style={{
+                      color: engineStatus === 'trading' ? '#10b981' : engineStatus === 'paused' ? '#f5c542' : 'rgba(255,255,255,0.6)'
+                    }}>
+                      {engineStatus}
+                    </span>
+                  </div>
+                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
+                    <span className="text-[8px] font-bold text-white/40 uppercase block">Session P/L</span>
+                    <span className={`text-[11px] font-black ${engineStats.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {engineStats.profit >= 0 ? `+$${engineStats.profit.toFixed(2)}` : `-$${Math.abs(engineStats.profit).toFixed(2)}`}
+                    </span>
+                  </div>
+                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
+                    <span className="text-[8px] font-bold text-white/40 uppercase block">Win / Loss</span>
+                    <span className="text-[11px] font-black text-amber-300">
+                      {engineStats.wins}W / {engineStats.losses}L
+                    </span>
+                  </div>
+                </div>
+
+                {/* Auto Controls */}
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    onClick={() => setAutoMarketSwitch(v => !v)}
+                    className="p-2 rounded-xl text-[9px] font-bold flex items-center justify-between border transition"
+                    style={{
+                      background: autoMarketSwitch ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.03)',
+                      borderColor: autoMarketSwitch ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)',
+                      color: autoMarketSwitch ? '#34d399' : 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    <span>Auto Market Switch</span>
+                    <span>{autoMarketSwitch ? 'ON' : 'OFF'}</span>
+                  </button>
+                  <button
+                    onClick={() => setAutoStrategyRotate(v => !v)}
+                    className="p-2 rounded-xl text-[9px] font-bold flex items-center justify-between border transition"
+                    style={{
+                      background: autoStrategyRotate ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
+                      borderColor: autoStrategyRotate ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
+                      color: autoStrategyRotate ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    <span>Auto Strategy Rotate</span>
+                    <span>{autoStrategyRotate ? 'ON' : 'OFF'}</span>
+                  </button>
+                </div>
+
+                {/* Live Activity Terminal */}
+                {engineLogs.length > 0 && (
+                  <div className="mt-3 bg-black/50 rounded-xl p-2 font-mono text-[9px] max-h-24 overflow-y-auto border border-white/10 space-y-1">
+                    {engineLogs.map((log, idx) => (
+                      <div key={idx} className={
+                        log.includes('WIN') || log.includes('ACTIVATED') ? 'text-emerald-400'
+                          : log.includes('LOSS') || log.includes('dropped') ? 'text-rose-400'
+                          : log.includes('Switched') || log.includes('Rotated') ? 'text-sky-400'
+                          : 'text-white/70'
+                      }>
+                        {log}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               {/* Symbol selector */}
               <div>
                 <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1">Market</label>
