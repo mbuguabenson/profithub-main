@@ -19,10 +19,10 @@ import { useDerivWS } from '../hooks/useDerivWS';
 import { analyzeMultiWindow, MultiWindowAnalysis } from '../lib/analysis';
 import { generateCombinedRankedSignals, Signal, SignalType } from '../lib/signals';
 import { SYMBOLS } from '../lib/symbols';
+import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { useStore } from '@/hooks/useStore';
 import { generateBotXML } from '@/utils/bot-xml-generator';
 import { FullAiTradeEngine } from '@/utils/full-ai-trade-engine';
-import { buyContractForUi } from '@/utils/trade-purchase';
 import '../index.css';
 
 
