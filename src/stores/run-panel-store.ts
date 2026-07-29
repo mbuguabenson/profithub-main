@@ -673,8 +673,10 @@ export default class RunPanelStore {
             this.setContractStage(contract_stages.CONTRACT_CLOSED);
             ui.setAccountSwitcherDisabledMessage();
             this.unregisterBotListeners();
+            this.setIsRunning(false);
         }
 
+        this.setIsRunning(false);
         this.setHasOpenContract(false);
 
         summary_card.clearContractUpdateConfigValues();
