@@ -179,10 +179,8 @@ const WorkspaceGroup = observer(() => {
                                 id='db-toolbar__ai-trading-button'
                                 onClick={() => {
                                     scanner.setFullAiAutomation(!scanner.is_full_ai_automation);
-                                    if (!scanner.is_open) {
-                                        setPreviewOnPopup(true);
-                                        setScannerVisibility(true);
-                                    }
+                                    setPreviewOnPopup(true);
+                                    scanner.setAiEngineCardVisibility(true);
                                 }}
                             >
                                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ verticalAlign: 'middle', filter: 'drop-shadow(0 0 5px rgba(16,185,129,0.7))' }}>

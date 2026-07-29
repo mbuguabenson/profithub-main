@@ -133,6 +133,7 @@ interface IScannerStore {
 export default class ScannerStore implements IScannerStore {
   root_store: RootStore;
   is_open = false;
+  is_ai_engine_card_open = false;
   is_scanning = false;
   selected_strategy: TStrategyType = 'even_odd';
   selected_symbols: string[] = [];
@@ -209,6 +210,7 @@ export default class ScannerStore implements IScannerStore {
   constructor(root_store: RootStore) {
     makeObservable(this, {
       is_open: observable,
+      is_ai_engine_card_open: observable,
       is_scanning: observable,
       selected_strategy: observable,
       selected_symbols: observable,
@@ -258,6 +260,7 @@ export default class ScannerStore implements IScannerStore {
       current_auto_strategy: observable,
       engine_status: observable,
       setScannerVisibility: action,
+      setAiEngineCardVisibility: action,
       setSelectedStrategy: action,
       setSelectedSymbols: action,
       setScanMode: action,
@@ -593,6 +596,14 @@ export default class ScannerStore implements IScannerStore {
     this.is_open = typeof is_open === 'boolean' ? is_open : !this.is_open;
     console.log('setScannerVisibility called, is_open now:', this.is_open);
     if (this.is_open) {
+      this.subscribeToSymbolTicks(this.single_market_symbol);
+    }
+  };
+
+  setAiEngineCardVisibility = (is_open?: boolean | any) => {
+    this.is_ai_engine_card_open = typeof is_open === 'boolean' ? is_open : !this.is_ai_engine_card_open;
+    console.log('setAiEngineCardVisibility called, is_ai_engine_card_open now:', this.is_ai_engine_card_open);
+    if (this.is_ai_engine_card_open) {
       this.subscribeToSymbolTicks(this.single_market_symbol);
     }
   };

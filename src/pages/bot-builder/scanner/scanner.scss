@@ -1214,3 +1214,124 @@
   }
 }
 
+/* ── Dedicated Styling for AI Floating Scanner Card & AI Trading Engine Card ── */
+
+.mhp-floating-scanner-card {
+  background: linear-gradient(160deg, #091326 0%, #0f172a 60%, #0369a1 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+  box-shadow: 0 10px 30px rgba(3, 105, 161, 0.25) !important;
+
+  .mhp-card-title {
+    color: #38bdf8 !important;
+  }
+}
+
+.mhp-ai-engine-card {
+  background: linear-gradient(160deg, #022c22 0%, #064e3b 50%, #0f172a 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.3) !important;
+  box-shadow: 0 10px 35px rgba(16, 185, 129, 0.35) !important;
+
+  .mhp-card-title {
+    color: #34d399 !important;
+  }
+}
+
+/* ── AI Hero Card & Neural Controls ── */
+.mhp-ai-hero-card {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.1);
+
+  .mhp-ai-neural-ring {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px dashed rgba(52, 211, 153, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: mhp-spin-ring 8s linear infinite;
+
+    .mhp-ai-pulse-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #64748b;
+
+      &.active {
+        background: #34d399;
+        box-shadow: 0 0 12px #34d399;
+        animation: mhp-dot-pulse 1.2s ease-in-out infinite;
+      }
+    }
+  }
+
+  .mhp-ai-hero-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mhp-ai-toggle-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: 1px solid #34d399;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+    }
+
+    &.active {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-color: #f87171;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+
+      &:hover {
+        box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
+      }
+    }
+  }
+}
+
+.mhp-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #e2e8f0;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    accent-color: #10b981;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+}
+
+@keyframes mhp-spin-ring {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+

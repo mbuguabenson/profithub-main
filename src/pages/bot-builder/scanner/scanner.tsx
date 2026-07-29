@@ -1129,8 +1129,11 @@ const Scanner = observer(() => {
         <DraggableResizeWrapper
           boundary=".main"
           header={
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', paddingRight: 10 }}>
-              <span>{localize('AI Market Scanner')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', paddingRight: 10, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>📡</span>
+                <span style={{ fontWeight: 800, color: '#38bdf8' }}>{localize('AI Floating Market Scanner')}</span>
+              </div>
               <span className={classNames('mhp-conn-badge', connection_status)}>
                 <span className="mhp-conn-dot" />
                 {connection_status === 'connected' ? 'LIVE' : connection_status.toUpperCase()}
@@ -1144,7 +1147,7 @@ const Scanner = observer(() => {
           minHeight={500}
           enableResizing
         >
-          <div className="mhp-scanner">
+          <div className="mhp-scanner mhp-floating-scanner-card">
             {/* ── Tab Bar ── */}
             <div className="mhp-tabs">
               <button
@@ -2097,6 +2100,147 @@ const Scanner = observer(() => {
               <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun} disabled={!current_signal}>
                 {localize('Load & Run')}
               </button>
+            </div>
+          </div>
+        </DraggableResizeWrapper>
+      )}
+
+      {/* ── AI Autonomous Trading Engine Dedicated Card ── */}
+      {scanner.is_ai_engine_card_open && (
+        <DraggableResizeWrapper
+          boundary=".main"
+          header={
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', paddingRight: 10, justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span>🤖</span>
+                <span style={{ fontWeight: 800, color: '#34d399' }}>{localize('AI Autonomous Trading Engine')}</span>
+              </div>
+              <span className={classNames('mhp-conn-badge', scanner.engine_status === 'trading' ? 'connected' : scanner.engine_status === 'paused' ? 'connecting' : 'connected')}>
+                <span className="mhp-conn-dot" />
+                {scanner.engine_status.toUpperCase()}
+              </span>
+            </div>
+          }
+          onClose={() => scanner.setAiEngineCardVisibility(false)}
+          modalWidth={500}
+          modalHeight={620}
+          minWidth={360}
+          minHeight={450}
+          enableResizing
+        >
+          <div className="mhp-scanner mhp-ai-engine-card">
+            {/* ── Neural Core Hero Header ── */}
+            <div className="mhp-ai-hero-card">
+              <div className="mhp-ai-neural-ring">
+                <div className={classNames("mhp-ai-pulse-dot", { active: scanner.is_full_ai_automation })} />
+              </div>
+              <div className="mhp-ai-hero-info">
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase' }}>
+                  {localize('Autonomous Mode')}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: scanner.is_full_ai_automation ? '#34d399' : '#cbd5e1' }}>
+                  {scanner.is_full_ai_automation ? localize('🔥 AI Auto-Pilot ACTIVE') : localize('⏸️ AI Engine Standby')}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+                  {scanner.is_full_ai_automation
+                    ? localize(`Trading on ${scanner.current_auto_market} (${scanner.current_auto_strategy.toUpperCase()})`)
+                    : localize('Ready to auto-rotate markets & execute optimal signals')}
+                </div>
+              </div>
+              <button
+                className={classNames("mhp-ai-toggle-btn", { active: scanner.is_full_ai_automation })}
+                onClick={() => scanner.setFullAiAutomation(!scanner.is_full_ai_automation)}
+              >
+                {scanner.is_full_ai_automation ? localize('STOP ENGINE') : localize('LAUNCH ENGINE')}
+              </button>
+            </div>
+
+            {/* ── Body ── */}
+            <div className="mhp-body">
+              {/* Configurations & Automation Switches */}
+              <div className="mhp-card">
+                <span className="mhp-card-title">⚙️ {localize('AI Auto-Pilot Configurations')}</span>
+                <div className="mhp-grid-2" style={{ marginTop: 6 }}>
+                  <label className="mhp-switch-row">
+                    <span>{localize('Auto Market Switch')}</span>
+                    <input
+                      type="checkbox"
+                      checked={scanner.auto_market_switch_enabled}
+                      onChange={e => scanner.setAutoMarketSwitch(e.target.checked)}
+                    />
+                  </label>
+                  <label className="mhp-switch-row">
+                    <span>{localize('Auto Strategy Rotate')}</span>
+                    <input
+                      type="checkbox"
+                      checked={scanner.auto_strategy_rotate_enabled}
+                      onChange={e => scanner.setAutoStrategyRotate(e.target.checked)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Profit & Risk Metrics */}
+              <div className="mhp-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span className="mhp-card-title">📈 {localize('AI Profit & Risk Metrics')}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: scanner.total_profit >= 0 ? '#34d399' : '#f87171' }}>
+                    P/L: ${scanner.total_profit.toFixed(2)}
+                  </span>
+                </div>
+                <div className="mhp-grid-3" style={{ background: 'rgba(0,0,0,0.25)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Runs</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{scanner.total_runs}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Win Rate</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#38bdf8' }}>
+                      {scanner.total_runs > 0 ? `${((scanner.wins / scanner.total_runs) * 100).toFixed(0)}%` : '100%'}
+                    </span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Streak</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: scanner.consecutive_losses > 0 ? '#f87171' : '#34d399' }}>
+                      {scanner.consecutive_losses > 0 ? `-${scanner.consecutive_losses} L` : `+${scanner.wins} W`}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Session Target Progress */}
+              <div className="mhp-card">
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{localize('Session Target Progress')}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: store.dollarflipper.current_session_profit >= 0 ? '#10b981' : '#ef4444' }}>
+                    ${store.dollarflipper.current_session_profit.toFixed(2)} / ${store.dollarflipper.target_profit.toFixed(2)}
+                  </span>
+                </div>
+                <div className="mhp-progress-bg">
+                  <div
+                    className="mhp-progress-fill mhp-progress-green"
+                    style={{ width: `${Math.min(100, Math.max(0, (store.dollarflipper.current_session_profit / store.dollarflipper.target_profit) * 100))}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Live AI Execution Stream */}
+              <div className="mhp-card">
+                <span className="mhp-card-title" style={{ marginBottom: 6, display: 'block' }}>⚡ {localize('Live AI Execution Log')}</span>
+                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, height: 110, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11 }}>
+                  {scanner.engine_activity_log.length === 0 ? (
+                    <div style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingTop: 30 }}>
+                      {localize('AI Engine ready. Click "LAUNCH ENGINE" to start auto-trading.')}
+                    </div>
+                  ) : (
+                    scanner.engine_activity_log.map((log, idx) => (
+                      <div key={idx} style={{ color: '#a7f3d0', padding: '2px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </DraggableResizeWrapper>
