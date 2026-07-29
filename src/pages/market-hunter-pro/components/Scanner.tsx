@@ -770,37 +770,47 @@ export default function Scanner() {
   const panel = step !== 'orb' && (
     <DraggableResizeWrapper
       boundary=".main"
-      header="AI Scanner"
+      header={
+        <div className="flex items-center justify-between w-full pr-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎯</span>
+            <span className="font-extrabold text-[#f5c542] tracking-wide text-xs uppercase">Market Hunter Pro AI</span>
+          </div>
+          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-slate-800'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+            {isConnected ? 'LIVE CONNECTED' : 'DISCONNECTED'}
+          </span>
+        </div>
+      }
       onClose={() => setStep('orb')}
-      modalWidth={526}
-      modalHeight={595}
-      minWidth={526}
-      minHeight={524}
+      modalWidth={540}
+      modalHeight={620}
+      minWidth={360}
+      minHeight={480}
       enableResizing={true}
     >
-      <div className="flex flex-col h-full w-full bg-[#0e0e12] overflow-y-auto text-white">
+      <div className="flex flex-col h-full w-full bg-[#0b0f19] overflow-y-auto text-slate-100 font-sans">
         {/* Tab bar */}
-      {!minimized && (
-        <div className="flex border-b shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          {([
-            { id: 'scanner', label: 'Scanner' },
-            { id: 'monitor', label: 'Market Monitor' },
-          ] as { id: PanelTab; label: string }[]).map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className="flex-1 py-2.5 text-[11px] font-black tracking-wide transition relative"
-              style={{ color: activeTab === tab.id ? '#fff' : 'rgba(255,255,255,0.35)' }}
-            >
-              {tab.label}
-              {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full"
-                  style={{ background: 'linear-gradient(90deg,#f5c542,#e67e22)' }} />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+        {!minimized && (
+          <div className="flex border-b shrink-0 bg-slate-900/60 backdrop-blur-md" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+            {([
+              { id: 'scanner', label: '⚡ AI Scanner' },
+              { id: 'monitor', label: '📊 Market Monitor' },
+            ] as { id: PanelTab; label: string }[]).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className="flex-1 py-3 text-[11px] font-extrabold tracking-wider uppercase transition-all duration-200 relative"
+                style={{ color: activeTab === tab.id ? '#f5c542' : 'rgba(255,255,255,0.4)' }}
+              >
+                {tab.label}
+                {activeTab === tab.id && (
+                  <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-t-full bg-gradient-to-r from-amber-400 to-emerald-400 shadow-sm" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
       {/* Tab content */}
       {!minimized && (
