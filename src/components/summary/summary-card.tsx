@@ -102,9 +102,9 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
             })}
             data-testid='dt_mock_summary_card'
         >
-            {is_contract_loading && !is_bot_running && <ContractCardLoader speed={2} />}
-            {is_bot_running && <ContractCardLoader speed={2} contract_stage={contract_stage} />}
-            {!is_contract_loading && contract_info && !is_bot_running && (
+            {is_contract_loading && !is_bot_running && !contract_info && <ContractCardLoader speed={2} />}
+            {is_bot_running && !contract_info && <ContractCardLoader speed={2} contract_stage={contract_stage} />}
+            {contract_info && (
                 <ContractCard
                     contract_info={contract_info as any}
                     getCardLabels={getCardLabels}
