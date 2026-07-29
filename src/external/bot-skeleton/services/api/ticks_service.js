@@ -266,26 +266,24 @@ export default class TicksService {
             style,
         };
         return new Promise((resolve, reject) => {
-            if (!api_base.api) resolve([]);
-            doUntilDone(() => api_base.api.send(request_object), ['AlreadySubscribed'], api_base)
+            if (!api_base.api) return resolve([]);
+            api_base.api
+                .send(request_object)
                 .then(r => {
                     if (style === 'ticks') {
                         const ticks = historyToTicks(r.history);
-
                         this.updateTicksAndCallListeners(symbol, ticks);
                         resolve(ticks);
                     } else {
                         const candles = parseCandles(r.candles);
-
                         this.updateCandlesAndCallListeners([symbol, Number(granularity)], candles);
-
                         resolve(candles);
                     }
                 })
                 .catch(error => {
-                    // Handle AlreadySubscribed errors gracefully - they're not fatal
-                    if (error?.error?.code === 'AlreadySubscribed') {
-                        // For AlreadySubscribed errors, we can still resolve with existing data
+                    const code = error?.error?.code || error?.code;
+                    // Handle AlreadySubscribed gracefully — resolve with cached data
+                    if (code === 'AlreadySubscribed') {
                         if (style === 'ticks' && this.ticks.has(symbol)) {
                             resolve(this.ticks.get(symbol));
                         } else if (style === 'candles' && this.candles.hasIn([symbol, Number(granularity)])) {
@@ -295,9 +293,20 @@ export default class TicksService {
                         }
                         return;
                     }
-                    // Don't clear auth data for InvalidSymbol errors as it causes unwanted logouts
-                    // InvalidSymbol errors can occur for various reasons and don't necessarily mean the user is unauthorized
-                    reject(error);
+                    // For other errors, use doUntilDone for retry
+                    doUntilDone(() => api_base.api.send(request_object), [], api_base)
+                        .then(r => {
+                            if (style === 'ticks') {
+                                const ticks = historyToTicks(r.history);
+                                this.updateTicksAndCallListeners(symbol, ticks);
+                                resolve(ticks);
+                            } else {
+                                const candles = parseCandles(r.candles);
+                                this.updateCandlesAndCallListeners([symbol, Number(granularity)], candles);
+                                resolve(candles);
+                            }
+                        })
+                        .catch(reject);
                 });
         });
     }
