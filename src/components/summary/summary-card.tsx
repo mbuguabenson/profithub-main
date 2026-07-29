@@ -31,7 +31,9 @@ const SummaryCard = observer(({ contract_info, is_contract_loading, is_bot_runni
         <ContractCard.Header
             {...({
                 contract_info: contract_info as any,
-                display_name: (contract_info as any)?.underlying_symbol
+                display_name: (contract_info as any)?.underlying
+                    ? getSymbolDisplayNameSync((contract_info as any).underlying)
+                    : (contract_info as any)?.underlying_symbol
                     ? getSymbolDisplayNameSync((contract_info as any).underlying_symbol)
                     : '',
                 getCardLabels,
