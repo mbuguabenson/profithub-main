@@ -49,19 +49,11 @@ const getToolsInterface = tradeEngine => {
 
         // Highlight the block that is being executed
         highlightBlock: block_id => {
-            const block = window.Blockly.derivWorkspace.getBlockById(block_id);
-            window.Blockly.BlockSvg.prototype.highlightExecutedBlock = function () {
-                const highlight_block_class = 'block--execution-highlighted';
-                if (!window.Blockly.utils.dom.hasClass(this.svgGroup_, highlight_block_class)) {
-                    window.Blockly.utils.dom.addClass(this.svgGroup_, highlight_block_class);
-                    setTimeout(() => {
-                        if (this.svgGroup_) {
-                            window.Blockly.utils.dom.removeClass(this.svgGroup_, highlight_block_class);
-                        }
-                    }, 1505);
-                }
-            };
-            if (block) {
+            if (typeof document !== 'undefined' && document.hidden) return;
+            const workspace = window.Blockly?.derivWorkspace;
+            if (!workspace) return;
+            const block = workspace.getBlockById(block_id);
+            if (block && typeof block.highlightExecutedBlock === 'function') {
                 block.highlightExecutedBlock(block);
             }
         },

@@ -51,7 +51,7 @@ const TradeAnimation = observer(({ className, should_show_overlay }: TTradeAnima
         };
         checkBots();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dashboard_strategies, is_delete_modal_open, is_stop_button_visible]);
+    }, [dashboard_strategies, is_delete_modal_open]);
 
     // Force re-render when delete modal is closed (which happens after deletion)
     React.useEffect(() => {

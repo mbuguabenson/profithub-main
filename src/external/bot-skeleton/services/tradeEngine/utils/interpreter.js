@@ -7,13 +7,26 @@ import { api_base } from '../../api/api-base';
 import Interface from '../Interface';
 import { createScope } from './cliTools';
 
+// Helper function to clone state snapshot while bypassing immutable AST nodes and functions
+const snapshotClone = obj => {
+    if (!obj || typeof obj !== 'object') return obj;
+    // Fast path: AST nodes (objects with type property) are read-only syntax trees and must not be cloned
+    if (obj.type && typeof obj.type === 'string' && (obj.start !== undefined || obj.end !== undefined || obj.loc !== undefined)) {
+        return obj;
+    }
+    // Skip functions, DOM nodes, and window references
+    if (typeof obj === 'function' || obj instanceof HTMLElement || (typeof window !== 'undefined' && obj === window)) {
+        return obj;
+    }
+    return cloneThorough(obj, true, 25, undefined, false);
+};
+
 JSInterpreter.prototype.takeStateSnapshot = function () {
-    const newStateStack = cloneThorough(this.stateStack, undefined, undefined, undefined, true);
-    return newStateStack;
+    return snapshotClone(this.stateStack);
 };
 
 JSInterpreter.prototype.restoreStateSnapshot = function (snapshot) {
-    this.stateStack = cloneThorough(snapshot, undefined, undefined, undefined, true);
+    this.stateStack = snapshotClone(snapshot);
     this.global = this.stateStack[0].scope.object || this.stateStack[0].scope;
     this.initFunc_(this, this.global);
 };
