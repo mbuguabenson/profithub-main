@@ -2346,7 +2346,10 @@ const Scanner = observer(() => {
                     ) : (
                       <div className="mhp-signals-list">
                         {activeSelectedStrategySignals.slice(0, 5).map((sig, i) => (
-                          <div key={i} className="mhp-signal-item" onClick={() => selectSignal(sig)}>
+                          <div key={i} className="mhp-signal-item" onClick={() => {
+                            scanner.current_signal = sig;
+                            scanner.is_manual_selection = true;
+                          }}>
                             <div className="mhp-sig-left">
                               <span className="mhp-sig-symbol">{sig.symbol}</span>
                               <span className="mhp-sig-strat">{sig.strategy}</span>
@@ -2371,7 +2374,8 @@ const Scanner = observer(() => {
                   {available_symbols.map((sym: any) => {
                     const symbolKey = sym.symbol || sym.underlying_symbol;
                     const analysis = scanner.symbol_analysis[symbolKey];
-                    const selectedStat = getStatsForStrategy(analysis, selected_strategy || 'even_odd');
+                    const activeStrat = selected_strategies[0] || scanner.selected_strategy || 'even_odd';
+                    const selectedStat = getStatsForStrategy(analysis, activeStrat);
 
                     return (
                       <div key={symbolKey} className="mhp-stat-card">
@@ -2382,7 +2386,7 @@ const Scanner = observer(() => {
                           </div>
                           <button
                             className="mhp-stat-trade-btn"
-                            onClick={() => handleLoadBotFromStats(sym, selected_strategy || 'even_odd', selectedStat, analysis)}
+                            onClick={() => handleLoadBotFromStats(sym, activeStrat, selectedStat, analysis)}
                           >
                             Trade
                           </button>
