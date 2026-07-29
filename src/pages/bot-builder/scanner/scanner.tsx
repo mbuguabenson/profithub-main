@@ -2122,10 +2122,10 @@ const Scanner = observer(() => {
             </div>
           }
           onClose={() => scanner.setAiEngineCardVisibility(false)}
-          modalWidth={500}
-          modalHeight={620}
-          minWidth={360}
-          minHeight={450}
+          modalWidth={580}
+          modalHeight={750}
+          minWidth={380}
+          minHeight={500}
           enableResizing
         >
           <div className="mhp-scanner mhp-ai-engine-card">
@@ -2155,32 +2155,294 @@ const Scanner = observer(() => {
               </button>
             </div>
 
-            {/* ── Body ── */}
-            <div className="mhp-body">
-              {/* Configurations & Automation Switches */}
-              <div className="mhp-card">
-                <span className="mhp-card-title">⚙️ {localize('AI Auto-Pilot Configurations')}</span>
-                <div className="mhp-grid-2" style={{ marginTop: 6 }}>
-                  <label className="mhp-switch-row">
-                    <span>{localize('Auto Market Switch')}</span>
-                    <input
-                      type="checkbox"
-                      checked={scanner.auto_market_switch_enabled}
-                      onChange={e => scanner.setAutoMarketSwitch(e.target.checked)}
-                    />
-                  </label>
-                  <label className="mhp-switch-row">
-                    <span>{localize('Auto Strategy Rotate')}</span>
-                    <input
-                      type="checkbox"
-                      checked={scanner.auto_strategy_rotate_enabled}
-                      onChange={e => scanner.setAutoStrategyRotate(e.target.checked)}
-                    />
-                  </label>
-                </div>
+            {/* ── Auto-Pilot Switches Bar ── */}
+            <div style={{ padding: '0 14px', marginTop: 10 }}>
+              <div className="mhp-grid-2">
+                <label className="mhp-switch-row">
+                  <span>{localize('Auto Market Switch')}</span>
+                  <input
+                    type="checkbox"
+                    checked={scanner.auto_market_switch_enabled}
+                    onChange={e => scanner.setAutoMarketSwitch(e.target.checked)}
+                  />
+                </label>
+                <label className="mhp-switch-row">
+                  <span>{localize('Auto Strategy Rotate')}</span>
+                  <input
+                    type="checkbox"
+                    checked={scanner.auto_strategy_rotate_enabled}
+                    onChange={e => scanner.setAutoStrategyRotate(e.target.checked)}
+                  />
+                </label>
               </div>
+            </div>
 
-              {/* Profit & Risk Metrics */}
+            {/* ── Inner Tab Bar ── */}
+            <div className="mhp-tabs" style={{ marginTop: 10 }}>
+              <button
+                className={classNames('mhp-tab', { active: activeTab === 'scanner' })}
+                onClick={() => setActiveTab('scanner')}
+              >
+                {localize('Scanner Signals')}
+                {activeTab === 'scanner' && <span className="mhp-tab-indicator" style={{ background: '#34d399' }} />}
+              </button>
+              <button
+                className={classNames('mhp-tab', { active: activeTab === 'stats' })}
+                onClick={() => setActiveTab('stats')}
+              >
+                {localize('Digit Stats')}
+                {activeTab === 'stats' && <span className="mhp-tab-indicator" style={{ background: '#34d399' }} />}
+              </button>
+              <button
+                className={classNames('mhp-tab', { active: activeTab === 'dollarflipper' })}
+                onClick={() => setActiveTab('dollarflipper')}
+              >
+                {localize('Dollarflipper')}
+                {activeTab === 'dollarflipper' && <span className="mhp-tab-indicator" style={{ background: '#34d399' }} />}
+              </button>
+            </div>
+
+            {/* ── Scrollable Engine Body ── */}
+            <div className="mhp-body">
+
+              {/* ═══════════ SUBTAB 1: SCANNER SIGNALS & CONFIG ═══════════ */}
+              {activeTab === 'scanner' && (
+                <React.Fragment>
+                  {/* Market Selection */}
+                  <div className="mhp-card">
+                    <div className="mhp-card-header">
+                      <span className="mhp-card-title">{localize('Markets')}</span>
+                      <div className="mhp-mode-toggle">
+                        <button className={classNames('mhp-mode-btn', { active: scan_market_mode === 'multi' })} onClick={() => setScanMarketMode('multi')}>
+                          {localize('All Markets')}
+                        </button>
+                        <button className={classNames('mhp-mode-btn', { active: scan_market_mode === 'single' })} onClick={() => setScanMarketMode('single')}>
+                          {localize('Single')}
+                        </button>
+                      </div>
+                    </div>
+                    {scan_market_mode === 'single' ? (
+                      <React.Fragment>
+                        <select
+                          className="mhp-select"
+                          value={single_market_symbol}
+                          onChange={e => setSingleMarketSymbol(e.target.value)}
+                        >
+                          {available_symbols.map((sym: any) => (
+                            <option key={sym.symbol || sym.underlying_symbol} value={sym.symbol || sym.underlying_symbol}>
+                              {sym.display_name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="mhp-single-price-box">
+                          <div>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Market Price</span>
+                            <span className="mhp-single-price">
+                              {displayPrice !== null ? Number(displayPrice).toFixed(single_market_symbol.includes('1HZ') ? 2 : 4) : 'Loading...'}
+                            </span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Last Digit</span>
+                            <span className="mhp-single-digit">
+                              {displayDigit !== null ? displayDigit : '-'}
+                            </span>
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    ) : (
+                      <p className="mhp-info-text">{localize('Scanning all volatility indices and jump markets')}</p>
+                    )}
+                  </div>
+
+                  {/* Strategy Selection Buttons */}
+                  <div className="mhp-card">
+                    <span className="mhp-card-title" style={{ marginBottom: 8, display: 'block' }}>
+                      {localize('Select Strategy')}
+                    </span>
+                    <div className="mhp-strategy-line">
+                      {[
+                        { key: 'even_odd', label: 'Even/Odd' },
+                        { key: 'over_under', label: 'Over/Under' },
+                        { key: 'differs', label: 'Differs' },
+                        { key: 'matches', label: 'Matches' },
+                        { key: 'rise_fall', label: 'Rise/Fall' },
+                      ].map(opt => {
+                        const isSelected = selected_strategies.includes(opt.key as any);
+                        return (
+                          <button
+                            key={opt.key}
+                            className={classNames('mhp-strategy-chip-single', { active: isSelected })}
+                            onClick={() => toggleStrategy(opt.key as any)}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Trade Config */}
+                  <div className="mhp-card">
+                    <span className="mhp-card-title" style={{ marginBottom: 8, display: 'block' }}>
+                      {localize('Trade Configuration')}
+                    </span>
+                    <div className="mhp-grid-2">
+                      <div>
+                        <label className="mhp-label">{localize('Stake ($)')}</label>
+                        <input type="number" className="mhp-input" value={scanner.stake}
+                          onChange={e => { scanner.stake = parseFloat(e.target.value) || 0; }} />
+                      </div>
+                      <div>
+                        <label className="mhp-label">{localize('Martingale x')}</label>
+                        <input type="number" step="0.1" className="mhp-input" value={scanner.martingale_multiplier}
+                          onChange={e => { scanner.martingale_multiplier = parseFloat(e.target.value) || 0; }} />
+                      </div>
+                      <div>
+                        <label className="mhp-label">{localize('Take Profit ($)')}</label>
+                        <input type="number" className="mhp-input" value={scanner.take_profit}
+                          onChange={e => { scanner.take_profit = parseFloat(e.target.value) || 0; }} />
+                      </div>
+                      <div>
+                        <label className="mhp-label">{localize('Stop Loss (losses)')}</label>
+                        <input type="number" className="mhp-input" value={scanner.stop_loss}
+                          onChange={e => { scanner.stop_loss = parseFloat(e.target.value) || 0; }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Suggestive Over/Under Predictions Picker */}
+                  {selected_strategies.includes('over_under') && (
+                    <div className="mhp-card mhp-pred-card">
+                      <div className="mhp-pred-header">
+                        <span className="mhp-card-title">🎯 {localize('Over/Under Suggestive Predictions')}</span>
+                        <span className="mhp-pred-auto">
+                          {predictionChoice !== null ? `Digit ${predictionChoice}` : `Auto AI: ${autoDigit}`}
+                        </span>
+                      </div>
+                      <div className="mhp-digit-grid">
+                        {[1, 2, 3, 6, 7, 8].map(d => (
+                          <button
+                            key={d}
+                            className={classNames('mhp-digit-btn', {
+                              selected: predictionChoice === d,
+                              auto: autoDigit === d && predictionChoice === null,
+                            })}
+                            onClick={() => setPredictionChoice(predictionChoice === d ? null : d)}
+                          >
+                            <span className="mhp-digit-lbl">
+                              {d <= 3 ? `Over ${d}` : `Under ${d}`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Live Detected Signals */}
+                  <div className="mhp-card">
+                    <span className="mhp-card-title" style={{ marginBottom: 6, display: 'block' }}>⚡ {localize('Detected Signals')}</span>
+                    {activeSelectedStrategySignals.length === 0 ? (
+                      <p className="mhp-info-text">{localize('Scanning for high probability setups...')}</p>
+                    ) : (
+                      <div className="mhp-signals-list">
+                        {activeSelectedStrategySignals.slice(0, 5).map((sig, i) => (
+                          <div key={i} className="mhp-signal-item" onClick={() => selectSignal(sig)}>
+                            <div className="mhp-sig-left">
+                              <span className="mhp-sig-symbol">{sig.symbol}</span>
+                              <span className="mhp-sig-strat">{sig.strategy}</span>
+                            </div>
+                            <div className="mhp-sig-right">
+                              <span style={{ color: statusColor(sig), fontWeight: 800, fontSize: 12 }}>
+                                {(sig.confidence * 100).toFixed(0)}%
+                              </span>
+                              <span className="mhp-sig-rec">{sig.details.recommendation}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </React.Fragment>
+              )}
+
+              {/* ═══════════ SUBTAB 2: STATS ═══════════ */}
+              {activeTab === 'stats' && (
+                <div className="mhp-stats-tab">
+                  {available_symbols.map((sym: any) => {
+                    const symbolKey = sym.symbol || sym.underlying_symbol;
+                    const analysis = scanner.symbol_analysis[symbolKey];
+                    const selectedStat = getStatsForStrategy(analysis, selected_strategy || 'even_odd');
+
+                    return (
+                      <div key={symbolKey} className="mhp-stat-card">
+                        <div className="mhp-stat-header">
+                          <div>
+                            <span className="mhp-stat-name">{sym.display_name}</span>
+                            <span className="mhp-stat-detail">{selectedStat.text}</span>
+                          </div>
+                          <button
+                            className="mhp-stat-trade-btn"
+                            onClick={() => handleLoadBotFromStats(sym, selected_strategy || 'even_odd', selectedStat, analysis)}
+                          >
+                            Trade
+                          </button>
+                        </div>
+                        <div className="mhp-stat-bar-bg">
+                          <div
+                            className="mhp-stat-bar-fill"
+                            style={{
+                              width: `${Math.min(100, selectedStat.strength)}%`,
+                              background: selectedStat.strength >= 65 ? '#10b981' : selectedStat.strength >= 55 ? '#f5c542' : '#64748b'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ═══════════ SUBTAB 3: DOLLARFLIPPER ═══════════ */}
+              {activeTab === 'dollarflipper' && (
+                <div className="mhp-df-container">
+                  <div className="mhp-df-banner">
+                    <span className="mhp-df-title">🚀 {localize('Dollar Flipper Engine')}</span>
+                    <p className="mhp-df-desc">{localize('Challenge mode: Auto-compounding sessions to scale balance safely')}</p>
+                  </div>
+                  <div className="mhp-df-progress-box">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{localize('Session Profit Target')}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: store.dollarflipper.current_session_profit >= 0 ? '#10b981' : '#ef4444' }}>
+                        ${store.dollarflipper.current_session_profit.toFixed(2)} / ${store.dollarflipper.target_profit.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="mhp-progress-bg">
+                      <div
+                        className="mhp-progress-fill mhp-progress-green"
+                        style={{ width: `${Math.min(100, Math.max(0, (store.dollarflipper.current_session_profit / store.dollarflipper.target_profit) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <button
+                      className="mhp-btn-scan"
+                      onClick={() => store.dollarflipper.resetChallenge()}
+                      style={{ flex: '0 0 100px' }}
+                    >
+                      🔄 Reset
+                    </button>
+                    <button
+                      className={classNames('mhp-df-btn', { running: store.dollarflipper.is_running })}
+                      onClick={() => store.dollarflipper.is_running ? store.dollarflipper.stopDollarflipper() : store.dollarflipper.startDollarflipper()}
+                      style={{ flex: 1 }}
+                    >
+                      {store.dollarflipper.is_running ? localize('⏸️ Pause Dollarflipper') : localize('🚀 Launch Dollar Flipper')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Profit & Risk Metrics Summary */}
               <div className="mhp-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <span className="mhp-card-title">📈 {localize('AI Profit & Risk Metrics')}</span>
@@ -2188,48 +2450,32 @@ const Scanner = observer(() => {
                     P/L: ${scanner.total_profit.toFixed(2)}
                   </span>
                 </div>
-                <div className="mhp-grid-3" style={{ background: 'rgba(0,0,0,0.25)', padding: 10, borderRadius: 8, textAlign: 'center' }}>
+                <div className="mhp-grid-3" style={{ background: 'rgba(0,0,0,0.25)', padding: 8, borderRadius: 8, textAlign: 'center' }}>
                   <div>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Runs</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{scanner.total_runs}</span>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#fff' }}>{scanner.total_runs}</span>
                   </div>
                   <div>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Win Rate</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#38bdf8' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#38bdf8' }}>
                       {scanner.total_runs > 0 ? `${((scanner.wins / scanner.total_runs) * 100).toFixed(0)}%` : '100%'}
                     </span>
                   </div>
                   <div>
                     <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', display: 'block' }}>Streak</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: scanner.consecutive_losses > 0 ? '#f87171' : '#34d399' }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: scanner.consecutive_losses > 0 ? '#f87171' : '#34d399' }}>
                       {scanner.consecutive_losses > 0 ? `-${scanner.consecutive_losses} L` : `+${scanner.wins} W`}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Session Target Progress */}
-              <div className="mhp-card">
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{localize('Session Target Progress')}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: store.dollarflipper.current_session_profit >= 0 ? '#10b981' : '#ef4444' }}>
-                    ${store.dollarflipper.current_session_profit.toFixed(2)} / ${store.dollarflipper.target_profit.toFixed(2)}
-                  </span>
-                </div>
-                <div className="mhp-progress-bg">
-                  <div
-                    className="mhp-progress-fill mhp-progress-green"
-                    style={{ width: `${Math.min(100, Math.max(0, (store.dollarflipper.current_session_profit / store.dollarflipper.target_profit) * 100))}%` }}
-                  />
-                </div>
-              </div>
-
               {/* Live AI Execution Stream */}
               <div className="mhp-card">
-                <span className="mhp-card-title" style={{ marginBottom: 6, display: 'block' }}>⚡ {localize('Live AI Execution Log')}</span>
-                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, height: 110, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11 }}>
+                <span className="mhp-card-title" style={{ marginBottom: 6, display: 'block' }}>⚡ {localize('Live AI Execution Stream')}</span>
+                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: 8, height: 100, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11 }}>
                   {scanner.engine_activity_log.length === 0 ? (
-                    <div style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingTop: 30 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingTop: 25 }}>
                       {localize('AI Engine ready. Click "LAUNCH ENGINE" to start auto-trading.')}
                     </div>
                   ) : (
@@ -2241,6 +2487,19 @@ const Scanner = observer(() => {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* ── Footer Actions ── */}
+            <div className="mhp-footer">
+              <button className="mhp-btn mhp-btn-scan" onClick={is_scanning ? stopScanning : startScanning}>
+                {is_scanning ? localize('Stop Scanning') : localize('Start Scan')}
+              </button>
+              <button className="mhp-btn mhp-btn-load" onClick={handleLoadBot} disabled={!current_signal}>
+                {localize('Load Bot')}
+              </button>
+              <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun} disabled={!current_signal}>
+                {localize('Load & Run')}
+              </button>
             </div>
           </div>
         </DraggableResizeWrapper>
