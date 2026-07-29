@@ -128,18 +128,6 @@ export default Engine =>
                     }
                 }, watchdogDuration);
 
-                if (isSpeedMode) {
-                    const postDelay = speed === '3' ? 10 : 50;
-                    setTimeout(() => {
-                        clearTimeout(watchdogTimer);
-                        this.contractId = '';
-                        if (this.afterPromise) {
-                            this.afterPromise();
-                        }
-                        this.store.dispatch(sell());
-                    }, postDelay);
-                }
-
                 delayIndex = 0;
                 log(LogTypes.PURCHASE, { transaction_id: buy.transaction_id });
                 info({
