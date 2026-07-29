@@ -394,7 +394,7 @@ function UnifiedSignalCard({ signal, rank, selected, lastDigit, isTop, marketLab
 // ─── Main Scanner ─────────────────────────────────────────────────────────────
 export default function Scanner() {
   const store = useStore();
-  const [step, setStep] = useState<Step>('scanning');
+  const [step, setStep] = useState<Step>('orb');
   const [minimized] = useState(false);
   const [selectedSymbol, setSelectedSymbol] = useState('1HZ100V');
   const [selectedTradeType, setSelectedTradeType] = useState('over_under');
@@ -518,7 +518,7 @@ export default function Scanner() {
   }, [selectedTradeType]);
 
   useEffect(() => {
-    if (!subscriptionState || subscriptionState.ticks.length < 20) return;
+    if (step === 'orb' || !subscriptionState || subscriptionState.ticks.length < 20) return;
     const result = analyzeMultiWindow(subscriptionState.ticks, subscriptionState.quotes);
     setMwa(result);
     const allSignals = generateCombinedRankedSignals(result, allowedTypes);
