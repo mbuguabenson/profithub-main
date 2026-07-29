@@ -15,11 +15,11 @@ type TFlyoutBlockGroup = {
 };
 
 const FlyoutBlockGroup = ({ onInfoClick, block_node, is_active, should_hide_display_name }: TFlyoutBlockGroup) => {
-    const block_type = (block_node.getAttribute('type') || '') as string;
-    const block_meta = window.Blockly.Blocks[block_type].meta();
+    const block_meta = window.Blockly.Blocks?.[block_type]?.meta?.() || {};
     const is_variables_get = block_type === 'variables_get';
     const is_variables_set = block_type === 'variables_set';
-    const { display_name, description } = block_meta;
+    const display_name = block_meta.display_name || block_type;
+    const description = block_meta.description || '';
 
     const AddButton = () => (
         <div className='flyout__item-buttons'>

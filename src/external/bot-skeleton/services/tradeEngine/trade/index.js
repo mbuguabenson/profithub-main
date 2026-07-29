@@ -115,27 +115,24 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.accountInfo = api_base.account_info;
         this.token = api_base.token;
         return new Promise(resolve => {
-            // Try to recover from a situation where API doesn't give us a correct response on
-            // "proposal_open_contract" which would make the bot run forever. When there's a "sell"
-            // event, wait a couple seconds for the API to give us the correct "proposal_open_contract"
-            // response, if there's none after x seconds. Send an explicit request, which _should_
-            // solve the issue. This is a backup!
-            const subscription = api_base.api.onMessage().subscribe(({ data }) => {
-                if (data.msg_type === 'transaction' && data.transaction.action === 'sell') {
-                    this.transaction_recovery_timeout = setTimeout(() => {
-                        const { contract } = this.data;
-                        const is_same_contract = contract.contract_id === data.transaction.contract_id;
-                        const is_open_contract = contract.status === 'open';
-                        if (is_same_contract && is_open_contract) {
-                            doUntilDone(() => {
-                                api_base.api.send({ proposal_open_contract: 1, contract_id: contract.contract_id });
-                            }, ['PriceMoved']);
-                        }
-                    }, 600);
-                }
-                resolve();
-            });
-            api_base.pushSubscription(subscription);
+            if (api_base.api) {
+                const subscription = api_base.api.onMessage().subscribe(({ data }) => {
+                    if (data?.msg_type === 'transaction' && data?.transaction?.action === 'sell') {
+                        this.transaction_recovery_timeout = setTimeout(() => {
+                            const { contract } = this.data;
+                            const is_same_contract = contract?.contract_id === data.transaction?.contract_id;
+                            const is_open_contract = contract?.status === 'open';
+                            if (is_same_contract && is_open_contract) {
+                                doUntilDone(() => {
+                                    api_base.api.send({ proposal_open_contract: 1, contract_id: contract.contract_id });
+                                }, ['PriceMoved']);
+                            }
+                        }, 600);
+                    }
+                });
+                api_base.pushSubscription(subscription);
+            }
+            resolve();
         });
     }
 

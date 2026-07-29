@@ -384,7 +384,7 @@ export default class OverUnderStore {
     }
 
     @action
-    setSymbol(sym: string) {
+    setSymbol = (sym: string) => {
         // Unsubscribe from previous
         if (this._tick_sub) {
             this._tick_sub.unsubscribe();
@@ -400,5 +400,5 @@ export default class OverUnderStore {
 
         // Re-subscribe with the new symbol
         this.subscribeToTicks();
-    }
+    };
 }

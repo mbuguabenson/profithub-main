@@ -143,7 +143,7 @@ export default class AccountFlipperStore {
     }
 
     @action
-    setSymbol(sym: string) {
+    setSymbol = (sym: string) => {
         if (this.symbol === sym) return;
         this.symbol = sym;
         this.recent_digits = [];
@@ -153,7 +153,7 @@ export default class AccountFlipperStore {
             this.tick_subscription = null;
         }
         this.subscribeToTicks();
-    }
+    };
 
     @computed
     get current_digit(): number {

@@ -42,7 +42,7 @@ export default class FlyoutHelpStore {
 
     setHelpContent = async block_node => {
         const block_type: keyof typeof help_strings | '' = block_node.getAttribute('type');
-        const title = window.Blockly.Blocks[block_type].meta().display_name;
+        const title = window.Blockly.Blocks?.[block_type]?.meta?.()?.display_name || '';
         if (block_type !== '') {
             this.active_helper = block_type;
         }
