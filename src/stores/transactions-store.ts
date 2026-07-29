@@ -164,15 +164,16 @@ export default class TransactionsStore {
                 type: transaction_elements.CONTRACT,
                 data: contract,
             });
+            this.elements = { ...this.elements };
         } else {
-            // If data belongs to existing contract in memory, update it.
-            this.elements[current_account]?.splice(same_contract_index, 1, {
+            // If data belongs to existing contract in memory, update it in place.
+            const accountElements = [...(this.elements[current_account] || [])];
+            accountElements.splice(same_contract_index, 1, {
                 type: transaction_elements.CONTRACT,
                 data: contract,
             });
+            this.elements[current_account] = accountElements;
         }
-
-        this.elements = { ...this.elements }; // force update
     }
 
     clear() {

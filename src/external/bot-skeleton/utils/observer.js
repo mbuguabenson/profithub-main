@@ -75,6 +75,10 @@ export default class Observer {
 
         const actionList = this.eam.get(event);
 
+        if (actionList && actionList.some(r => r.searchBy === _action)) {
+            return;
+        }
+
         this.eam = actionList
             ? this.eam.set(event, actionList.push({ action, searchBy: _action }))
             : this.eam.set(event, new List().push({ action, searchBy: _action }));
