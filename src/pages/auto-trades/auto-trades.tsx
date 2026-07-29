@@ -1102,6 +1102,10 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
         () => AUTO_MARKETS.filter(market => selectedMarketSymbols.includes(market.symbol)),
         [selectedMarketSymbols]
     );
+    const availableMarkets = useMemo(
+        () => AUTO_MARKETS.filter(market => !selectedMarketSymbols.includes(market.symbol)),
+        [selectedMarketSymbols]
+    );
 
     const [totalPnl, setTotalPnl] = useState(0);
     const [totalTrades, setTotalTrades] = useState(0);

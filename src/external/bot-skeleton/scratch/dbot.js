@@ -25,8 +25,11 @@ class DBot {
      * Initialises the workspace and mounts it to a container element (app_contents).
      */
     async initWorkspace(public_path, store, api_helpers_store, is_mobile, is_dark_mode) {
+        // Start both operations in parallel — getSavedWorkspaces reads from
+        // IndexedDB and doesn't need Blockly, so no reason to wait sequentially.
+        const recentFilesPromise = getSavedWorkspaces();
         await loadBlockly(is_dark_mode);
-        const recent_files = await getSavedWorkspaces();
+        const recent_files = await recentFilesPromise;
         this.interpreter = Interpreter();
 
         // eslint-disable-next-line @typescript-eslint/no-this-alias
@@ -145,10 +148,10 @@ class DBot {
 
                 this.workspace.cached_xml = { main: main_xml };
 
-                this.workspace.addChangeListener(this.valueInputLimitationsListener.bind(this));
-                this.workspace.addChangeListener(event => updateDisabledBlocks(this.workspace, event));
-                this.workspace.addChangeListener(event => this.workspace.dispatchBlockEventEffects(event));
                 this.workspace.addChangeListener(event => {
+                    this.valueInputLimitationsListener(event);
+                    updateDisabledBlocks(this.workspace, event);
+                    this.workspace.dispatchBlockEventEffects(event);
                     if (event.type === 'drag' && !event.isStart && !is_mobile) validateErrorOnBlockDelete();
                     if (event.type == window.Blockly.Events.BLOCK_CHANGE) {
                         const block = this.workspace.getBlockById(event.blockId);

@@ -43,6 +43,6 @@ export const loadBlockly = async isDarkMode => {
     });
     modifyBlocklyWorkSpaceContextMenu();
     setColors(isDarkMode);
-    await import('./hooks/index.js');
-    await import('./blocks');
+    // Load hooks and blocks in parallel — they are independent of each other
+    await Promise.all([import('./hooks/index.js'), import('./blocks')]);
 };
