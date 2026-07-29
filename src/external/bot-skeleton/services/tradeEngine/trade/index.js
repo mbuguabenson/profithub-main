@@ -17,6 +17,9 @@ import Sell from './Sell';
 import Ticks from './Ticks';
 import Total from './Total';
 
+let lastResolvedScope = null;
+let lastResolvedTick = null;
+
 const watchBefore = store =>
     watchScope({
         store,
@@ -33,33 +36,73 @@ const watchDuring = store =>
         passFlag: 'openContract',
     });
 
-/* The watchScope function resolves as soon as the store reaches the target scope+flag.
- * Removed the prevTick guard that caused unnecessary delays between trade cycles.
+/* Optimized watchScope function:
+ * Resolves instantly (0ms) on scope transition or new tick arrival so contracts purchase ASAP.
+ * When called repeatedly within the same tick/scope, yields execution to the event loop so ticks
+ * can be received without freezing the browser thread.
  */
 const watchScope = ({ store, stopScope, passScope, passFlag }) => {
-    // in case watch is called after stop is fired
     const currentState = store.getState();
     if (currentState.scope === stopScope) {
+        lastResolvedScope = currentState.scope;
         return Promise.resolve(false);
     }
-    // Immediately resolve if already in the right state
-    if (currentState.scope === passScope && currentState[passFlag]) {
+
+    const isTargetState = currentState.scope === passScope && currentState[passFlag];
+    const isNewCycleOrTick =
+        lastResolvedScope !== passScope ||
+        (currentState.newTick !== undefined && currentState.newTick !== lastResolvedTick);
+
+    if (isTargetState && isNewCycleOrTick) {
+        lastResolvedScope = passScope;
+        lastResolvedTick = currentState.newTick;
         return Promise.resolve(true);
     }
+
     return new Promise(resolve => {
-        const unsubscribe = store.subscribe(() => {
+        let timer = null;
+        let unsubscribe = null;
+
+        const cleanup = () => {
+            if (unsubscribe) unsubscribe();
+            if (timer) clearTimeout(timer);
+        };
+
+        unsubscribe = store.subscribe(() => {
             const newState = store.getState();
 
-            if (newState.scope === passScope && newState[passFlag]) {
-                unsubscribe();
-                resolve(true);
+            if (newState.scope === stopScope) {
+                cleanup();
+                lastResolvedScope = newState.scope;
+                resolve(false);
+                return;
             }
 
-            if (newState.scope === stopScope) {
-                unsubscribe();
-                resolve(false);
+            const targetReady = newState.scope === passScope && newState[passFlag];
+            const hasNewTick = newState.newTick !== undefined && newState.newTick !== lastResolvedTick;
+
+            if (targetReady && (lastResolvedScope !== passScope || hasNewTick)) {
+                cleanup();
+                lastResolvedScope = passScope;
+                lastResolvedTick = newState.newTick;
+                resolve(true);
             }
         });
+
+        timer = setTimeout(() => {
+            cleanup();
+            const stateAtTimeout = store.getState();
+            if (stateAtTimeout.scope === stopScope) {
+                lastResolvedScope = stateAtTimeout.scope;
+                resolve(false);
+            } else if (stateAtTimeout.scope === passScope && stateAtTimeout[passFlag]) {
+                lastResolvedScope = passScope;
+                lastResolvedTick = stateAtTimeout.newTick;
+                resolve(true);
+            } else {
+                resolve(false);
+            }
+        }, 30);
     });
 };
 

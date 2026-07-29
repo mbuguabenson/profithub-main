@@ -12,6 +12,7 @@ const signal = (state = initialState, action) => {
             return {
                 scope: constants.BEFORE_PURCHASE,
                 proposalsReady: state.proposalsReady,
+                newTick: undefined,
             };
         case constants.PROPOSALS_READY:
             return {

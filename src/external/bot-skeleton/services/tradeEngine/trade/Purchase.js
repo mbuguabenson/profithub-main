@@ -15,7 +15,8 @@ export default Engine =>
             // Prevent calling purchase twice
             const speed = localStorage.getItem('bot_execution_speed') || '1';
             const isSpeedMode = speed !== '1';
-            if (!isSpeedMode && this.store.getState().scope !== BEFORE_PURCHASE) {
+            const isBulkEnabled = (this.purchase_block_allow_bulk === 'yes') || (window.scanner_store?.is_bulk_trades_enabled);
+            if (!isBulkEnabled && this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
 
@@ -139,7 +140,6 @@ export default Engine =>
                 });
             };
 
-            const isBulkEnabled = (this.purchase_block_allow_bulk === 'yes') || (window.scanner_store?.is_bulk_trades_enabled);
             const bulkCount = isBulkEnabled ? Math.max(1, Math.min(10, Number(this.purchase_block_bulk_count || window.scanner_store?.bulk_trades_count || 2))) : 1;
 
             if (bulkCount > 1) {
