@@ -42,8 +42,5 @@ window.Blockly.Blocks.active_symbol_changer = {
 
 window.Blockly.JavaScript.javascriptGenerator.forBlock.active_symbol_changer = block => {
     const symbol = block.getFieldValue('SYMBOL_ACTIVE_TYPE') || 'disable';
-    const code = `/* force symbol */ (function(){ try { window.DBot = window.DBot || {}; window.DBot.__force_symbol = ${JSON.stringify(
-        symbol
-    )}; } catch(e){} })();`;
-    return code + '\n';
+    return `Bot.changeActiveSymbol('${symbol}');\n`;
 };
