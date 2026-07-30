@@ -272,54 +272,59 @@ const Modal = ({
     transition_timeout,
     toggleModal,
     width,
-}: React.PropsWithChildren<TModal>) => (
-    <CSSTransition
-        appear
-        in={is_open}
-        timeout={transition_timeout || 250}
-        classNames={{
-            appear: 'dc-modal__container--enter',
-            enter: 'dc-modal__container--enter',
-            enterDone: 'dc-modal__container--enter-done',
-            exit: exit_classname || 'dc-modal__container--exit',
-        }}
-        unmountOnExit
-        onEntered={onEntered}
-        onExited={onExited}
-    >
-        <ModalElement
-            className={className}
-            close_icon_color={close_icon_color}
-            should_header_stick_body={should_header_stick_body}
-            has_return_icon={has_return_icon}
-            header={header}
-            header_background_color={header_background_color}
-            id={id}
-            is_open={is_open}
-            is_risk_warning_visible={is_risk_warning_visible}
-            is_confirmation_modal={is_confirmation_modal}
-            is_vertical_bottom={is_vertical_bottom}
-            is_vertical_centered={is_vertical_centered}
-            is_vertical_top={is_vertical_top}
-            is_title_centered={is_title_centered}
-            title={title}
-            toggleModal={toggleModal}
-            has_close_icon={has_close_icon}
-            height={height}
-            onMount={onMount}
-            onReturn={onReturn}
-            onUnmount={onUnmount}
-            portalId={portalId}
-            renderTitle={renderTitle}
-            should_close_on_click_outside={should_close_on_click_outside}
-            small={small}
-            width={width}
-            elements_to_ignore={elements_to_ignore}
+}: React.PropsWithChildren<TModal>) => {
+    const node_ref = React.useRef(null);
+    return (
+        <CSSTransition
+            appear
+            in={is_open}
+            timeout={transition_timeout || 250}
+            nodeRef={node_ref}
+            classNames={{
+                appear: 'dc-modal__container--enter',
+                enter: 'dc-modal__container--enter',
+                enterDone: 'dc-modal__container--enter-done',
+                exit: exit_classname || 'dc-modal__container--exit',
+            }}
+            unmountOnExit
+            onEntered={onEntered}
+            onExited={onExited}
         >
-            {children}
-        </ModalElement>
-    </CSSTransition>
-);
+            <ModalElement
+                nodeRef={node_ref}
+                className={className}
+                close_icon_color={close_icon_color}
+                should_header_stick_body={should_header_stick_body}
+                has_return_icon={has_return_icon}
+                header={header}
+                header_background_color={header_background_color}
+                id={id}
+                is_open={is_open}
+                is_risk_warning_visible={is_risk_warning_visible}
+                is_confirmation_modal={is_confirmation_modal}
+                is_vertical_bottom={is_vertical_bottom}
+                is_vertical_centered={is_vertical_centered}
+                is_vertical_top={is_vertical_top}
+                is_title_centered={is_title_centered}
+                title={title}
+                toggleModal={toggleModal}
+                has_close_icon={has_close_icon}
+                height={height}
+                onMount={onMount}
+                onReturn={onReturn}
+                onUnmount={onUnmount}
+                portalId={portalId}
+                renderTitle={renderTitle}
+                should_close_on_click_outside={should_close_on_click_outside}
+                small={small}
+                width={width}
+                elements_to_ignore={elements_to_ignore}
+            >
+                {children}
+            </ModalElement>
+        </CSSTransition>
+    );
+};
 
 Modal.Body = Body;
 Modal.Footer = Footer;

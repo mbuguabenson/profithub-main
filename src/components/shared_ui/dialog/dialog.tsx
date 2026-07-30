@@ -109,6 +109,7 @@ const Dialog = ({
 
     useOnClickOutside(wrapper_ref, handleClose, validateClickOutside);
 
+    const node_ref = React.useRef(null);
     const content_classes = classNames('dc-dialog__content', {
         'dc-dialog__content--centered': is_content_centered,
     });
@@ -121,6 +122,7 @@ const Dialog = ({
             appear
             in={is_visible && !is_loading}
             timeout={50}
+            nodeRef={node_ref}
             classNames={{
                 appear: 'dc-dialog__wrapper--enter',
                 enter: 'dc-dialog__wrapper--enter',
@@ -130,6 +132,7 @@ const Dialog = ({
             unmountOnExit
         >
             <div
+                ref={node_ref}
                 className={classNames('dc-dialog__wrapper', className, {
                     'dc-dialog__wrapper--has-portal': !!portal_element_id,
                 })}
