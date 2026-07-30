@@ -7,8 +7,7 @@ import Signals from '../signals';
 import TickAnalyser from './tick-analyser';
 import CirclesAnalysis from '../circles-analysis';
 import DigitCracker from '../digit-cracker';
-import AccountFlipper from '../account-flipper';
-import OverUnderTab from '../over-under';
+import EasyTool from '../easy-tool';
 import { useStore } from '@/hooks/useStore';
 import { ApiHelpers } from '@/external/bot-skeleton';
 import './analysis-tools.scss';
@@ -22,8 +21,7 @@ type AnalysisToolSubTab =
     | 'tick-analyser'
     | 'circles-analysis'
     | 'digit-cracker'
-    | 'account-flipper'
-    | 'over-under';
+    | 'easy-tool';
 
 const AnalysisTools: React.FC = () => {
     const { run_panel } = useStore();
@@ -674,10 +672,8 @@ const AnalysisTools: React.FC = () => {
                 return <CirclesAnalysis />;
             case 'digit-cracker':
                 return <DigitCracker />;
-            case 'account-flipper':
-                return <AccountFlipper />;
-            case 'over-under':
-                return <OverUnderTab />;
+            case 'easy-tool':
+                return <EasyTool />;
             default:
                 return null;
         }
@@ -745,19 +741,11 @@ const AnalysisTools: React.FC = () => {
                         </div>
                     </div>
                     <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'account-flipper' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('account-flipper')}
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'easy-tool' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('easy-tool')}
                     >
                         <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Account Flipper</span>
-                        </div>
-                    </div>
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'over-under' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('over-under')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Over Under</span>
+                            <span className='analysis-tools__card-label'>Easy Tool</span>
                         </div>
                     </div>
                 </div>

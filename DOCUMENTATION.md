@@ -34,11 +34,13 @@ Welcome to the official developer documentation for **ProfitHub** — a high-per
 | Page / Feature | Route / File Path | Core Functionality | WebSocket API Calls |
 | :--- | :--- | :--- | :--- |
 | **Bot Builder (DBot)** | [src/pages/bot-builder/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/bot-builder) | Blockly XML Workspace, Quick Strategies, Custom XML Import | `proposal`, `buy`, `proposal_open_contract`, `sell`, `ticks_history` |
+| **Analysis Tool** | [src/pages/analysis-tool/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/analysis-tool) | DCIRCLES, Circles Analysis, Digit Cracker, Easy Tool, ProfitHub Analysis | `ticks`, `ticks_history` |
+| **Signals & Signal Centre** | [src/pages/signals/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/signals) | AI Signals Radar, Signal Centre, Technical Indicators | `ticks`, `proposal`, `buy` |
 | **Auto Trades** | [src/pages/auto-trades/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/auto-trades) | Full AI Strategy Engine, Martingale safety caps, Recovery mode | `authorize`, `proposal`, `buy`, `proposal_open_contract`, `sell`, `balance` |
-| **Market Hunter Pro** | [src/pages/market-hunter-pro/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/market-hunter-pro) | Orbit Scanner Launcher, Digit Pattern Radar, Tick Stream | `ticks`, `ticks_history`, `active_symbols` |
-| **Smart Trading** | [src/pages/smart-trading/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/smart-trading) | Signal Centre, Technical Indicators (RSI/SMA/MACD), Contract Quotes | `contracts_for`, `proposal`, `buy` |
-| **DTrader / Trading View**| [src/pages/dtrader/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/dtrader) | Interactive Charting, Position Management, Stop Loss / Take Profit | `proposal`, `buy`, `sell`, `proposal_open_contract`, `contract_update`, `cancel` |
-| **Transactions & Cashier** | [src/components/transactions/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/components/transactions) | Transaction Log, Journal, Deduplicated Logs (`HH:mm:ss [GMT]`) | `profit_table`, `statement`, `balance`, `get_account_status` |
+| **AI Strategy Scanner** | [src/pages/scanner/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/scanner) | Orbit Scanner Launcher, Digit Pattern Radar, Tick Stream | `ticks`, `ticks_history`, `active_symbols` |
+| **Manual Trading** | [src/pages/manual-trading/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/manual-trading) | Manual trade execution, contract parameters | `proposal`, `buy`, `sell` |
+| **Market Killer** | [src/pages/marketkiller/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/marketkiller) | Accelerated strategy execution engine | `proposal`, `buy` |
+| **Multi Trader** | [src/pages/multi-trader/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/multi-trader) | Bulk contract execution suite | Parallel `buy` |
 
 ---
 

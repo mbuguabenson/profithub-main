@@ -97,8 +97,6 @@ const AppWrapper = observer(() => {
         'auto_trades',
         'scanner',
         'manual_trading',
-        'easy_tool',
-        'signal_centre',
         'marketkiller',
         'multi_trader',
     ];
@@ -396,31 +394,11 @@ const AppWrapper = observer(() => {
             )
         },
         {
-            key: 'easy_tool',
-            id: 'id-easy-tool',
-            label: <TabIcon iconKey='easy_tool' label='Easy Tool' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Easy Tool...')} />}>
-                    <EasyTool />
-                </Suspense>
-            )
-        },
-        {
-            key: 'signal_centre',
-            id: 'id-signal-centre',
-            label: <TabIcon iconKey='signal_centre' label='Signal Centre' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Signal Centre...')} />}>
-                    <SignalCentrePage />
-                </Suspense>
-            )
-        },
-        {
             key: 'marketkiller',
             id: 'id-marketkiller',
-            label: <TabIcon iconKey='marketkiller' label='Marketkiller' />,
+            label: <TabIcon iconKey='marketkiller' label='Market Killer' />,
             content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Marketkiller...')} />}>
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Market Killer...')} />}>
                     <Marketkiller />
                 </Suspense>
             )

@@ -3,11 +3,13 @@ import { observer } from 'mobx-react-lite';
 import { tickSubscriber, SignalWithSymbol, EngineState } from './engine/TickSubscriber';
 import { SignalCard } from './components/SignalCard';
 import { AnalysisResult } from './engine/SignalEngine';
+import SignalCentreTab from '@/pages/smart-trading/components/signal-centre-tab';
 import './signals.scss';
 
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 
 const Signals = observer(() => {
+    const [activeSubTab, setActiveSubTab] = useState<'signals' | 'signal_centre'>('signals');
     const [market, setMarket] = useState('ALL');
     const [strategyFilter, setStrategyFilter] = useState('ALL');
     const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -75,44 +77,85 @@ const Signals = observer(() => {
 
     return (
         <div className="signals-container">
-            <div className="signals-header">
-                <div className="header-text-glow">
-                    <h2>Premium AI Signals</h2>
-                    <p>Next-Generation Predictive Analytics & Trade Intelligence</p>
-                </div>
-                
-                <div className="signals-controls-group" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div className="market-selector">
-                        <label>Market:</label>
-                        <div className="select-wrapper">
-                            <select value={market} onChange={handleMarketChange}>
-                                {availableMarkets.map(m => (
-                                    <option key={m.value} value={m.value}>{m.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="market-selector">
-                        <label>Strategy Filter:</label>
-                        <div className="select-wrapper">
-                            <select value={strategyFilter} onChange={e => setStrategyFilter(e.target.value)}>
-                                <option value="ALL">All Strategies</option>
-                                <option value="even_odd">Even / Odd</option>
-                                <option value="over_under">Over / Under</option>
-                                <option value="matches">Matches</option>
-                                <option value="differs">Differs</option>
-                                <option value="rise_fall">Rise / Fall</option>
-                                <option value="pro_even_odd">Pro Even / Odd</option>
-                                <option value="pro_over_under">Pro Over / Under</option>
-                                <option value="pro_differs">Pro Differs</option>
-                                <option value="under_7">Under 7</option>
-                                <option value="over_2">Over 2</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+            <div className="signals-sub-tabs" style={{ display: 'flex', gap: '12px', marginBottom: '8px' }}>
+                <button
+                    type="button"
+                    className={`signals-tab-btn ${activeSubTab === 'signals' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('signals')}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: activeSubTab === 'signals' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'rgba(255,255,255,0.05)',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    📡 AI Signals Radar
+                </button>
+                <button
+                    type="button"
+                    className={`signals-tab-btn ${activeSubTab === 'signal_centre' ? 'active' : ''}`}
+                    onClick={() => setActiveSubTab('signal_centre')}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        background: activeSubTab === 'signal_centre' ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)' : 'rgba(255,255,255,0.05)',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    🎯 Signal Centre
+                </button>
             </div>
+
+            {activeSubTab === 'signal_centre' ? (
+                <SignalCentreTab />
+            ) : (
+                <>
+                    <div className="signals-header">
+                        <div className="header-text-glow">
+                            <h2>Premium AI Signals</h2>
+                            <p>Next-Generation Predictive Analytics & Trade Intelligence</p>
+                        </div>
+                        
+                        <div className="signals-controls-group" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div className="market-selector">
+                                <label>Market:</label>
+                                <div className="select-wrapper">
+                                    <select value={market} onChange={handleMarketChange}>
+                                        {availableMarkets.map(m => (
+                                            <option key={m.value} value={m.value}>{m.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="market-selector">
+                                <label>Strategy Filter:</label>
+                                <div className="select-wrapper">
+                                    <select value={strategyFilter} onChange={e => setStrategyFilter(e.target.value)}>
+                                        <option value="ALL">All Strategies</option>
+                                        <option value="even_odd">Even / Odd</option>
+                                        <option value="over_under">Over / Under</option>
+                                        <option value="matches">Matches</option>
+                                        <option value="differs">Differs</option>
+                                        <option value="rise_fall">Rise / Fall</option>
+                                        <option value="pro_even_odd">Pro Even / Odd</option>
+                                        <option value="pro_over_under">Pro Over / Under</option>
+                                        <option value="pro_differs">Pro Differs</option>
+                                        <option value="under_7">Under 7</option>
+                                        <option value="over_2">Over 2</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
             {analysis && (
                 <div className="analysis-stats">
@@ -188,6 +231,8 @@ const Signals = observer(() => {
                     </div>
                 </div>
             </div>
+            </>
+            )}
         </div>
     );
 });
