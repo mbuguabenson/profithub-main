@@ -7,11 +7,15 @@ export default Engine =>
     class OpenContract extends Engine {
         observeOpenContract() {
             if (!api_base.api) return;
+            if (!this.processedSoldContractIds) {
+                this.processedSoldContractIds = new Set();
+            }
             const subscription = api_base.api.onMessage().subscribe(({ data }) => {
                 if (data.msg_type === 'proposal_open_contract') {
                     const contract = data.proposal_open_contract;
+                    const contractId = String(contract?.contract_id || '');
 
-                    if (!contract || !this.expectedContractId(contract?.contract_id)) {
+                    if (!contract || !this.expectedContractId(contractId)) {
                         return;
                     }
 
@@ -22,6 +26,17 @@ export default Engine =>
                     broadcastContract({ accountID: api_base.account_info.loginid, ...contract });
 
                     if (this.isSold) {
+                        // 🛡️ Prevent duplicate sold event processing for the same contract
+                        if (this.processedSoldContractIds.has(contractId)) {
+                            return;
+                        }
+                        this.processedSoldContractIds.add(contractId);
+
+                        if (this.processedSoldContractIds.size > 100) {
+                            const firstItem = this.processedSoldContractIds.values().next().value;
+                            if (firstItem) this.processedSoldContractIds.delete(firstItem);
+                        }
+
                         this.contractId = '';
                         clearTimeout(this.transaction_recovery_timeout);
                         this.updateTotals(contract);
@@ -31,8 +46,10 @@ export default Engine =>
                             contract,
                         });
 
-                        if (this.afterPromise) {
-                            this.afterPromise();
+                        const resolveAfter = this.afterPromise;
+                        this.afterPromise = null;
+                        if (resolveAfter) {
+                            resolveAfter();
                         }
 
                         this.store.dispatch(sell());
