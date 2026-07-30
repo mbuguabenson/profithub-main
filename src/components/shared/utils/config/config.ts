@@ -1008,7 +1008,6 @@ export const getSocketURL = async (): Promise<string> => {
         const pendingApiToken = getPendingApiToken();
 
         if (pendingApiToken) {
-            console.log('[getSocketURL] API token login detected - using classic WebSocket URL');
             return getLegacyServerURL();
         }
 
@@ -1017,11 +1016,10 @@ export const getSocketURL = async (): Promise<string> => {
                 const accountsList = JSON.parse(accountsList_raw);
                 const active_loginid = localStorage.getItem('active_loginid');
                 if (active_loginid && accountsList[active_loginid]) {
-                    console.log('[getSocketURL] Legacy token found - fast-pathing to classic WebSocket URL');
                     return getLegacyServerURL();
                 }
             } catch (e) {
-                console.error('[getSocketURL] Error parsing legacy accountsList:', e);
+                // ignore parsing error
             }
         }
 
@@ -1039,22 +1037,17 @@ export const getSocketURL = async (): Promise<string> => {
         }
 
         if (authInfo?.access_token) {
-            console.log('[getSocketURL] PKCE user detected - fetching authenticated WebSocket URL');
             try {
                 const wsUrl = await DerivWSAccountsService.getAuthenticatedWebSocketURL(authInfo.access_token);
-                return wsUrl;
+                if (wsUrl) return wsUrl;
             } catch (pkceError) {
                 // OTP endpoint unreachable — fall through to legacy URL fallback
-                console.warn('[getSocketURL] PKCE OTP fetch failed, falling back to legacy WS URL:', pkceError);
                 return getLegacyServerURL();
             }
         }
 
-        // No authentication found
-        console.log('[getSocketURL] No authentication found - returning default server URL');
         return getDefaultServerURL();
     } catch (error) {
-        console.error('[DerivWS] Error in getSocketURL:', error);
         return getDefaultServerURL();
     }
 };
