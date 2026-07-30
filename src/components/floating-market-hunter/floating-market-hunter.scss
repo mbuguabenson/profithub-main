@@ -6,21 +6,19 @@
 .fmh-fab {
     position: fixed;
     z-index: 9999;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    // Glossy 3D red sphere gradient
-    background: radial-gradient(circle at 35% 35%, #ff6b6b 0%, #e60000 45%, #990000 85%, #660000 100%);
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0f172a 0%, #064e3b 50%, #0d9488 100%);
+    border: 1px solid rgba(52, 211, 153, 0.5);
     box-shadow:
-        0 8px 24px rgba(230, 0, 0, 0.45),
-        0 2px 8px rgba(0, 0, 0, 0.4),
-        inset 0 4px 8px rgba(255, 255, 255, 0.45),
-        inset 0 -4px 8px rgba(0, 0, 0, 0.5);
+        0 4px 15px rgba(16, 185, 129, 0.35),
+        0 2px 6px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: grab;
-    transition: box-shadow 0.25s ease, transform 0.2s ease;
+    transition: all 0.25s ease;
     user-select: none;
     -webkit-user-select: none;
 

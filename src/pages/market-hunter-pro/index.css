@@ -8,20 +8,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 72px;
-  height: 72px;
+  width: 42px;
+  height: 42px;
   font-family: "Outfit", "Inter", sans-serif;
-  font-size: 1.25em;
+  font-size: 0.85em;
   font-weight: 900;
   color: white;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ff5252 0%, #dc2626 40%, #991b1b 80%, #580c0c 100%);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #0f172a 0%, #064e3b 50%, #0d9488 100%);
+  border: 1px solid rgba(52, 211, 153, 0.5);
   box-shadow:
-    8px 8px 20px #0a0a12,
-    -8px -8px 20px #22223a,
-    0 6px 18px rgba(220, 38, 38, 0.45),
-    inset 0 4px 8px rgba(255, 255, 255, 0.5),
-    inset 0 -6px 10px rgba(0, 0, 0, 0.6);
+    0 4px 15px rgba(16, 185, 129, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.4);
   user-select: none;
   cursor: grab;
   transition: transform 0.2s, box-shadow 0.2s;
