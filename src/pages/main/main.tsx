@@ -37,17 +37,8 @@ const TradingView = lazy(() => import('../tradingview'));
 const AnalysisTools = lazy(() => import('../analysis-tool'));
 const CopyTrading = lazy(() => import('../copy-trading'));
 const Signals = lazy(() => import('../signals'));
-const AutoTrades = lazy(() => import('../auto-trades/auto-trades'));
-const ScannerPage = lazy(() => import('../scanner/scanner'));
-import TradingBots from '../free-bots/trading-bots';
-
-
-const ManualTrading = lazy(() => import('../manual-trading'));
-const Marketkiller = lazy(() => import('../marketkiller'));
-const MultiTrader = lazy(() => import('../multi-trader'));
-const CirclesAnalysisPage = lazy(() => import('../circles-analysis'));
-const DigitCrackerPage = lazy(() => import('../digit-cracker'));
 const AutomatedPage = lazy(() => import('../automated/automated'));
+import TradingBots from '../free-bots/trading-bots';
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -93,14 +84,7 @@ const AppWrapper = observer(() => {
         'trading_bots',
         'analysis_tool',
         'automated',
-        'circles_analysis',
-        'digit_cracker',
         'signals',
-        'auto_trades',
-        'scanner',
-        'manual_trading',
-        'marketkiller',
-        'multi_trader',
         'copy_trading',
         'tradingview',
     ];
@@ -347,22 +331,12 @@ const AppWrapper = observer(() => {
             )
         },
         {
-            key: 'circles_analysis',
-            id: 'id-circles-analysis',
-            label: <TabIcon iconKey='circles_analysis' label='Circles Analysis' />,
+            key: 'signals',
+            id: 'id-signals',
+            label: <TabIcon iconKey='signals' label='Signals' />,
             content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Circles Analysis...')} />}>
-                    <CirclesAnalysisPage />
-                </Suspense>
-            )
-        },
-        {
-            key: 'digit_cracker',
-            id: 'id-digit-cracker',
-            label: <TabIcon iconKey='digit_cracker' label='Digit Cracker' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Digit Cracker...')} />}>
-                    <DigitCrackerPage />
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Signals...')} />}>
+                    <Signals />
                 </Suspense>
             )
         },
@@ -383,67 +357,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading TradingView...')} />}>
                     <TradingView />
-                </Suspense>
-            )
-        },
-        {
-            key: 'signals',
-            id: 'id-signals',
-            label: <TabIcon iconKey='signals' label='Signals' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Signals...')} />}>
-                    <Signals />
-                </Suspense>
-            )
-        },
-        {
-            key: 'auto_trades',
-            id: 'id-auto-trades',
-            label: <TabIcon iconKey='auto_trades' label='Auto Trades' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Auto Trades...')} />}>
-                    <AutoTrades />
-                </Suspense>
-            )
-        },
-        {
-            key: 'scanner',
-            id: 'id-scanner',
-            label: <TabIcon iconKey='scanner' label='AI Strategy Scanner' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Scanner...')} />}>
-                    <ScannerPage />
-                </Suspense>
-            )
-        },
-
-        {
-            key: 'manual_trading',
-            id: 'id-manual-trading',
-            label: <TabIcon iconKey='manual_trading' label='Manual Trading' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Manual Trading...')} />}>
-                    <ManualTrading />
-                </Suspense>
-            )
-        },
-        {
-            key: 'marketkiller',
-            id: 'id-marketkiller',
-            label: <TabIcon iconKey='marketkiller' label='Market Killer' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Market Killer...')} />}>
-                    <Marketkiller />
-                </Suspense>
-            )
-        },
-        {
-            key: 'multi_trader',
-            id: 'id-multi-trader',
-            label: <TabIcon iconKey='multi_trader' label='Multi Trader' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Multi Trader...')} />}>
-                    <MultiTrader />
                 </Suspense>
             )
         }
