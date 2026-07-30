@@ -526,7 +526,7 @@ export default function Scanner() {
       minimized, setStake, setTakeProfit, setStopLoss, setMartingale,
       setMultiMarket, scanProgress, scanTarget, setAutoScan, signalShift,
       signalUpdated, setAutoMarketSwitch, setAutoStrategyRotate, engineLogs,
-      engineStatus, engineStats, toggleFullAiEngine
+      engineStatus, engineStats, toggleFullAiEngine, resetScan
     );
   }
 
