@@ -404,29 +404,91 @@ export function generateBotXML(opts: {
                   </block>
                 </statement>
                 <statement name="ELSE">
-                  <block type="variables_set" id="ap_loss_mg">
-                    <field name="VAR" id="v_stake">Stake</field>
-                    <value name="VALUE">
-                      <block type="math_arithmetic" id="ap_mg_arith">
-                        <field name="OP">MULTIPLY</field>
+                  <block type="controls_if" id="ap_loss_mg_cap_if">
+                    <mutation xmlns="http://www.w3.org/1999/xhtml" else="1"></mutation>
+                    <value name="IF0">
+                      <block type="logic_compare" id="ap_mg_cap_cmp">
+                        <field name="OP">GT</field>
                         <value name="A">
-                          <shadow type="math_number" id="ap_mg_a_sh">
-                            <field name="NUM">1</field>
-                          </shadow>
-                          <block type="variables_get" id="ap_mg_stake_get">
-                            <field name="VAR" id="v_stake">Stake</field>
+                          <block type="math_arithmetic" id="ap_mg_arith">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_mg_a_sh">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_stake_get">
+                                <field name="VAR" id="v_stake">Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_mg_b_sh">
+                                <field name="NUM">2</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_get">
+                                <field name="VAR" id="v_mg">Martingale</field>
+                              </block>
+                            </value>
                           </block>
                         </value>
                         <value name="B">
-                          <shadow type="math_number" id="ap_mg_b_sh">
-                            <field name="NUM">2</field>
-                          </shadow>
-                          <block type="variables_get" id="ap_mg_get">
-                            <field name="VAR" id="v_mg">Martingale</field>
+                          <block type="math_arithmetic" id="ap_mg_max_calc">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_init_stake_sh">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_init_stake_get_max">
+                                <field name="VAR" id="v_init_stake">Initial Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_max_mult_sh">
+                                <field name="NUM">10</field>
+                              </shadow>
+                              <block type="math_number" id="mn_max_mult">
+                                <field name="NUM">10</field>
+                              </block>
+                            </value>
                           </block>
                         </value>
                       </block>
                     </value>
+                    <statement name="DO0">
+                      <block type="variables_set" id="ap_loss_reset_stake">
+                        <field name="VAR" id="v_stake">Stake</field>
+                        <value name="VALUE">
+                          <block type="variables_get" id="ap_win_init_reset">
+                            <field name="VAR" id="v_init_stake">Initial Stake</field>
+                          </block>
+                        </value>
+                      </block>
+                    </statement>
+                    <statement name="ELSE">
+                      <block type="variables_set" id="ap_loss_mg">
+                        <field name="VAR" id="v_stake">Stake</field>
+                        <value name="VALUE">
+                          <block type="math_arithmetic" id="ap_mg_arith_else">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_mg_a_sh_else">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_stake_get_else">
+                                <field name="VAR" id="v_stake">Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_mg_b_sh_else">
+                                <field name="NUM">2</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_get_else">
+                                <field name="VAR" id="v_mg">Martingale</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                      </block>
+                    </statement>
                     <next>
                       <block type="math_change" id="ap_loss_lc_inc">
                         <field name="VAR" id="v_loss_cnt">Loss Count</field>
@@ -475,39 +537,101 @@ export function generateBotXML(opts: {
                   </block>
                 </statement>
                 <statement name="ELSE">
-                  <block type="variables_set" id="ap_loss_mg">
-                    <field name="VAR" id="v_stake">Stake</field>
-                    <value name="VALUE">
-                      <block type="math_arithmetic" id="ap_mg_arith">
-                        <field name="OP">MULTIPLY</field>
+                  <block type="controls_if" id="ap_loss_mg_cap_if_else">
+                    <mutation xmlns="http://www.w3.org/1999/xhtml" else="1"></mutation>
+                    <value name="IF0">
+                      <block type="logic_compare" id="ap_mg_cap_cmp_else">
+                        <field name="OP">GT</field>
                         <value name="A">
-                          <shadow type="math_number" id="ap_mg_a_sh">
-                            <field name="NUM">1</field>
-                          </shadow>
-                          <block type="variables_get" id="ap_mg_stake_get">
-                            <field name="VAR" id="v_stake">Stake</field>
+                          <block type="math_arithmetic" id="ap_mg_arith_check">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_mg_a_sh2">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_stake_get2">
+                                <field name="VAR" id="v_stake">Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_mg_b_sh2">
+                                <field name="NUM">2</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_get2">
+                                <field name="VAR" id="v_mg">Martingale</field>
+                              </block>
+                            </value>
                           </block>
                         </value>
                         <value name="B">
-                          <shadow type="math_number" id="ap_mg_b_sh">
-                            <field name="NUM">2</field>
-                          </shadow>
-                          <block type="variables_get" id="ap_mg_get">
-                            <field name="VAR" id="v_mg">Martingale</field>
+                          <block type="math_arithmetic" id="ap_mg_max_calc2">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_init_stake_sh2">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_init_stake_get_max2">
+                                <field name="VAR" id="v_init_stake">Initial Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_max_mult_sh2">
+                                <field name="NUM">10</field>
+                              </shadow>
+                              <block type="math_number" id="mn_max_mult2">
+                                <field name="NUM">10</field>
+                              </block>
+                            </value>
                           </block>
                         </value>
                       </block>
                     </value>
+                    <statement name="DO0">
+                      <block type="variables_set" id="ap_loss_reset_stake2">
+                        <field name="VAR" id="v_stake">Stake</field>
+                        <value name="VALUE">
+                          <block type="variables_get" id="ap_win_init_reset2">
+                            <field name="VAR" id="v_init_stake">Initial Stake</field>
+                          </block>
+                        </value>
+                      </block>
+                    </statement>
+                    <statement name="ELSE">
+                      <block type="variables_set" id="ap_loss_mg2">
+                        <field name="VAR" id="v_stake">Stake</field>
+                        <value name="VALUE">
+                          <block type="math_arithmetic" id="ap_mg_arith2">
+                            <field name="OP">MULTIPLY</field>
+                            <value name="A">
+                              <shadow type="math_number" id="ap_mg_a_sh3">
+                                <field name="NUM">1</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_stake_get3">
+                                <field name="VAR" id="v_stake">Stake</field>
+                              </block>
+                            </value>
+                            <value name="B">
+                              <shadow type="math_number" id="ap_mg_b_sh3">
+                                <field name="NUM">2</field>
+                              </shadow>
+                              <block type="variables_get" id="ap_mg_get3">
+                                <field name="VAR" id="v_mg">Martingale</field>
+                              </block>
+                            </value>
+                          </block>
+                        </value>
+                      </block>
+                    </statement>
                     <next>
-                      <block type="math_change" id="ap_loss_lc_inc">
+                      <block type="math_change" id="ap_loss_lc_inc2">
                         <field name="VAR" id="v_loss_cnt">Loss Count</field>
                         <value name="DELTA">
-                          <shadow type="math_number" id="ap_lc_delta">
+                          <shadow type="math_number" id="ap_lc_delta2">
                             <field name="NUM">1</field>
                           </shadow>
                         </value>${lossRecCheckXml}
                         <next>
-                          <block type="trade_again" id="ap_loss_ta"></block>
+                          <block type="trade_again" id="ap_loss_ta2"></block>
                         </next>
                       </block>${lossRecCloseXml}
                     </next>

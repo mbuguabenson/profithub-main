@@ -4,6 +4,7 @@ import { AuthWrapper } from './app/AuthWrapper';
 // Removed AnalyticsInitializer import - analytics dependency removed
 // See migrate-docs/ANALYTICS_IMPLEMENTATION_GUIDE.md for re-implementation
 import { performVersionCheck } from './utils/version-check';
+import './styles/tailwind.css';
 import './styles/index.scss';
 
 // Configure MobX to handle multiple instances in production builds

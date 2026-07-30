@@ -333,7 +333,7 @@ export const streamContractUntilSettled = ({
     contractId,
     fallback = {},
     onUpdate,
-    settlementCheckMs = api_base.execution_config?.settlementCheckMs ?? 500,
+    settlementCheckMs = (api_base as any).execution_config?.settlementCheckMs ?? 500,
     signal,
     source,
     timeoutMs = 90000,
@@ -499,7 +499,7 @@ export const streamContractUntilSettled = ({
             startSettlementPolling(
                 Math.max(
                     settlementCheckMs,
-                    api_base.execution_config?.settlementRecoveryCheckMs ?? settlementCheckMs
+                    (api_base as any).execution_config?.settlementRecoveryCheckMs ?? settlementCheckMs
                 )
             );
             void requestSettlementSnapshot('timeout-recovery');
@@ -540,3 +540,112 @@ export const streamContractUntilSettled = ({
 
         void requestSettlementSnapshot('initial');
     });
+
+export const updateContractForUi = async ({
+    contractId,
+    stopLoss,
+    takeProfit,
+    source,
+}: {
+    contractId: number | string;
+    stopLoss?: number;
+    takeProfit?: number;
+    source: string;
+}) => {
+    await ensureAuthorizedForTrading();
+    assertApiTokenScope('trade');
+
+    const limit_order: Record<string, any> = {};
+    if (stopLoss !== undefined && stopLoss !== null) limit_order.stop_loss = stopLoss;
+    if (takeProfit !== undefined && takeProfit !== null) limit_order.take_profit = takeProfit;
+
+    const response = await (api_base.api as any).send({
+        contract_update: 1,
+        contract_id: Number(contractId),
+        limit_order,
+    });
+    throwApiError(response, source);
+
+    const contract_update = response?.contract_update;
+    globalObserver.emit('contract.status', {
+        id: 'contract.update',
+        data: contract_update,
+    });
+
+    return contract_update;
+};
+
+export const getContractUpdateHistoryForUi = async ({
+    contractId,
+    source,
+}: {
+    contractId: number | string;
+    source: string;
+}) => {
+    await ensureAuthorizedForTrading();
+
+    const response = await (api_base.api as any).send({
+        contract_update_history: 1,
+        contract_id: Number(contractId),
+    });
+    throwApiError(response, source);
+
+    return response?.contract_update_history || [];
+};
+
+export const cancelContractForUi = async ({
+    contractId,
+    source,
+}: {
+    contractId: number | string;
+    source: string;
+}) => {
+    await ensureAuthorizedForTrading();
+    assertApiTokenScope('trade');
+
+    const response = await (api_base.api as any).send({
+        cancel: Number(contractId),
+    });
+    throwApiError(response, source);
+
+    const cancel = response?.cancel;
+    if (cancel) {
+        globalObserver.emit('contract.status', {
+            id: 'contract.cancelled',
+            data: cancel.transaction_id,
+            cancel,
+        });
+    }
+
+    return cancel;
+};
+
+export const buyBulkContractsForUi = async ({
+    parameters,
+    price,
+    count = 2,
+    source,
+}: TBuyContractArgs & { count?: number }): Promise<Buy[]> => {
+    await ensureAuthorizedForTrading();
+    assertApiTokenScope('trade');
+
+    const bulkCount = Math.max(1, Math.min(10, count));
+    const totalAmount = price * bulkCount;
+    assertSufficientDemoBalance(totalAmount, source);
+
+    const reqs = Array.from({ length: bulkCount }, () =>
+        buyContractForUi({ parameters, price, source }).catch(err => {
+            console.warn(`[${source}] Bulk contract purchase single failed`, err);
+            return null;
+        })
+    );
+
+    const results = await Promise.all(reqs);
+    const validBuys = results.filter((b): b is Buy => Boolean(b));
+
+    if (validBuys.length === 0) {
+        throw new Error(`${source} bulk purchase failed for all ${bulkCount} contracts.`);
+    }
+
+    return validBuys;
+};

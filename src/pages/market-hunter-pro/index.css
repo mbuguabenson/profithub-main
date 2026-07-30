@@ -1,3 +1,94 @@
+/* ─── AI Orbit Scanner (Restored Classic Circular Design) ────────────────────── */
+.ai-orbit-pulse {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.25);
+  animation: ai-orbit-ambient-pulse 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.ai-orbit-body {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0f172a 0%, #064e3b 50%, #10b981 100%);
+  box-shadow:
+    0 4px 14px rgba(16, 185, 129, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ai-orbit-body:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 6px 20px rgba(16, 185, 129, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ai-orbit-body--active {
+  box-shadow:
+    0 6px 20px rgba(16, 185, 129, 0.6),
+    0 0 30px rgba(16, 185, 129, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.ai-orbit-ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  animation: ai-orbit-spin 6s linear infinite;
+}
+
+.ai-orbit-text {
+  font-family: 'Orbitron', 'Inter', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  letter-spacing: 0.05em;
+  animation: ai-orbit-spin-reverse 6s linear infinite; /* Counter-spin keeps text upright */
+}
+
+.ai-orbit-dot {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #f5c542;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #f5c542, 0 0 14px rgba(245, 197, 66, 0.5);
+}
+
+@keyframes ai-orbit-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes ai-orbit-spin-reverse {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
+}
+
+@keyframes ai-orbit-ambient-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.5; }
+  50%      { transform: scale(1.3); opacity: 0.15; }
+}
+
 /* ─── Red Glossy AI Radar Orb (User Reference Design) ────────────────────────── */
 .ai-red-orb-wrapper {
   position: relative;

@@ -272,6 +272,19 @@ export default class JournalStore {
         const time = formatDate(this.getServerTime(), 'HH:mm:ss [GMT]');
         const unique_id = uuidv4();
 
+        // 🛡️ Deduplication Safeguard:
+        // Prevent duplicate identical messages (e.g. repeated "bot.running" or "Running" logs)
+        // from being pushed multiple times within the same timestamp second.
+        const lastMsg = this.unfiltered_messages[0];
+        if (
+            lastMsg &&
+            lastMsg.time === time &&
+            lastMsg.message === message &&
+            lastMsg.message_type === message_type
+        ) {
+            return;
+        }
+
         // Prepend new message. observable.shallow tracks the array reference;
         // splice(0, 0, item) mutates in-place and triggers MobX without needing
         // an extra .slice() copy — avoiding a second re-render per message.
@@ -367,7 +380,7 @@ export default class JournalStore {
             async loginid => {
                 await when(() => {
                     const has_account = client.account_list?.find(
-                        (account: TAccountList[number]) => account.loginid === loginid
+                        (account: any) => account.loginid === loginid
                     );
                     return !!has_account;
                 });

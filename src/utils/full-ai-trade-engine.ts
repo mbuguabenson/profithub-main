@@ -285,12 +285,16 @@ export class FullAiTradeEngine {
             this.totalProfit += profit; // profit is negative on loss
             this.cb.onLog(`❌ LOSS $${profit.toFixed(2)} (${this.consecutiveLosses} consecutive) | Total P/L: ${this.totalProfit >= 0 ? '+' : ''}$${this.totalProfit.toFixed(2)}`);
             this.cb.onTrade('LOSS', profit, this.currentStake);
-            // Apply martingale
-            this.currentStake = Math.min(
-                this.currentStake * this.config.martingaleMultiplier,
-                this.config.stake * 50 // cap at 50x initial
-            );
-            this.cb.onLog(`📈 Martingale: next stake → $${this.currentStake.toFixed(2)}`);
+            // Apply martingale with max safety cap
+            const maxStakeCap = parseFloat((this.config.stake * 10).toFixed(2));
+            const nextStake = parseFloat((this.currentStake * this.config.martingaleMultiplier).toFixed(2));
+            if (nextStake > maxStakeCap) {
+                this.currentStake = this.config.stake;
+                this.cb.onLog(`🛡️ Martingale safety cap reached ($${nextStake.toFixed(2)} > max $${maxStakeCap.toFixed(2)}). Resetting stake to initial $${this.config.stake.toFixed(2)}`);
+            } else {
+                this.currentStake = nextStake;
+                this.cb.onLog(`📈 Martingale: next stake → $${this.currentStake.toFixed(2)}`);
+            }
         }
 
         return true;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ChevronDown,
   RefreshCw,
@@ -15,7 +16,6 @@ import {
   BarChart2,
   Search,
   X,
-  Radar,
   Sliders,
 } from 'lucide-react';
 import MarketMonitor from './MarketMonitor';
@@ -121,11 +121,11 @@ function useDraggableOrb() {
   }, []);
 
   useEffect(() => {
-    // Center the orb initially
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const x = w / 2 - 36;
-    const y = h / 2 - 36;
+    // Initial position: bottom-right of viewport, with margin for the 56px orb
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const h = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const x = Math.max(12, w - 76);
+    const y = Math.max(12, h - 120);
     pos.current = { x, y };
     setPosition({ x, y });
   }, []);
@@ -766,29 +766,81 @@ export default function Scanner() {
     );
   }
 
-  // ── Floating AI Scanner Orb (Redesigned Compact Mini Cyber Radar) ──
+  // ── Floating AI Orbit Scanner (Self-Contained Modern Design) ──
   const orbEl = (
     <div
       ref={orb.ref}
       onPointerDown={orb.onPointerDown}
       onPointerMove={orb.onPointerMove}
       onPointerUp={orb.onPointerUp}
-      onClick={() => setStep('open')}
-      className="fixed z-[60] cursor-grab active:cursor-grabbing select-none flex items-center justify-center"
+      onClick={() => setStep(prev => prev === 'orb' ? 'open' : 'orb')}
       style={{
-        transform: `translate(${orb.position.x}px, ${orb.position.y}px)`,
+        position: 'fixed',
+        zIndex: 9999,
+        top: `${orb.position.y}px`,
+        left: `${orb.position.x}px`,
         touchAction: 'none',
+        cursor: orb.isDragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        width: 60,
+        height: 60,
       }}
     >
-      {/* Mini Ambient Pulse Ring */}
-      <div className="absolute w-12 h-12 rounded-full bg-emerald-500/25 animate-ping pointer-events-none" />
-      <div className="absolute w-11 h-11 rounded-full bg-cyan-500/20 blur-sm pointer-events-none" />
+      {/* Embedded keyframes — guarantees animations work */}
+      <style>{`
+        @keyframes mhp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes mhp-pulse { 0%,100% { transform: scale(1); opacity: .45; } 50% { transform: scale(1.5); opacity: 0; } }
+        @keyframes mhp-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .mhp-orb-glow { position:absolute; inset:-8px; border-radius:50%; border:2px solid rgba(52,211,153,.25); animation: mhp-pulse 2.5s ease-in-out infinite; pointer-events:none; }
+        .mhp-orb-core {
+          position:relative; width:60px; height:60px; border-radius:50%; overflow:hidden;
+          background: radial-gradient(circle at 35% 30%, #134e4a 0%, #0f172a 70%);
+          border: 2px solid rgba(52,211,153,.5);
+          box-shadow: 0 4px 20px rgba(16,185,129,.4), 0 0 40px rgba(16,185,129,.1), inset 0 -4px 12px rgba(0,0,0,.5);
+          display:flex; align-items:center; justify-content:center;
+          transition: border-color .3s, box-shadow .3s;
+        }
+        .mhp-orb-core:hover { border-color: #34d399; box-shadow: 0 4px 24px rgba(16,185,129,.55), 0 0 50px rgba(16,185,129,.15), inset 0 -4px 12px rgba(0,0,0,.5); transform: scale(1.05); }
+        .mhp-orb-core--active { border-color: #34d399 !important; box-shadow: 0 0 24px rgba(16,185,129,.6), 0 0 60px rgba(16,185,129,.2), inset 0 -4px 12px rgba(0,0,0,.5) !important; }
+        .mhp-sweep {
+          position:absolute; inset:0; border-radius:50%;
+          background: conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(52,211,153,.08) 310deg, rgba(52,211,153,.35) 360deg);
+          animation: mhp-sweep 2.5s linear infinite; pointer-events:none;
+        }
+        .mhp-ring { position:absolute; inset:5px; border-radius:50%; border:1.5px dashed rgba(255,255,255,.2); animation: mhp-spin 10s linear infinite; pointer-events:none; }
+        .mhp-dot-track { position:absolute; inset:2px; border-radius:50%; animation: mhp-spin 4s linear infinite; pointer-events:none; }
+        .mhp-dot { position:absolute; top:-3px; left:50%; margin-left:-3.5px; width:7px; height:7px; border-radius:50%; background:#fbbf24; box-shadow: 0 0 6px #fbbf24, 0 0 14px rgba(251,191,36,.5); }
+        .mhp-crosshair-h { position:absolute; top:50%; left:12px; right:12px; height:1px; background:rgba(255,255,255,.08); pointer-events:none; }
+        .mhp-crosshair-v { position:absolute; left:50%; top:12px; bottom:12px; width:1px; background:rgba(255,255,255,.08); pointer-events:none; }
+        .mhp-label {
+          position:relative; z-index:5; font-family: 'Inter','Segoe UI',system-ui,sans-serif;
+          font-size: 14px; font-weight: 900; letter-spacing: .12em; color: #fff;
+          text-shadow: 0 0 8px rgba(52,211,153,.8), 0 0 20px rgba(16,185,129,.3);
+        }
+        .mhp-shine {
+          position:absolute; top:5px; left:16px; width:24px; height:11px; border-radius:50%;
+          background: linear-gradient(180deg, rgba(255,255,255,.3) 0%, transparent 100%); pointer-events:none;
+        }
+      `}</style>
 
-      {/* Sleek Compact 40px Radar Orb Button */}
-      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-900 via-emerald-950 to-teal-900 border border-emerald-400/50 shadow-xl flex flex-col items-center justify-center relative overflow-hidden backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
-        <div className="absolute inset-0 bg-emerald-500/10 animate-pulse pointer-events-none" />
-        <Radar size={16} className="text-emerald-400 animate-spin relative z-10" style={{ animationDuration: '6s' }} />
-        <span className="text-[8px] font-black text-emerald-300 tracking-tighter uppercase relative z-10">AI</span>
+      {/* Pulsing outer glow ring */}
+      <div className="mhp-orb-glow" />
+
+      {/* Main orb */}
+      <div className={`mhp-orb-core ${step !== 'orb' ? 'mhp-orb-core--active' : ''}`}>
+        {/* Radar sweep */}
+        <div className="mhp-sweep" />
+        {/* Crosshair lines */}
+        <div className="mhp-crosshair-h" />
+        <div className="mhp-crosshair-v" />
+        {/* Spinning dashed ring */}
+        <div className="mhp-ring" />
+        {/* Orbiting golden dot */}
+        <div className="mhp-dot-track"><div className="mhp-dot" /></div>
+        {/* Glass shine */}
+        <div className="mhp-shine" />
+        {/* AI Label */}
+        <span className="mhp-label">AI</span>
       </div>
     </div>
   );
@@ -1380,7 +1432,7 @@ export default function Scanner() {
 
   return (
     <>
-      {step === 'orb' && orbEl}
+      {typeof document !== 'undefined' && createPortal(orbEl, document.body)}
       {panel}
     </>
   );

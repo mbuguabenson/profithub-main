@@ -620,6 +620,7 @@ export const getNextMartingaleState = ({
     consecutive_loss_trigger,
     recover_until_total_profit = false,
     total_profit_after_trade = 0,
+    max_stake,
 }: {
     profit: number;
     current_stake: number;
@@ -630,13 +631,17 @@ export const getNextMartingaleState = ({
     consecutive_loss_trigger: number;
     recover_until_total_profit?: boolean;
     total_profit_after_trade?: number;
+    max_stake?: number;
 }) => {
+    const safeMaxStake = max_stake && max_stake > 0 ? max_stake : parseFloat((base_stake * 10).toFixed(2));
+
     if (!(profit < 0)) {
         if (recover_until_total_profit && consecutive_losses > 0 && total_profit_after_trade <= 0) {
+            const cappedStake = current_stake > 0 ? Math.min(current_stake, safeMaxStake) : base_stake;
             return {
                 consecutiveLosses: Math.max(1, consecutive_losses),
                 lastResult: 'loss' as const,
-                nextStake: current_stake > 0 ? current_stake : base_stake,
+                nextStake: cappedStake,
             };
         }
 
@@ -664,10 +669,16 @@ export const getNextMartingaleState = ({
         (normalizedMode === 'after_two_losses' && nextConsecutiveLosses >= 2) ||
         (normalizedMode === 'custom_consecutive_loss_trigger' && nextConsecutiveLosses >= normalizedTrigger);
 
+    let calculatedNextStake = shouldApplyMartingale ? parseFloat((current_stake * multiplier).toFixed(2)) : base_stake;
+
+    if (calculatedNextStake > safeMaxStake) {
+        calculatedNextStake = base_stake;
+    }
+
     return {
         consecutiveLosses: nextConsecutiveLosses,
         lastResult: 'loss' as const,
-        nextStake: shouldApplyMartingale ? parseFloat((current_stake * multiplier).toFixed(2)) : base_stake,
+        nextStake: calculatedNextStake,
     };
 };
 
