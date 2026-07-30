@@ -889,90 +889,133 @@ a.href = url;
           </div>
         </div>
 
-        {/* ── Section 2: AI AUTONOMOUS TRADING ENGINE ── */}
-        <div className="rounded-2xl border p-3.5 space-y-3 transition-all"
+        {/* ── Section 2: AI AUTONOMOUS TRADING ENGINE REDESIGN ── */}
+        <div className="rounded-2xl border p-4 space-y-3.5 transition-all relative overflow-hidden shadow-xl"
           style={{
             background: isFullAiAutomation
-              ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))'
-              : 'rgba(255,255,255,0.03)',
-            borderColor: isFullAiAutomation ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.08)',
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(15,23,42,0.95) 50%, rgba(6,182,212,0.12) 100%)'
+              : 'linear-gradient(135deg, rgba(30,41,59,0.7) 0%, rgba(15,23,42,0.9) 100%)',
+            borderColor: isFullAiAutomation ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.12)',
+            boxShadow: isFullAiAutomation ? '0 0 30px rgba(16,185,129,0.15)' : 'none',
           }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full ${isFullAiAutomation ? (engineStatus === 'paused' ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse') : 'bg-slate-500'}`} />
+          
+          {/* Subtle Ambient Glow Effect */}
+          {isFullAiAutomation && (
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none animate-pulse" />
+          )}
+
+          {/* Header Bar */}
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex items-center justify-center">
+                <div className={`w-3.5 h-3.5 rounded-full ${isFullAiAutomation ? (engineStatus === 'paused' ? 'bg-amber-400' : 'bg-emerald-400') : 'bg-slate-500'}`} />
+                {isFullAiAutomation && (
+                  <div className={`absolute inset-0 rounded-full ${engineStatus === 'paused' ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-ping'} opacity-75`} />
+                )}
+              </div>
               <div>
-                <span className="text-xs font-black text-white block">AI Autonomous Trading Engine</span>
-                <span className="text-[9px] text-white/50 block">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-white uppercase tracking-wider">AI Autonomous Core</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    v4.2 PRO
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
                   {isFullAiAutomation
-                    ? (engineStatus === 'paused' ? '⏸ Auto-Paused (Waiting for Signal Recovery)' : `🚀 Active Trading on ${selectedSymbol}`)
-                    : 'Disabled — Manual or Auto mode ready'}
+                    ? (engineStatus === 'paused' ? '⏸️ Auto-Paused (Awaiting Signal Confirmation)' : `🚀 Active Trading on ${selectedSymbol}`)
+                    : 'Standby — One-Click Auto-Pilot Ready'}
                 </span>
               </div>
             </div>
             <button
               onClick={toggleFullAiEngine}
-              className={`py-1.5 px-3 rounded-xl text-xs font-black transition active:scale-95 flex items-center gap-1.5 ${
+              className={`py-2 px-4 rounded-xl text-xs font-black transition-all active:scale-95 flex items-center gap-2 shadow-lg ${
                 isFullAiAutomation
-                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20'
-                  : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                  ? 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-rose-500/25'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-emerald-500/25'
               }`}
             >
-              {isFullAiAutomation ? <Zap size={12} /> : <Play size={12} />}
-              {isFullAiAutomation ? 'STOP ENGINE' : 'START ENGINE'}
+              {isFullAiAutomation ? <Zap size={14} className="animate-bounce" /> : <Play size={14} />}
+              {isFullAiAutomation ? 'STOP ENGINE' : 'LAUNCH ENGINE'}
             </button>
           </div>
 
+          {/* Expanded AI Engine Controls & Stats */}
           {isFullAiAutomation && (
-            <div className="space-y-2.5 pt-1">
-              {/* Engine Stats Grid */}
-              <div className="grid grid-cols-4 gap-1.5 text-center">
-                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
-                  <span className="block text-[8px] font-bold text-white/40 uppercase">Trades</span>
+            <div className="space-y-3 pt-2 border-t border-white/10 relative z-10">
+              
+              {/* 5-Tile Stat Grid */}
+              <div className="grid grid-cols-5 gap-1.5 text-center">
+                <div className="rounded-xl bg-slate-900/60 p-2 border border-white/5 backdrop-blur-sm">
+                  <span className="block text-[8px] font-extrabold text-slate-400 uppercase tracking-wider">Runs</span>
                   <span className="block text-xs font-black text-white mt-0.5">{engineStats.runs}</span>
                 </div>
-                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
-                  <span className="block text-[8px] font-bold text-emerald-400/80 uppercase">Wins</span>
+                <div className="rounded-xl bg-slate-900/60 p-2 border border-emerald-500/20 backdrop-blur-sm">
+                  <span className="block text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider">Wins</span>
                   <span className="block text-xs font-black text-emerald-400 mt-0.5">{engineStats.wins}</span>
                 </div>
-                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
-                  <span className="block text-[8px] font-bold text-rose-400/80 uppercase">Losses</span>
+                <div className="rounded-xl bg-slate-900/60 p-2 border border-rose-500/20 backdrop-blur-sm">
+                  <span className="block text-[8px] font-extrabold text-rose-400 uppercase tracking-wider">Losses</span>
                   <span className="block text-xs font-black text-rose-400 mt-0.5">{engineStats.losses}</span>
                 </div>
-                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
-                  <span className="block text-[8px] font-bold text-amber-300/80 uppercase">Profit</span>
+                <div className="rounded-xl bg-slate-900/60 p-2 border border-sky-500/20 backdrop-blur-sm">
+                  <span className="block text-[8px] font-extrabold text-sky-400 uppercase tracking-wider">Win Rate</span>
+                  <span className="block text-xs font-black text-sky-300 mt-0.5">
+                    {engineStats.runs > 0 ? `${((engineStats.wins / engineStats.runs) * 100).toFixed(0)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="rounded-xl bg-slate-900/60 p-2 border border-amber-500/20 backdrop-blur-sm">
+                  <span className="block text-[8px] font-extrabold text-amber-300 uppercase tracking-wider">Profit</span>
                   <span className={`block text-xs font-black mt-0.5 ${engineStats.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     ${engineStats.profit.toFixed(2)}
                   </span>
                 </div>
               </div>
 
-              {/* Engine Controls Toggles */}
-              <div className="flex items-center justify-between text-[10px] text-white/60 bg-black/20 p-2 rounded-xl border border-white/5">
-                <label className="flex items-center gap-1.5 cursor-pointer">
+              {/* Automation Feature Toggles Bar */}
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-white/70">
+                <label className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
+                  autoMarketSwitch ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-slate-900/40 border-white/5 text-slate-400'
+                }`}>
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <RefreshCw size={11} className={autoMarketSwitch ? 'text-emerald-400 animate-spin' : ''} />
+                    Smart Market Hopper
+                  </span>
                   <input
                     type="checkbox"
                     checked={autoMarketSwitch}
                     onChange={e => setAutoMarketSwitch(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                    className="rounded border-white/20 text-emerald-500 focus:ring-0 cursor-pointer"
                   />
-                  <span>Auto-Alternate Market</span>
                 </label>
-                <label className="flex items-center gap-1.5 cursor-pointer">
+                <label className={`flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer ${
+                  autoStrategyRotate ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-slate-900/40 border-white/5 text-slate-400'
+                }`}>
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <Zap size={11} className={autoStrategyRotate ? 'text-emerald-400' : ''} />
+                    Strategy Rotator
+                  </span>
                   <input
                     type="checkbox"
                     checked={autoStrategyRotate}
                     onChange={e => setAutoStrategyRotate(e.target.checked)}
-                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                    className="rounded border-white/20 text-emerald-500 focus:ring-0 cursor-pointer"
                   />
-                  <span>Auto-Rotate Strategy</span>
                 </label>
               </div>
 
-              {/* Live Engine Activity Logs */}
+              {/* Live AI Execution Stream */}
               {engineLogs.length > 0 && (
-                <div className="rounded-xl bg-black/40 p-2 border border-white/5 max-h-24 overflow-y-auto space-y-1 font-mono text-[9px]">
-                  {engineLogs.slice(0, 5).map((log, idx) => (
-                    <div key={idx} className="text-white/70 truncate">{log}</div>
+                <div className="rounded-xl bg-black/60 p-2.5 border border-white/10 max-h-28 overflow-y-auto space-y-1 font-mono text-[9.5px]">
+                  <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1">
+                    <Activity size={9} className="text-emerald-400 animate-pulse" />
+                    Live AI Stream
+                  </div>
+                  {engineLogs.slice(0, 6).map((log, idx) => (
+                    <div key={idx} className="text-emerald-300/90 truncate flex items-center gap-1">
+                      <span className="text-slate-500 text-[8px]">&gt;</span>
+                      <span>{log}</span>
+                    </div>
                   ))}
                 </div>
               )}
