@@ -313,7 +313,7 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
 ];
 
 // Bump this when new tabs are added to force clients to pick up new defaults
-const TAB_CONFIG_VERSION = 8;
+const TAB_CONFIG_VERSION = 9;
 
 export const getSiteConfig = (): SiteConfig => {
     try {

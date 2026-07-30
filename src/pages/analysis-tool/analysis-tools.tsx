@@ -692,39 +692,6 @@ const AnalysisTools: React.FC = () => {
                         </div>
                     </div>
                     <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'signals' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('signals')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Signals</span>
-                        </div>
-                    </div>
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'all-analysis' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('all-analysis')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>All Markets</span>
-                        </div>
-                    </div>
-
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'tick-analyser' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('tick-analyser')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>Tick Analyser</span>
-                        </div>
-                    </div>
-                    <div
-                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'analysis-tool' ? 'analysis-tools__card--active' : ''}`}
-                        onClick={() => handleCardClick('analysis-tool')}
-                    >
-                        <div className='analysis-tools__card-content'>
-                            <span className='analysis-tools__card-label'>ProfitHub Analysis</span>
-                        </div>
-                    </div>
-                    <div
                         className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'circles-analysis' ? 'analysis-tools__card--active' : ''}`}
                         onClick={() => handleCardClick('circles-analysis')}
                     >
@@ -746,6 +713,38 @@ const AnalysisTools: React.FC = () => {
                     >
                         <div className='analysis-tools__card-content'>
                             <span className='analysis-tools__card-label'>Easy Tool</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'analysis-tool' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('analysis-tool')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>ProfitHub Analysis</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'signals' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('signals')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Signals</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'all-analysis' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('all-analysis')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>All Markets</span>
+                        </div>
+                    </div>
+                    <div
+                        className={`analysis-tools__card analysis-tools__card--light ${active_tool === 'tick-analyser' ? 'analysis-tools__card--active' : ''}`}
+                        onClick={() => handleCardClick('tick-analyser')}
+                    >
+                        <div className='analysis-tools__card-content'>
+                            <span className='analysis-tools__card-label'>Tick Analyser</span>
                         </div>
                     </div>
                 </div>
