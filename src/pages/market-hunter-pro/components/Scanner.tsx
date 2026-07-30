@@ -535,6 +535,67 @@ export default function Scanner() {
     return tt?.types ?? [];
   }, [selectedTradeType]);
 
+  const handleLoadBot = useCallback(async () => {
+    const signalToUse = selectedSignal || combinedSignals[0] || null;
+    const entryDigit = predictionChoice ?? signalToUse?.entryDigits?.[0] ?? signalToUse?.targetDigit ?? undefined;
+    const tradeTypeLabel = TRADE_TYPES.find(t => t.id === selectedTradeType)?.label ?? selectedTradeType;
+    const recovery = recMode
+      ? { lossThreshold: parseInt(recLossThreshold, 10) || 3, altTradeTypeId: recAltType }
+      : undefined;
+    const xml = generateBotXML({
+      stake, takeProfit, stopLoss, martingale,
+      symbol: selectedSymbol, tradeTypeLabel, bestSignal: signalToUse, entryDigit,
+      recovery,
+    });
+
+    try {
+      if (typeof window !== 'undefined' && window.Blockly?.derivWorkspace) {
+        const name = `ProAI_${tradeTypeLabel.replace(/[\s/]/g, '_')}_${selectedSymbol}`;
+        const { load_modal, dashboard } = store ?? {};
+        if (load_modal && dashboard) {
+          await load_modal.loadStrategyToBuilder({
+            id: name,
+            name,
+            xml,
+            save_type: 'local',
+            timestamp: Date.now(),
+          });
+          // Switch to Bot Builder tab (index 1 is BOT_BUILDER in DBOT_TABS)
+          dashboard.setActiveTab(1);
+          return;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load strategy directly to Blockly workspace:', e);
+    }
+
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const tradeLabel = TRADE_TYPES.find(t => t.id === selectedTradeType)?.label?.replace(/[\s/]/g, '_') ?? selectedTradeType;
+    a.download = `proai_${tradeLabel}_${selectedSymbol}.xml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [store, stake, takeProfit, stopLoss, martingale, selectedSymbol, selectedSignal, combinedSignals, predictionChoice, recMode, recLossThreshold, recAltType, selectedTradeType]);
+
+  const handleLoadBotAndRun = useCallback(async () => {
+    await handleLoadBot();
+    setTimeout(() => {
+      if (store?.run_panel) {
+        store.run_panel.onRunButtonClick();
+      }
+    }, 800);
+  }, [handleLoadBot, store]);
+
+  const handleLoadAndScan = useCallback(async () => {
+    setIsManualScanning(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsManualScanning(false);
+    setIsWaitingEntry(true);
+    setEntryStatusMsg('⏳ Waiting for entry condition to be met on live market ticks...');
+  }, []);
+
   useEffect(() => {
     if (step === 'orb' || !subscriptionState || subscriptionState.ticks.length < 20) return;
     const result = analyzeMultiWindow(subscriptionState.ticks, subscriptionState.quotes);
@@ -704,67 +765,6 @@ export default function Scanner() {
       engineStatus, engineStats, toggleFullAiEngine, resetScan
     );
   }
-
-  const handleLoadBot = useCallback(async () => {
-    const signalToUse = selectedSignal || combinedSignals[0] || null;
-    const entryDigit = predictionChoice ?? signalToUse?.entryDigits?.[0] ?? signalToUse?.targetDigit ?? undefined;
-    const tradeTypeLabel = TRADE_TYPES.find(t => t.id === selectedTradeType)?.label ?? selectedTradeType;
-    const recovery = recMode
-      ? { lossThreshold: parseInt(recLossThreshold, 10) || 3, altTradeTypeId: recAltType }
-      : undefined;
-    const xml = generateBotXML({
-      stake, takeProfit, stopLoss, martingale,
-      symbol: selectedSymbol, tradeTypeLabel, bestSignal: signalToUse, entryDigit,
-      recovery,
-    });
-
-    try {
-      if (typeof window !== 'undefined' && window.Blockly?.derivWorkspace) {
-        const name = `ProAI_${tradeTypeLabel.replace(/[\s/]/g, '_')}_${selectedSymbol}`;
-        const { load_modal, dashboard } = store ?? {};
-        if (load_modal && dashboard) {
-          await load_modal.loadStrategyToBuilder({
-            id: name,
-            name,
-            xml,
-            save_type: 'local',
-            timestamp: Date.now(),
-          });
-          // Switch to Bot Builder tab (index 1 is BOT_BUILDER in DBOT_TABS)
-          dashboard.setActiveTab(1);
-          return;
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load strategy directly to Blockly workspace:', e);
-    }
-
-    const blob = new Blob([xml], { type: 'application/xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-a.href = url;
-    const tradeLabel = TRADE_TYPES.find(t => t.id === selectedTradeType)?.label?.replace(/[\s/]/g, '_') ?? selectedTradeType;
-    a.download = `proai_${tradeLabel}_${selectedSymbol}.xml`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [store, stake, takeProfit, stopLoss, martingale, selectedSymbol, selectedSignal, combinedSignals, predictionChoice, recMode, recLossThreshold, recAltType, selectedTradeType]);
-
-  const handleLoadBotAndRun = useCallback(async () => {
-    await handleLoadBot();
-    setTimeout(() => {
-      if (store?.run_panel) {
-        store.run_panel.onRunButtonClick();
-      }
-    }, 800);
-  }, [handleLoadBot, store]);
-
-  const handleLoadAndScan = useCallback(async () => {
-    setIsManualScanning(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIsManualScanning(false);
-    setIsWaitingEntry(true);
-    setEntryStatusMsg('⏳ Waiting for entry condition to be met on live market ticks...');
-  }, []);
 
   // ── Floating AI Scanner Orb (Redesigned Compact Mini Cyber Radar) ──
   const orbEl = (
