@@ -15,7 +15,8 @@ import {
   BarChart2,
   Search,
   X,
-  Activity,
+  Radar,
+  Sliders,
 } from 'lucide-react';
 import MarketMonitor from './MarketMonitor';
 import { useDerivWS } from '../hooks/useDerivWS';
@@ -562,11 +563,40 @@ export default function Scanner() {
     }
     prevSignalKeyRef.current = currentKey;
 
+    // Evaluate live entry condition when waiting
+    if (isWaitingEntry && subscriptionState?.ticks && subscriptionState.ticks.length >= 5) {
+      const ticks = subscriptionState.ticks;
+      const sig = selectedSignal || newSignals[0];
+      const tradeDir = (sig?.tradeDirection || 'EVEN').toUpperCase();
+      const isEvenFavored = tradeDir === 'EVEN';
+
+      let streak = 0;
+      for (let i = ticks.length - 1; i >= 0; i--) {
+        const isOpposite = isEvenFavored ? ticks[i] % 2 !== 0 : ticks[i] % 2 === 0;
+        if (isOpposite) streak++;
+        else break;
+      }
+      setEntryStreakCount(streak);
+
+      const lastTick = ticks[ticks.length - 1];
+      const isLastFavored = isEvenFavored ? lastTick % 2 === 0 : lastTick % 2 !== 0;
+
+      if (streak >= 2 && isLastFavored) {
+        setEntryStatusMsg(`🟢 ENTRY MET! ${streak} consecutive opposite digits followed by ${tradeDir} digit ${lastTick}. Executing Bot now...`);
+        setIsWaitingEntry(false);
+        handleLoadBotAndRun();
+      } else if (streak >= 2) {
+        setEntryStatusMsg(`🟡 ENTRY ALMOST MET! ${streak} consecutive opposite digits detected. Waiting for next ${tradeDir} digit...`);
+      } else {
+        setEntryStatusMsg(`⏳ Monitoring live ticks... (${streak}/2 consecutive opposite digits needed)`);
+      }
+    }
+
     // Flash "UPDATED" badge
     if (signalUpdatedTimer.current) clearTimeout(signalUpdatedTimer.current);
     setSignalUpdated(true);
     signalUpdatedTimer.current = setTimeout(() => setSignalUpdated(false), 2000);
-  }, [subscriptionState?.ticks.length, allowedTypes]);
+  }, [subscriptionState?.ticks.length, allowedTypes, isWaitingEntry, selectedSignal, handleLoadBotAndRun]);
 
   const startScan = useCallback(() => {
     setStep('scanning');
