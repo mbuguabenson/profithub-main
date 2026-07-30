@@ -1,24 +1,21 @@
 import { Signal, SignalStatus } from '../lib/signals';
 import { Zap, Clock, MinusCircle } from 'lucide-react';
 
-const statusConfig: Record<SignalStatus, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
+const statusConfig: Record<SignalStatus, { color: string; bgAccent: string; icon: React.ReactNode }> = {
   'TRADE NOW': {
-    bg: 'bg-green-50',
-    text: 'text-green-700',
-    border: 'border-green-200',
-    icon: <Zap size={12} className="text-green-600" />,
+    color: '#10b981',
+    bgAccent: 'rgba(16, 185, 129, 0.1)',
+    icon: <Zap size={12} style={{ color: '#10b981' }} />,
   },
   WAIT: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
-    icon: <Clock size={12} className="text-amber-600" />,
+    color: '#f59e0b',
+    bgAccent: 'rgba(245, 158, 11, 0.1)',
+    icon: <Clock size={12} style={{ color: '#f59e0b' }} />,
   },
   NEUTRAL: {
-    bg: 'bg-gray-50',
-    text: 'text-gray-500',
-    border: 'border-gray-200',
-    icon: <MinusCircle size={12} className="text-gray-400" />,
+    color: '#94a3b8',
+    bgAccent: 'rgba(148, 163, 184, 0.08)',
+    icon: <MinusCircle size={12} style={{ color: '#64748b' }} />,
   },
 };
 
@@ -32,49 +29,101 @@ export function SignalCard({ signal, compact = false }: Props) {
   const barWidth = Math.min(signal.probability, 100);
 
   return (
-    <div className={`rounded-xl border ${cfg.border} ${cfg.bg} p-3 transition-all duration-300`}>
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{signal.label}</span>
+    <div
+      style={{
+        background: '#181825',
+        border: '1px solid rgba(255, 255, 255, 0.04)',
+        borderRadius: '16px',
+        padding: '14px 16px',
+        boxShadow: '6px 6px 14px #0a0a12, -6px -6px 14px #22223a',
+        transition: 'all 0.25s ease',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '10px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(241,245,249,0.45)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+              {signal.label}
+            </span>
             {signal.tradeDirection && (
-              <span className="bg-white border border-gray-200 text-[10px] font-black px-1.5 py-0.5 rounded text-gray-700">
+              <span
+                style={{
+                  background: '#1c1c2e',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  fontSize: '10px',
+                  fontWeight: 900,
+                  padding: '2px 8px',
+                  borderRadius: '8px',
+                  color: '#f1f5f9',
+                  boxShadow: 'inset 2px 2px 4px #0a0a12, inset -2px -2px 4px #22223a',
+                }}
+              >
                 {signal.tradeDirection}
               </span>
             )}
           </div>
-          <p className="text-xs font-semibold text-gray-800 leading-snug">{signal.recommendation}</p>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: '#f1f5f9', lineHeight: 1.4, margin: 0 }}>
+            {signal.recommendation}
+          </p>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
           <span
-            className={`flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full border ${cfg.border} ${cfg.text} whitespace-nowrap`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontSize: '10px',
+              fontWeight: 900,
+              padding: '3px 10px',
+              borderRadius: '10px',
+              color: cfg.color,
+              background: '#1c1c2e',
+              border: `1px solid ${cfg.color}22`,
+              boxShadow: '3px 3px 6px #0a0a12, -3px -3px 6px #22223a',
+              whiteSpace: 'nowrap',
+            }}
           >
             {cfg.icon}
             {signal.status}
           </span>
-          <span className="text-sm font-black text-gray-800">{signal.probability.toFixed(0)}%</span>
+          <span style={{ fontSize: '14px', fontWeight: 900, color: '#f1f5f9' }}>
+            {signal.probability.toFixed(0)}%
+          </span>
         </div>
       </div>
 
-      {/* Probability bar */}
-      <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mb-2">
+      {/* Neumorphic probability bar */}
+      <div
+        style={{
+          width: '100%',
+          height: '6px',
+          borderRadius: '6px',
+          background: '#1c1c2e',
+          boxShadow: 'inset 2px 2px 4px #0a0a12, inset -2px -2px 4px #22223a',
+          overflow: 'hidden',
+          marginBottom: compact ? 0 : '10px',
+        }}
+      >
         <div
-          className="h-full rounded-full transition-all duration-500"
           style={{
+            height: '100%',
+            borderRadius: '6px',
+            transition: 'all 0.5s',
             width: `${barWidth}%`,
             background:
               signal.status === 'TRADE NOW'
                 ? 'linear-gradient(90deg, #10b981, #059669)'
                 : signal.status === 'WAIT'
                 ? 'linear-gradient(90deg, #f59e0b, #d97706)'
-                : '#9ca3af',
+                : '#64748b',
+            boxShadow: `0 0 8px ${cfg.color}44`,
           }}
         />
       </div>
 
       {!compact && (
-        <p className="text-[10px] text-gray-400 leading-snug">
-          <span className="font-semibold text-gray-500">Entry:</span> {signal.entryCondition}
+        <p style={{ fontSize: '10px', color: 'rgba(241,245,249,0.35)', lineHeight: 1.5, margin: 0 }}>
+          <span style={{ fontWeight: 700, color: 'rgba(241,245,249,0.5)' }}>Entry:</span> {signal.entryCondition}
         </p>
       )}
     </div>

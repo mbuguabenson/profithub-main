@@ -679,29 +679,14 @@ export default function Scanner() {
     const blob = new Blob([xml], { type: 'application/xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+a.href = url;
     const tradeLabel = TRADE_TYPES.find(t => t.id === selectedTradeType)?.label?.replace(/[\s/]/g, '_') ?? selectedTradeType;
     a.download = `proai_${tradeLabel}_${selectedSymbol}.xml`;
     a.click();
     URL.revokeObjectURL(url);
   }, [store, stake, takeProfit, stopLoss, martingale, selectedSymbol, selectedSignal, combinedSignals, predictionChoice, recMode, recLossThreshold, recAltType]);
 
-  const selectedSymbolInfo = SYMBOLS.find((s) => s.id === selectedSymbol);
-  const lastDigit = mwa?.lastDigit ?? null;
-
-  // Clicking orb toggles the panel
-  const handleOrbClick = useCallback(() => {
-    if (orb.isDragging) return;
-    if (step === 'orb') setStep('open');
-    // Do NOT close on orb click — only Cancel button closes
-  }, [orb.isDragging, step]);
-
-  // Panel never closes on outside click — only the Cancel/X button closes it
-  // (orb click opens it, Cancel closes it)
-
-  // ── Floating AI Scanner Orb ──
-  const isActive = step !== 'orb';
-  const hasScanResults = mwa !== null || combinedSignals.length > 0;
+  // ── Floating AI Scanner Orb (Red Glossy Radar Design - Reference Image 1) ──
   const orbEl = (
     <div
       ref={orb.ref}
@@ -715,392 +700,70 @@ export default function Scanner() {
         touchAction: 'none',
       }}
     >
-      {/* Signal ripple rings (active only) */}
-      {isActive && (
-        <>
-          <div className="absolute inset-0 m-auto rounded-full pointer-events-none"
-            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out infinite', background: 'transparent', border: '1.5px solid rgba(245,197,66,0.6)' }} />
-          <div className="absolute inset-0 m-auto rounded-full pointer-events-none"
-            style={{ width: 72, height: 72, animation: 'signal-ripple 2s ease-out 0.7s infinite', background: 'transparent', border: '1.5px solid rgba(230,126,34,0.4)' }} />
-        </>
-      )}
-
-      {/* Outer ambient glow */}
+      {/* Outer red ambient radial glow */}
       <div className="absolute pointer-events-none"
         style={{
           width: 96, height: 96, top: -12, left: -12,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(245,197,66,0.22) 0%, rgba(230,126,34,0.1) 55%, transparent 75%)',
+          background: 'radial-gradient(circle, rgba(220,38,38,0.3) 0%, rgba(153,27,27,0.12) 50%, transparent 75%)',
           animation: 'orb-pulse 3s ease-in-out infinite',
         }} />
 
-      {/* Loader orb */}
-      <div className="relative" style={{ width: 72, height: 72 }}>
-
-        {/* Core orb — uiverse loader (joao-canais) */}
-        <div className="loader-wrapper">
-          <div className="loader-circle" />
-          {/* Inner content */}
-          <div className="relative z-10 flex flex-col items-center leading-none">
-            {step === 'orb' ? (
-              <>
-                <span className="text-base font-black text-white tracking-wide" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>AI</span>
-              </>
-            ) : step === 'scanning' ? (
-              <div className="flex items-end gap-[2px] h-4">
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} className="w-[3px] rounded-full bg-amber-300"
-                    style={{ height: 14, animation: `dot-bounce 1s ease-in-out ${i * 0.12}s infinite`, boxShadow: '0 0 4px rgba(245,197,66,0.9)' }} />
-                ))}
-              </div>
-            ) : (
-              <>
-                <Sparkles size={18} className="text-amber-200" style={{ filter: 'drop-shadow(0 0 4px rgba(245,197,66,0.9))' }} />
-                <span className="text-[7px] font-black text-amber-100 mt-0.5 tracking-widest">LIVE</span>
-              </>
-            )}
-          </div>
-        </div>
-
+      {/* Red Glossy Orb */}
+      <div className="ai-red-orb-wrapper shadow-2xl">
+        <div className="ai-radar-sweep" />
+        <div className="ai-orb-dot" />
+        <span className="relative z-10 text-xl font-black text-white tracking-wider" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}>
+          AI
+        </span>
       </div>
     </div>
   );
 
-  // ── Scanner Panel (floating card) ──
+  // ── AI Scanner Panel Modal (Clean Light Design - Reference Image 2) ──
   const panel = step !== 'orb' && (
     <DraggableResizeWrapper
       boundary=".main"
       header={
-        <div className="flex items-center justify-between w-full pr-2">
+        <div className="flex items-center justify-between w-full pr-1">
           <div className="flex items-center gap-2">
-            <span className="text-base">🎯</span>
-            <span className="font-extrabold text-[#f5c542] tracking-wide text-xs uppercase">Market Hunter Pro AI</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-extrabold text-slate-900 text-sm tracking-tight">AI Market Scanner</span>
           </div>
-          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' : 'text-slate-400 bg-slate-800'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
-            {isConnected ? 'LIVE CONNECTED' : 'DISCONNECTED'}
-          </span>
         </div>
       }
       onClose={() => setStep('orb')}
-      modalWidth={540}
+      modalWidth={420}
       modalHeight={620}
-      minWidth={360}
+      minWidth={340}
       minHeight={480}
       enableResizing={true}
     >
-      <div className="flex flex-col h-full w-full bg-[#0b0f19] overflow-y-auto text-slate-100 font-sans">
-        {/* Tab bar */}
-        {!minimized && (
-          <div className="flex border-b shrink-0 bg-slate-900/60 backdrop-blur-md" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            {([
-              { id: 'scanner', label: '⚡ AI Scanner' },
-              { id: 'monitor', label: '📊 Market Monitor' },
-            ] as { id: PanelTab; label: string }[]).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className="flex-1 py-3 text-[11px] font-extrabold tracking-wider uppercase transition-all duration-200 relative"
-                style={{ color: activeTab === tab.id ? '#f5c542' : 'rgba(255,255,255,0.4)' }}
-              >
-                {tab.label}
-                {activeTab === tab.id && (
-                  <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-t-full bg-gradient-to-r from-amber-400 to-emerald-400 shadow-sm" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-
-      {/* Tab content */}
-      {!minimized && (
-        <>
-          {/* ── SCANNER TAB ── */}
-          {activeTab === 'scanner' && (
-            <div className="p-5 space-y-4" style={{ background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.02))' }}>
-              
-              {/* 🤖 AI FULL AUTOMATION ENGINE CARD REDESIGN */}
-              <div className="rounded-2xl p-4 border transition-all duration-300"
-                style={{
-                  background: isFullAiAutomation
-                    ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))'
-                    : 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02))',
-                  borderColor: isFullAiAutomation ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.1)',
-                  boxShadow: isFullAiAutomation ? '0 0 20px rgba(16,185,129,0.15)' : 'none',
-                }}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={16} className={isFullAiAutomation ? 'text-emerald-400 animate-spin' : 'text-amber-400'} />
-                    <span className="text-xs font-black text-white uppercase tracking-wider">AI Full Automation Engine</span>
-                  </div>
-                  <button
-                    onClick={toggleFullAiEngine}
-                    className="px-3 py-1 rounded-full text-[10px] font-black tracking-wider transition-all duration-200 shadow-md"
-                    style={{
-                      background: isFullAiAutomation ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.1)',
-                      color: isFullAiAutomation ? '#fff' : 'rgba(255,255,255,0.5)',
-                      border: isFullAiAutomation ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    {isFullAiAutomation ? '⚡ ACTIVE' : 'OFF'}
-                  </button>
-                </div>
-                <p className="text-[10px] text-white/50 leading-relaxed">
-                  Autonomously monitors live Deriv market ticks, places trades directly, handles martingale, auto-pauses when market shifts, and switches markets/strategies automatically.
-                </p>
-
-                {/* Status Grid */}
-                <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/10">
-                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
-                    <span className="text-[8px] font-bold text-white/40 uppercase block">Engine Status</span>
-                    <span className="text-[11px] font-black uppercase" style={{
-                      color: engineStatus === 'trading' ? '#10b981' : engineStatus === 'paused' ? '#f5c542' : 'rgba(255,255,255,0.6)'
-                    }}>
-                      {engineStatus}
-                    </span>
-                  </div>
-                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
-                    <span className="text-[8px] font-bold text-white/40 uppercase block">Session P/L</span>
-                    <span className={`text-[11px] font-black ${engineStats.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {engineStats.profit >= 0 ? `+$${engineStats.profit.toFixed(2)}` : `-$${Math.abs(engineStats.profit).toFixed(2)}`}
-                    </span>
-                  </div>
-                  <div className="bg-black/30 p-2 rounded-xl border border-white/5">
-                    <span className="text-[8px] font-bold text-white/40 uppercase block">Win / Loss</span>
-                    <span className="text-[11px] font-black text-amber-300">
-                      {engineStats.wins}W / {engineStats.losses}L
-                    </span>
-                  </div>
-                </div>
-
-                {/* Auto Controls */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <button
-                    onClick={() => setAutoMarketSwitch(v => !v)}
-                    className="p-2 rounded-xl text-[9px] font-bold flex items-center justify-between border transition"
-                    style={{
-                      background: autoMarketSwitch ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.03)',
-                      borderColor: autoMarketSwitch ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)',
-                      color: autoMarketSwitch ? '#34d399' : 'rgba(255,255,255,0.4)',
-                    }}
-                  >
-                    <span>Auto Market Switch</span>
-                    <span>{autoMarketSwitch ? 'ON' : 'OFF'}</span>
-                  </button>
-                  <button
-                    onClick={() => setAutoStrategyRotate(v => !v)}
-                    className="p-2 rounded-xl text-[9px] font-bold flex items-center justify-between border transition"
-                    style={{
-                      background: autoStrategyRotate ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.03)',
-                      borderColor: autoStrategyRotate ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
-                      color: autoStrategyRotate ? '#60a5fa' : 'rgba(255,255,255,0.4)',
-                    }}
-                  >
-                    <span>Auto Strategy Rotate</span>
-                    <span>{autoStrategyRotate ? 'ON' : 'OFF'}</span>
-                  </button>
-                </div>
-
-                {/* Live Activity Terminal */}
-                {engineLogs.length > 0 && (
-                  <div className="mt-3 bg-black/50 rounded-xl p-2 font-mono text-[9px] max-h-24 overflow-y-auto border border-white/10 space-y-1">
-                    {engineLogs.map((log, idx) => (
-                      <div key={idx} className={
-                        log.includes('WIN') || log.includes('ACTIVATED') ? 'text-emerald-400'
-                          : log.includes('LOSS') || log.includes('dropped') ? 'text-rose-400'
-                          : log.includes('Switched') || log.includes('Rotated') ? 'text-sky-400'
-                          : 'text-white/70'
-                      }>
-                        {log}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Symbol selector */}
-              <div>
-                <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1">Market</label>
-                <div className="relative" ref={symbolPickerRef}>
-                  <button
-                    onClick={() => setShowSymbolPicker((v) => !v)}
-                    className="w-full flex items-center justify-between border rounded-xl px-4 py-2.5 transition"
-                    style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}
-                  >
-                    <span className="font-bold text-white/80 text-sm">{selectedSymbolInfo?.label ?? selectedSymbol}</span>
-                    <ChevronDown size={14} className={`text-white/40 transition-transform ${showSymbolPicker ? 'rotate-180' : ''}`} />
-                  </button>
-                  {showSymbolPicker && (
-                    <div className="absolute z-[60] top-full left-0 right-0 mt-1 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto"
-                      style={{ background: 'rgba(15,10,30,0.98)', border: '1px solid rgba(255,255,255,0.12)', backdropFilter: 'blur(20px)' }}>
-                      {['Volatility', 'Crash/Boom', 'Jump', 'Bear/Bull', 'Range', 'Step'].map((cat) => (
-                        <div key={cat}>
-                          <div className="px-4 py-1.5 text-[10px] font-bold text-white/40 uppercase tracking-wider sticky top-0" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                            {cat}
-                          </div>
-                          {SYMBOLS.filter((s) => s.category === cat).map((s) => (
-                            <button
-                              key={s.id}
-                              onClick={() => { setSelectedSymbol(s.id); setShowSymbolPicker(false); }}
-                              className={`w-full text-left px-4 py-2 text-sm font-medium transition ${selectedSymbol === s.id ? 'text-[#f5c542] font-bold' : 'text-white/70 hover:bg-white/5'}`}
-                              style={selectedSymbol === s.id ? { background: 'rgba(245,197,66,0.12)' } : {}}
-                            >
-                              {s.label}
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Trade type */}
-              <div>
-                <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-2">Trade Type</label>
-                <div className="relative" ref={tradeTypePickerRef}>
-                  <button
-                    onClick={() => setShowTradeTypePicker(v => !v)}
-                    className="w-full border rounded-xl p-2.5 text-xs font-bold text-left flex items-center justify-between transition"
-                    style={{ borderColor: '#f5c542', color: '#f5c542', background: 'rgba(245,197,66,0.12)' }}
-                  >
-                    <span>{TRADE_TYPES.find(t => t.id === selectedTradeType)?.label ?? 'Select'}</span>
-                    <ChevronDown size={14} className={showTradeTypePicker ? 'rotate-180 transition-transform' : 'transition-transform'} />
-                  </button>
-                  {showTradeTypePicker && (
-                    <div className="absolute z-50 mt-1 w-full rounded-xl border border-white/10 bg-[#1a0a14] shadow-2xl overflow-hidden max-h-72 overflow-y-auto">
-                      {TRADE_TYPES.map(t => (
-                        <button
-                          key={t.id}
-                          onClick={() => { setSelectedTradeType(t.id); setSelectedSignal(null); setShowTradeTypePicker(false); }}
-                          className="w-full px-3 py-2 text-xs font-bold text-left transition flex items-center justify-between hover:bg-white/5"
-                          style={selectedTradeType === t.id ? { color: '#f5c542', background: 'rgba(245,197,66,0.12)' } : { color: 'rgba(255,255,255,0.6)' }}
-                        >
-                          <span>{t.label}</span>
-                          {selectedTradeType === t.id && <Check size={12} />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Parameters */}
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: 'Stake ($)', value: stake, setter: setStake },
-                  { label: 'Martingale x', value: martingale, setter: setMartingale },
-                  { label: 'Take Profit ($)', value: takeProfit, setter: setTakeProfit },
-                  { label: 'Stop Loss (losses)', value: stopLoss, setter: setStopLoss },
-                ].map(({ label, value, setter }) => (
-                  <div key={label}>
-                    <label className="text-[9px] font-bold text-white/50 uppercase tracking-wider block mb-1">{label}</label>
-                    <input
-                      type="number"
-                      value={value}
-                      onChange={(e) => setter(e.target.value)}
-                      className="w-full border rounded-xl px-3 py-2 text-white/80 font-bold text-sm focus:outline-none transition"
-                      style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)' }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Multi-market */}
-              <div className="rounded-xl p-3 flex items-center justify-between"
-                style={{ border: '1px solid rgba(230,126,34,0.2)', background: 'rgba(230,126,34,0.06)' }}>
-                <div>
-                  <h4 className="text-[#E67E22] font-bold text-xs">Multi-Market Scan</h4>
-                  <p className="text-[10px] text-white/40">Scan all synthetic markets</p>
-                </div>
+      <div className="flex flex-col h-full w-full bg-white overflow-y-auto text-slate-800 font-sans p-4 space-y-4">
+        
+        {/* ── Section 1: TRADE TYPE ── */}
+        <div>
+          <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1.5">TRADE TYPE</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'matches', label: 'Matches / Differs' },
+              { id: 'even_odd', label: 'Even / Odd' },
+              { id: 'over_under', label: 'Over / Under' },
+              { id: 'rise_fall', label: 'Rise / Fall' },
+            ].map(t => {
+              const isSelected = selectedTradeType === t.id;
+              return (
                 <button
-                  onClick={() => setMultiMarket((v) => !v)}
-                  className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 ${multiMarket ? 'bg-[#f5c542]' : 'bg-white/20'}`}
+                  key={t.id}
+                  onClick={() => { setSelectedTradeType(t.id); setSelectedSignal(null); }}
+                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50/80 text-blue-600 shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
                 >
-                  <div className={`bg-white w-5 h-5 rounded-full shadow transform transition-transform duration-300 ${multiMarket ? 'translate-x-5' : 'translate-x-0'}`} />
+                  {t.label}
                 </button>
-              </div>
-
-              {/* Scanning progress */}
-              {step === 'scanning' && (
-                <div className="space-y-3">
-                  <div className="rounded-xl p-3" style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.03)' }}>
-                    <div className="flex justify-between text-xs font-bold text-white/70 mb-2">
-                      <span>Synthetic Indices</span>
-                      <span>{scanProgress}/{scanTarget}</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                      <div className="h-full transition-all duration-300 rounded-full"
-                        style={{ width: `${(scanProgress / scanTarget) * 100}%`, background: 'linear-gradient(90deg, #f5c542, #e67e22)' }} />
-                    </div>
-                  </div>
-                  <div className="w-full text-white font-bold text-center py-3 rounded-xl text-xs flex items-center justify-center gap-2"
-                    style={{ background: 'linear-gradient(90deg, #E67E22, #f5c542, #d97706)' }}>
-                    <RefreshCw size={14} className="animate-spin" />
-                    Collecting 1000 ticks across 3 windows...
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              {step !== 'scanning' && (
-                <div className="space-y-3 pt-1">
-                  <button
-                    onClick={() => setAutoScan(a => !a)}
-                    className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 border transition active:scale-95"
-                    style={{
-                      borderColor: autoScan ? 'rgba(245,197,66,0.5)' : 'rgba(255,255,255,0.15)',
-                      background: autoScan ? 'rgba(245,197,66,0.12)' : 'rgba(255,255,255,0.05)',
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <RefreshCw size={13} className={autoScan ? 'animate-spin text-[#f5c542]' : 'text-white/40'} />
-                      <span className="text-xs font-bold text-white/80">Continuous scan (60s)</span>
-                    </div>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full"
-                      style={{ background: autoScan ? '#f5c542' : 'rgba(255,255,255,0.15)', color: autoScan ? '#000' : '#fff' }}>
-                      {autoScan ? 'ON' : 'OFF'}
-                    </span>
-                  </button>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={resetScan}
-                      className="border-2 rounded-xl font-bold py-3 transition active:scale-95 text-sm"
-                      style={{ borderColor: 'rgba(230,126,34,0.5)', color: 'rgba(255,255,255,0.6)', background: 'transparent' }}
-                    >
-                      Reset
-                    </button>
-                    <button
-                      onClick={startScan}
-                      disabled={!isConnected}
-                      className="text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95 text-sm disabled:opacity-50"
-                      style={{ background: 'linear-gradient(135deg, #e67e22, #f5c542)', color: '#000' }}
-                    >
-                      {isConnected ? 'Scan' : 'Connecting...'}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Signals (inline in Scanner tab) ── */}
-              {hasScanResults && (
-                <>
-                  <div className="pt-2">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">
-                        Signals · {combinedSignals.length} active
-                      </span>
-                      {signalUpdated && (
-                        <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 flex items-center gap-1">
-                          <Zap size={7} /> LIVE
-                        </span>
-                      )}
-                      {signalShift && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 flex items-center gap-1 animate-pulse">
-                          <AlertTriangle size={8} /> Shift
-                        </span>
-                      )}
-                      {combinedSignals[0]?.windowsAligned && (
-                        <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 flex items-center gap-1">
                           <Zap size={8} /> Aligned
                         </span>
                       )}

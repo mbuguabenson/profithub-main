@@ -6,16 +6,18 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background: linear-gradient(160deg, #0a0a12 0%, #0e0a1a 60%, #120e0a 100%);
+  background: #151520;
   font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: #f1f5f9;
 
   /* ── Tabs ── */
   .mhp-tabs {
     display: flex;
-    border-bottom: 1px solid rgba(245, 197, 66, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.02);
+    background: #181825;
+    box-shadow:
+      inset 0 -2px 4px #0a0a12;
   }
 
   .mhp-tab {
@@ -71,16 +73,24 @@
 
   /* ── Card ── */
   .mhp-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 14px;
+    background: #181825;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
     padding: 13px 14px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    transition: border-color 0.2s;
+    transition: all 0.25s;
+    box-shadow:
+      6px 6px 14px #0a0a12,
+      -6px -6px 14px #22223a;
 
-    &:hover { border-color: rgba(245, 197, 66, 0.15); }
+    &:hover {
+      box-shadow:
+        8px 8px 18px #0a0a12,
+        -8px -8px 18px #22223a;
+      border-color: rgba(245, 197, 66, 0.08);
+    }
   }
 
   .mhp-card-title {
@@ -101,10 +111,13 @@
   .mhp-mode-toggle {
     display: flex;
     gap: 3px;
-    background: rgba(0, 0, 0, 0.3);
+    background: #1c1c2e;
     padding: 3px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow:
+      inset 3px 3px 6px #0a0a12,
+      inset -3px -3px 6px #22223a;
   }
 
   .mhp-mode-btn {
@@ -113,14 +126,17 @@
     padding: 5px 10px;
     font-size: 10px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(241, 245, 249, 0.5);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: all 0.2s;
 
     &.active {
-      background: linear-gradient(135deg, #e67e22, #f5c542);
-      color: #000;
+      background: #1c1c2e;
+      color: #f5c542;
+      box-shadow:
+        4px 4px 8px #0a0a12,
+        -4px -4px 8px #22223a;
     }
   }
 
@@ -129,9 +145,9 @@
   .mhp-input {
     width: 100%;
     padding: 8px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    background: #1c1c2e;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
     color: #f1f5f9;
     font-size: 12px;
     font-weight: 600;
@@ -139,13 +155,19 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
+    box-shadow:
+      inset 3px 3px 6px #0a0a12,
+      inset -3px -3px 6px #22223a;
 
     &:focus {
-      border-color: rgba(245, 197, 66, 0.5);
-      box-shadow: 0 0 0 2px rgba(245, 197, 66, 0.1);
+      border-color: rgba(245, 197, 66, 0.3);
+      box-shadow:
+        inset 3px 3px 6px #0a0a12,
+        inset -3px -3px 6px #22223a,
+        0 0 0 2px rgba(245, 197, 66, 0.08);
     }
 
-    option { background: #1a1000; }
+    option { background: #181825; }
   }
 
   .mhp-input-sm { width: 70px; text-align: center; }
@@ -180,13 +202,13 @@
   }
 
   .mhp-strategy-chip {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 7px;
+    background: #1c1c2e;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
     padding: 6px 4px;
     font-size: 9px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(241, 245, 249, 0.55);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -195,6 +217,9 @@
     transition: all 0.18s;
     font-family: inherit;
     text-align: center;
+    box-shadow:
+      3px 3px 6px #0a0a12,
+      -3px -3px 6px #22223a;
 
     .mhp-chip-check {
       display: inline-flex;
@@ -202,19 +227,26 @@
       justify-content: center;
       width: 10px;
       height: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 3px;
       font-size: 7px;
       color: transparent;
       transition: all 0.15s;
     }
 
-    &:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(245, 197, 66, 0.2); }
+    &:hover {
+      box-shadow:
+        4px 4px 8px #0a0a12,
+        -4px -4px 8px #22223a;
+      border-color: rgba(245, 197, 66, 0.12);
+    }
 
     &.active {
-      border-color: rgba(245, 197, 66, 0.5);
-      background: rgba(245, 197, 66, 0.1);
+      border-color: rgba(245, 197, 66, 0.3);
       color: #f5c542;
+      box-shadow:
+        inset 3px 3px 6px #0a0a12,
+        inset -3px -3px 6px #22223a;
 
       .mhp-chip-check {
         border-color: #f5c542;
@@ -228,18 +260,20 @@
   .mhp-automation-box {
     margin-top: 4px;
     padding: 10px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: #1c1c2e;
     display: flex;
     flex-direction: column;
     gap: 6px;
     font-size: 11px;
     transition: all 0.2s;
+    box-shadow:
+      inset 3px 3px 6px #0a0a12,
+      inset -3px -3px 6px #22223a;
 
     &.active {
-      border-color: rgba(16, 185, 129, 0.3);
-      background: rgba(16, 185, 129, 0.05);
+      border-color: rgba(16, 185, 129, 0.2);
     }
   }
 
@@ -461,11 +495,13 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: #1a1000;
-    border: 1px solid rgba(245, 158, 11, 0.25);
-    border-radius: 10px;
+    background: #181825;
+    border: 1px solid rgba(245, 158, 11, 0.15);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    box-shadow:
+      8px 8px 16px #0a0a12,
+      -8px -8px 16px #22223a;
   }
 
   .mhp-dropdown-item {
@@ -535,9 +571,12 @@
   .mhp-progress-bg {
     width: 100%;
     height: 5px;
-    background: rgba(255, 255, 255, 0.05);
+    background: #1c1c2e;
     border-radius: 3px;
     overflow: hidden;
+    box-shadow:
+      inset 2px 2px 4px #0a0a12,
+      inset -2px -2px 4px #22223a;
   }
 
   .mhp-progress-fill {
@@ -594,20 +633,31 @@
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    border-radius: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.02);
+    border-radius: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: #1c1c2e;
     cursor: pointer;
-    transition: all 0.18s;
+    transition: all 0.2s;
+    box-shadow:
+      4px 4px 10px #0a0a12,
+      -4px -4px 10px #22223a;
 
-    &:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.12); }
+    &:hover {
+      box-shadow:
+        6px 6px 14px #0a0a12,
+        -6px -6px 14px #22223a;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
 
-    &.strong { border-color: rgba(16, 185, 129, 0.18); background: rgba(16, 185, 129, 0.03); }
+    &.strong {
+      border-color: rgba(16, 185, 129, 0.12);
+    }
 
     &.selected {
-      border-color: rgba(245, 197, 66, 0.4);
-      background: rgba(245, 197, 66, 0.07);
-      box-shadow: 0 0 0 1px rgba(245, 197, 66, 0.2);
+      border-color: rgba(245, 197, 66, 0.25);
+      box-shadow:
+        inset 3px 3px 6px #0a0a12,
+        inset -3px -3px 6px #22223a;
     }
   }
 

@@ -189,7 +189,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                             className='ultimate-landing__welcome'
                             style={{ marginBottom: '16px' }}
                         >
-                            <h2 className='welcome-greeting' style={{ fontSize: '1.4rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                            <h2 className='welcome-greeting' style={{ fontSize: '1.4rem', color: 'rgba(241, 245, 249, 0.6)' }}>
                                 {localize('Good')} {greeting} {userName} 👋
                             </h2>
                             <h3 className='welcome-subtitle' style={{ fontSize: '2.4rem', fontWeight: 800, margin: '6px 0' }}>
@@ -210,7 +210,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                             <span className='typing-cursor'>|</span>
                         </motion.h1>
 
-                        <p className='ultimate-landing__subtitle' style={{ fontSize: '0.95rem', color: 'rgba(255, 255, 255, 0.5)', maxWidth: '640px', margin: '0 0 20px' }}>
+                        <p className='ultimate-landing__subtitle' style={{ fontSize: '0.95rem', color: 'rgba(241, 245, 249, 0.45)', maxWidth: '640px', margin: '0 0 20px' }}>
                             {localize('Import an existing bot, create one from scratch, or launch an intelligent strategy powered by AI.')}
                         </p>
                     </div>
@@ -220,10 +220,10 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                         <div className='ultimate-landing__cards-grid'>
                             {/* Card 1: Local Computer Import */}
                             <motion.div
-                                whileHover={{ y: -6, scale: 1.01 }}
+                                whileHover={{ y: -4, scale: 1.01 }}
                                 className='ultimate-landing__card card--blue'
                                 onClick={openFileLoader}
-                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                                style={{ padding: '24px 20px', borderRadius: '20px' }}
                             >
                                 <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>📂</div>
                                 <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('My Computer')}</h3>
@@ -239,7 +239,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                                 whileHover={{ y: -6, scale: 1.01 }}
                                 className='ultimate-landing__card card--green'
                                 onClick={openGoogleDriveDialog}
-                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                                style={{ padding: '24px 20px', borderRadius: '20px' }}
                             >
                                 <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>☁️</div>
                                 <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('Google Drive')}</h3>
@@ -255,7 +255,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                                 whileHover={{ y: -6, scale: 1.01 }}
                                 className='ultimate-landing__card card--emerald'
                                 onClick={openBotBuilder}
-                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                                style={{ padding: '24px 20px', borderRadius: '20px' }}
                             >
                                 <div className='card__circuit-glow' />
                                 <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>🤖</div>
@@ -272,7 +272,7 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                                 whileHover={{ y: -6, scale: 1.01 }}
                                 className='ultimate-landing__card card--purple'
                                 onClick={openQuickStrategy}
-                                style={{ padding: '24px 20px', borderRadius: '16px' }}
+                                style={{ padding: '24px 20px', borderRadius: '20px' }}
                             >
                                 <div className='card__icon' style={{ fontSize: '26px', marginBottom: '12px' }}>⚡</div>
                                 <h3 className='card__title' style={{ fontSize: '16px' }}>{localize('Quick Strategy')}</h3>
@@ -291,14 +291,14 @@ export const UltimateWelcomePage = observer(({ handleTabChange: _handleTabChange
                             whileHover={{ scale: 1.03 }}
                             onClick={openBotBuilder}
                             className='cta-btn cta-btn--primary'
-                            style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px' }}
+                            style={{ padding: '10px 24px', borderRadius: '12px', fontSize: '13px' }}
                         >
                             {localize('Start Trading')} <span className='arrow'>→</span>
                         </motion.button>
                         <button 
                             onClick={openQuickStrategy} 
                             className='cta-btn cta-btn--secondary'
-                            style={{ padding: '10px 24px', borderRadius: '8px', fontSize: '13px' }}
+                            style={{ padding: '10px 24px', borderRadius: '12px', fontSize: '13px' }}
                         >
                             {localize('Explore Features')}
                         </button>

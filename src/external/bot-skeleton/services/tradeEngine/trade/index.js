@@ -102,7 +102,7 @@ const watchScope = ({ store, stopScope, passScope, passFlag }) => {
             } else {
                 resolve(false);
             }
-        }, 30);
+        }, 5);
     });
 };
 

@@ -25,8 +25,8 @@ export default Engine =>
                 const lastPurchase = this.lastPurchaseTime || 0;
                 const symbol = this.symbol || this.tradeOptions?.symbol || (this.trade_option && this.trade_option.underlying_symbol) || '';
                 const is1sMarket = symbol && (symbol.startsWith('1HZ') || symbol.includes('1s') || symbol.includes('1S'));
-                const minDelay = speed === '3' ? 10 : (is1sMarket ? 500 : 1000);
-                if (now - lastPurchase < minDelay) {
+                const minDelay = speed === '3' ? 0 : (speed === '2' ? 50 : (is1sMarket ? 200 : 400));
+                if (minDelay > 0 && now - lastPurchase < minDelay) {
                     return Promise.resolve();
                 }
                 this.lastPurchaseTime = now;
@@ -144,13 +144,14 @@ export default Engine =>
 
             if (bulkCount > 1) {
                 log(LogTypes.INFO, { message: `🚀 [BULK TRADES] Placing ${bulkCount} parallel contracts simultaneously on Deriv...` });
-                const trade_option = tradeOptionToBuy(contract_type, this.tradeOptions);
+                const currentTradeOpts = this.tradeOptions || this.trade_option || {};
+                const trade_option = tradeOptionToBuy(contract_type, currentTradeOpts);
 
                 try {
                     globalObserver.emit('replicator.purchase', {
                         mode: 'parameters',
                         request: trade_option,
-                        tradeOptions: this.tradeOptions,
+                        tradeOptions: currentTradeOpts,
                         contract_type,
                         account_id: this.accountInfo?.loginid,
                     });
@@ -164,7 +165,7 @@ export default Engine =>
                 this.isSold = false;
                 contractStatus({
                     id: 'contract.purchase_sent',
-                    data: this.tradeOptions.amount,
+                    data: currentTradeOpts?.amount ?? 0,
                 });
 
                 return Promise.all(reqs).then(responses => {
@@ -212,7 +213,8 @@ export default Engine =>
                 });
             }
 
-            const trade_option = tradeOptionToBuy(contract_type, this.tradeOptions);
+            const currentTradeOpts = this.tradeOptions || this.trade_option || {};
+            const trade_option = tradeOptionToBuy(contract_type, currentTradeOpts);
 
             let selectedProposal = null;
             if (this.is_proposal_subscription_required) {
@@ -230,7 +232,7 @@ export default Engine =>
                     globalObserver.emit('replicator.purchase', {
                         mode: 'proposal_id',
                         request: { buy: id, price: askPrice },
-                        tradeOptions: this.tradeOptions,
+                        tradeOptions: currentTradeOpts,
                         contract_type,
                         account_id: this.accountInfo?.loginid,
                     });
@@ -262,7 +264,7 @@ export default Engine =>
                 globalObserver.emit('replicator.purchase', {
                     mode: 'parameters',
                     request: trade_option,
-                    tradeOptions: this.tradeOptions,
+                    tradeOptions: currentTradeOpts,
                     contract_type,
                     account_id: this.accountInfo?.loginid,
                 });
@@ -273,7 +275,7 @@ export default Engine =>
 
             contractStatus({
                 id: 'contract.purchase_sent',
-                data: this.tradeOptions.amount,
+                data: currentTradeOpts?.amount ?? 0,
             });
 
             return action().then(onSuccess).catch(err => {

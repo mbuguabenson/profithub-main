@@ -18,7 +18,7 @@ const snapshotClone = obj => {
     if (typeof obj === 'function' || obj instanceof HTMLElement || (typeof window !== 'undefined' && obj === window)) {
         return obj;
     }
-    return cloneThorough(obj, true, 25, undefined, false);
+    return cloneThorough(obj, true, 10, undefined, false);
 };
 
 JSInterpreter.prototype.takeStateSnapshot = function () {
