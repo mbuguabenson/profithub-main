@@ -433,7 +433,6 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
         try {
             const res = await (api_base.api as any).send({
                 ticks_history: symbol,
-                adjust_start_time: 1,
                 count: 3,
                 end: 'latest',
                 granularity: CANDLE_GRANULARITY,

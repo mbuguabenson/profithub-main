@@ -1425,10 +1425,12 @@ export default class ScannerStore implements IScannerStore {
       if (!api_base.api) return 'neutral';
       const response = await (api_base.api as any).send({
         ticks_history: symbol,
+        end: 'latest',
         granularity: 1800, // 30 mins
         count: 2,
         style: 'candles',
       }) as any;
+
       if (response && response.candles && response.candles.length > 0) {
         const candles = response.candles;
         const latestCandle = candles[candles.length - 1];
@@ -1439,9 +1441,10 @@ export default class ScannerStore implements IScannerStore {
         this.candle_cache.set(symbol, { direction, timestamp: now });
         return direction;
       }
+      this.candle_cache.set(symbol, { direction: 'neutral', timestamp: now });
       return 'neutral';
     } catch (e) {
-      console.warn('[ScannerStore] Failed to fetch candle direction:', e);
+      this.candle_cache.set(symbol, { direction: 'neutral', timestamp: now });
       return 'neutral';
     }
   };
