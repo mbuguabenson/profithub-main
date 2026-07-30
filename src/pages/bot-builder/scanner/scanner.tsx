@@ -5,7 +5,7 @@ import { localize } from '@deriv-com/translations';
 import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { api_base } from '@/external/bot-skeleton';
 import classNames from 'classnames';
-import { X, Sparkles, AlertTriangle, RefreshCw, Download, Play, Check } from 'lucide-react';
+import { X } from 'lucide-react';
 import './scanner.scss';
 
 // ─── Helper: stats for Stats tab ──────────────────────────────────────────────
