@@ -103,6 +103,13 @@ class HybridMarketAdapter {
     }
   }
 
+  private parseDigit(price: number, symbol?: string): number {
+    const pipSize = symbol && (symbol.includes('1HZ') || symbol.startsWith('R_')) ? 2 : 4;
+    const str = price.toFixed(pipSize);
+    const digit = parseInt(str[str.length - 1], 10);
+    return isNaN(digit) ? 0 : digit;
+  }
+
   private handleIncomingMessage(data: any) {
     if (!data) return;
 
@@ -111,10 +118,7 @@ class HybridMarketAdapter {
       const reqSymbol = data.echo_req?.ticks_history || data.echo_req?.ticks;
       if (reqSymbol) {
         const prices = (data.history.prices as (number | string)[]).map((p) => parseFloat(p.toString()));
-        const digits = prices.map((p) => {
-          const s = p.toString();
-          return parseInt(s[s.length - 1], 10);
-        });
+        const digits = prices.map((p) => this.parseDigit(p, reqSymbol));
 
         const lastPrice = prices[prices.length - 1] || 0;
         const lastDigit = digits[digits.length - 1] || 0;
@@ -140,8 +144,7 @@ class HybridMarketAdapter {
     if (data.msg_type === 'tick' && data.tick) {
       const t = data.tick;
       const quote = parseFloat(t.quote);
-      const s = quote.toString();
-      const digit = parseInt(s[s.length - 1], 10);
+      const digit = this.parseDigit(quote, t.symbol);
 
       const tickObj: HybridTickData = {
         quote,
@@ -174,18 +177,14 @@ class HybridMarketAdapter {
   private sendSubscription(symbol: string) {
     if (this.failedSymbols.has(symbol)) return;
 
-    const payload = JSON.stringify({
-      ticks_history: symbol,
-      count: 100,
-      end: 'latest',
-      style: 'ticks',
-      subscribe: 1,
-    });
+    const histReq = { ticks_history: symbol, count: 1000, end: 'latest', style: 'ticks' };
+    const tickReq = { ticks: symbol };
 
     // Primary WS if available and open
     if (api_base?.api?.connection?.readyState === 1) {
       try {
-        api_base.api.send({ ticks_history: symbol, count: 100, end: 'latest', style: 'ticks', subscribe: 1 });
+        api_base.api.send(histReq);
+        api_base.api.send(tickReq);
       } catch {
         // fallback will execute below
       }
@@ -194,7 +193,8 @@ class HybridMarketAdapter {
     // Fallback WS
     if (this.fallbackWs && this.fallbackWs.readyState === WebSocket.OPEN) {
       try {
-        this.fallbackWs.send(payload);
+        this.fallbackWs.send(JSON.stringify(histReq));
+        this.fallbackWs.send(JSON.stringify(tickReq));
       } catch {
         // ignore send error
       }
