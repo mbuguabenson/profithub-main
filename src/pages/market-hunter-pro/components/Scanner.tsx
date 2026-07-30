@@ -757,7 +757,8 @@ a.href = url;
       minHeight={440}
       enableResizing={true}
     >
-      <div className="flex flex-col h-full w-full bg-[#12131a] overflow-y-auto text-slate-200 font-sans p-3 space-y-3">
+      <div className="flex flex-col h-full w-full bg-[#12131a] text-slate-200 font-sans p-3 overflow-hidden">
+        <div className="flex-1 overflow-y-auto space-y-3 pr-0.5">
         
         {/* ── Section 1: TRADE TYPE ── */}
         <div>
@@ -959,27 +960,28 @@ a.href = url;
                         );
                     })()}
                   </div>
-
-                  {/* Sticky Bot Action Buttons Bar */}
-                  <div className="sticky bottom-0 left-0 right-0 z-30 pt-3 pb-1 bg-[#12131a] border-t border-white/10 mt-auto shrink-0">
-                    <div className="grid grid-cols-3 gap-2">
-                      <button onClick={resetScan} className="border rounded-xl text-white/70 text-xs font-black py-2.5 transition active:scale-95 hover:bg-white/10 flex items-center justify-center gap-1"
-                        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)' }}>
-                        <RefreshCw size={12} />
-                        New Scan
-                      </button>
-                      <button onClick={handleLoadBot} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/20">
-                        <Download size={12} />
-                        Load Bot
-                      </button>
-                      <button onClick={handleLoadBotAndRun} className="text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-amber-500/20"
-                        style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-                        <Play size={12} />
-                        Load & Run
-                      </button>
-                    </div>
-                  </div>
         </>
+      </div>
+
+      {/* Fixed Always-Visible Footer Action Buttons Bar */}
+      <div className="shrink-0 pt-2.5 pb-1 bg-[#12131a] border-t border-white/10 mt-auto z-30">
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={resetScan} className="border rounded-xl text-white/70 text-xs font-black py-2.5 transition active:scale-95 hover:bg-white/10 flex items-center justify-center gap-1"
+            style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)' }}>
+            <RefreshCw size={12} />
+            New Scan
+          </button>
+          <button onClick={handleLoadBot} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/20">
+            <Download size={12} />
+            Load Bot
+          </button>
+          <button onClick={handleLoadBotAndRun} className="text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-amber-500/20"
+            style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+            <Play size={12} />
+            Load & Run
+          </button>
+        </div>
+      </div>
 
         {/* ── MARKET MONITOR TAB ── */}
         {activeTab === 'monitor' && (
