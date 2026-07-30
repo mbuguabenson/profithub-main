@@ -291,12 +291,18 @@ const Draggable: React.FC<TDraggableProps> = ({
                     <div
                         className={`draggable-content__header__close`}
                         data-testid='dt_react_draggable-close-modal'
-                        onClick={onClose}
+                        onMouseDown={e => e.stopPropagation()}
+                        onTouchStart={e => e.stopPropagation()}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (onClose) onClose();
+                        }}
+                        style={{ cursor: 'pointer', padding: '4px', zIndex: 10 }}
                     >
                         <LegacyClose1pxIcon
                             height='20px'
                             width='20px'
-                            fill='var(--text-general)'
+                            fill='#ffffff'
                             className='icon-general-fill-path'
                         />
                     </div>

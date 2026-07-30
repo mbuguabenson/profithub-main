@@ -772,6 +772,18 @@ a.href = url;
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="font-extrabold text-slate-100 text-xs tracking-tight">AI Market Scanner</span>
           </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setStep('orb');
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="p-1 text-slate-400 hover:text-white transition rounded-lg hover:bg-white/10"
+            title="Close AI Scanner"
+          >
+            <X size={14} />
+          </button>
         </div>
       }
       onClose={() => setStep('orb')}

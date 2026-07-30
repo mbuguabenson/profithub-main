@@ -32,6 +32,13 @@ const DIGIT_SYMBOLS = SYMBOLS.filter(s =>
 );
 
 // ─── Shared multi-market WebSocket hook ──────────────────────────────────────
+function parseDigitAndPrice(quote: number, symbol: string) {
+  const pipSize = (symbol.includes('1HZ10V') || symbol.includes('1HZ100V') || symbol.startsWith('R_')) ? 2 : 4;
+  const str = quote.toFixed(pipSize);
+  const digit = parseInt(str[str.length - 1], 10);
+  return { digit: isNaN(digit) ? 0 : digit, quote };
+}
+
 function useSharedMarketWS(symbols: string[]) {
   const wsRef       = useRef<WebSocket | null>(null);
   const reqId       = useRef(1);
@@ -67,6 +74,7 @@ function useSharedMarketWS(symbols: string[]) {
   }, [symbols.join(',')]);
 
   const fetchHistory = useCallback((ws: WebSocket, symbol: string) => {
+    if (ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({
       ticks_history: symbol,
       count: 1000,
@@ -74,6 +82,7 @@ function useSharedMarketWS(symbols: string[]) {
       style: 'ticks',
       req_id: reqId.current++,
     }));
+    ws.send(JSON.stringify({ ticks: symbol, subscribe: 1, req_id: reqId.current++ }));
   }, []);
 
   const connect = useCallback(() => {
@@ -109,16 +118,26 @@ function useSharedMarketWS(symbols: string[]) {
           const sym = data.echo_req.ticks_history as string;
           if (!symbolsRef.current.includes(sym)) return;
           const prices = data.history.prices as number[];
-          const ticks = prices.map(p => { const s = p.toString(); return parseInt(s[s.length - 1], 10); });
+          const ticks = prices.map(p => parseDigitAndPrice(p, sym).digit);
+          const lastP = prices.at(-1) ?? null;
+          const lastD = ticks.at(-1) ?? null;
           const mwa = analyzeMultiWindow(ticks, prices);
           setMarkets(prev => {
             const next = new Map(prev);
-            next.set(sym, { symbol: sym, ticks, quotes: prices, mwa,
-              lastPrice: prices.at(-1) ?? null, lastDigit: ticks.at(-1) ?? null });
+            const existing = next.get(sym);
+            next.set(sym, {
+              symbol: sym,
+              ticks: existing && existing.ticks.length > ticks.length ? existing.ticks : ticks,
+              quotes: existing && existing.quotes.length > prices.length ? existing.quotes : prices,
+              mwa: existing?.mwa ?? mwa,
+              lastPrice: existing?.lastPrice ?? lastP,
+              lastDigit: existing?.lastDigit ?? lastD,
+            });
             return next;
           });
-          if (ws.readyState === WebSocket.OPEN)
+          if (ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ ticks: sym, subscribe: 1, req_id: reqId.current++ }));
+          }
         }
 
         if (data.msg_type === 'tick' && data.tick) {
@@ -126,12 +145,14 @@ function useSharedMarketWS(symbols: string[]) {
           if (!symbolsRef.current.includes(sym)) return;
           if (data.subscription) subIds.current.set(sym, data.subscription.id);
           const quote = data.tick.quote as number;
-          const s = quote.toString();
-          const digit = parseInt(s[s.length - 1], 10);
+          const { digit } = parseDigitAndPrice(quote, sym);
           setMarkets(prev => {
             const next = new Map(prev);
             const ex = next.get(sym);
-            if (!ex) return prev;
+            if (!ex) {
+              next.set(sym, { symbol: sym, ticks: [digit], quotes: [quote], lastPrice: quote, lastDigit: digit, mwa: null });
+              return next;
+            }
             const newTicks  = [...ex.ticks,  digit].slice(-1000);
             const newQuotes = [...ex.quotes, quote].slice(-1000);
             const mwa = analyzeMultiWindow(newTicks, newQuotes);
@@ -143,7 +164,7 @@ function useSharedMarketWS(symbols: string[]) {
     };
   }, [fetchHistory]);
 
-  // Fetch history for newly added symbols while already connected
+  // Fetch history & subscribe for newly added symbols while already connected
   useEffect(() => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
     for (const sym of symbols) {
