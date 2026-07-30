@@ -45,6 +45,8 @@ import TradingBots from '../free-bots/trading-bots';
 const ManualTrading = lazy(() => import('../manual-trading'));
 const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
+const CirclesAnalysisPage = lazy(() => import('../circles-analysis'));
+const DigitCrackerPage = lazy(() => import('../digit-cracker'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -89,14 +91,16 @@ const AppWrapper = observer(() => {
         'chart',
         'trading_bots',
         'analysis_tool',
-        'copy_trading',
-        'tradingview',
+        'circles_analysis',
+        'digit_cracker',
         'signals',
         'auto_trades',
         'scanner',
         'manual_trading',
         'marketkiller',
         'multi_trader',
+        'copy_trading',
+        'tradingview',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -327,6 +331,26 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Analysis Tool...')} />}>
                     <AnalysisTools />
+                </Suspense>
+            )
+        },
+        {
+            key: 'circles_analysis',
+            id: 'id-circles-analysis',
+            label: <TabIcon iconKey='circles_analysis' label='Circles Analysis' />,
+            content: (
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Circles Analysis...')} />}>
+                    <CirclesAnalysisPage />
+                </Suspense>
+            )
+        },
+        {
+            key: 'digit_cracker',
+            id: 'id-digit-cracker',
+            label: <TabIcon iconKey='digit_cracker' label='Digit Cracker' />,
+            content: (
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Digit Cracker...')} />}>
+                    <DigitCrackerPage />
                 </Suspense>
             )
         },

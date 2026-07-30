@@ -58,6 +58,22 @@ export const TabIcon: React.FC<TTabIconProps> = ({ iconKey, label }) => {
                         <path d='M16 3.13a4 4 0 0 1 0 7.75' />
                     </svg>
                 );
+            case 'circles_analysis':
+                return (
+                    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                        <circle cx='12' cy='12' r='9' />
+                        <circle cx='12' cy='12' r='5' />
+                        <circle cx='12' cy='12' r='1' />
+                    </svg>
+                );
+            case 'digit_cracker':
+                return (
+                    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                        <rect x='4' y='4' width='16' height='16' rx='2' />
+                        <path d='M9 9h6v6H9z' />
+                        <path d='M15 9l-6 6' />
+                    </svg>
+                );
             case 'tradingview':
                 return (
                     <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
