@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { X, Wifi, WifiOff, ChevronDown, ChevronUp, Activity, LayoutGrid, Upload } from 'lucide-react';
-import { getAppId, getSocketURL } from '@/components/shared/utils/config/config';
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
+import { hybridMarketAdapter } from '@/adapters/hybrid-market-adapter';
 import { SYMBOLS } from '../lib/symbols';
 import { analyzeMultiWindow, MultiWindowAnalysis, DigitFrequency, DigitTrend } from '../lib/analysis';
 import { generateCombinedRankedSignals, SignalType } from '../lib/signals';
@@ -39,14 +40,7 @@ function parseDigitAndPrice(quote: number, symbol: string) {
 }
 
 function useSharedMarketWS(symbols: string[]) {
-  const wsRef       = useRef<WebSocket | null>(null);
-  const reqId       = useRef(1);
-  const subIds      = useRef<Map<string, string>>(new Map());
-  const mountedRef  = useRef(true);
-  const reconnectRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const symbolsRef  = useRef<string[]>(symbols);
-
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
   const [markets, setMarkets] = useState<Map<string, MarketState>>(() => {
     const m = new Map<string, MarketState>();
     for (const s of symbols)
@@ -54,7 +48,7 @@ function useSharedMarketWS(symbols: string[]) {
     return m;
   });
 
-  // Keep symbolsRef current
+  const symbolsRef = useRef<string[]>(symbols);
   useEffect(() => { symbolsRef.current = symbols; }, [symbols.join(',')]);
 
   // Sync symbol set
@@ -72,54 +66,50 @@ function useSharedMarketWS(symbols: string[]) {
     });
   }, [symbols.join(',')]);
 
-  const fetchHistory = useCallback((ws: WebSocket, symbol: string) => {
-    if (ws.readyState !== WebSocket.OPEN) return;
-    ws.send(JSON.stringify({
-      ticks_history: symbol,
-      count: 1000,
-      end: 'latest',
-      style: 'ticks',
-      req_id: reqId.current++,
-    }));
-    ws.send(JSON.stringify({ ticks: symbol, req_id: reqId.current++ }));
-  }, []);
+  // 1. Subscribe via HybridMarketAdapter for instant live ticks
+  useEffect(() => {
+    const unsubs: (() => void)[] = [];
 
-  const connect = useCallback(() => {
-    if (!mountedRef.current) return;
-    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+    symbols.forEach(sym => {
+      const unsub = hybridMarketAdapter.subscribe(sym, (tickData) => {
+        const quote = tickData.quote;
+        const { digit } = parseDigitAndPrice(quote, sym);
 
+        setMarkets(prev => {
+          const next = new Map(prev);
+          const ex = next.get(sym);
+          if (!ex) {
+            next.set(sym, { symbol: sym, ticks: [digit], quotes: [quote], lastPrice: quote, lastDigit: digit, mwa: null });
+            return next;
+          }
+          const newTicks = [...ex.ticks, digit].slice(-1000);
+          const newQuotes = [...ex.quotes, quote].slice(-1000);
+          const mwa = analyzeMultiWindow(newTicks, newQuotes);
+          next.set(sym, { ...ex, ticks: newTicks, quotes: newQuotes, mwa, lastPrice: quote, lastDigit: digit });
+          return next;
+        });
+      });
+      unsubs.push(unsub);
+    });
+
+    return () => {
+      unsubs.forEach(fn => fn());
+    };
+  }, [symbols.join(',')]);
+
+  // 2. Fetch historical 1000 ticks via primary api_base.api
+  useEffect(() => {
+    if (!api_base?.api) return;
+
+    let sub: any = null;
     try {
-      const appId = getAppId() || '1089';
-      const serverUrl = getSocketURL() || 'ws.derivws.com';
-      const ws = new WebSocket(`wss://${serverUrl}/websockets/v3?app_id=${appId}`);
-      wsRef.current = ws;
-
-    ws.onopen = () => {
-      if (!mountedRef.current) return;
-      setIsConnected(true);
-      for (const sym of symbolsRef.current) fetchHistory(ws, sym);
-    };
-
-    ws.onclose = () => {
-      if (!mountedRef.current) return;
-      setIsConnected(false);
-      subIds.current.clear();
-      wsRef.current = null;
-      if (reconnectRef.current) clearTimeout(reconnectRef.current);
-      reconnectRef.current = setTimeout(() => { if (mountedRef.current) connect(); }, 2000);
-    };
-
-    ws.onerror = () => ws.close();
-
-    ws.onmessage = (ev) => {
-      if (!mountedRef.current) return;
-      try {
-        const data = JSON.parse(ev.data);
-
+      sub = api_base.api.onMessage().subscribe((res: any) => {
+        const data = res?.data || res;
         if (data.msg_type === 'history' && data.history && data.echo_req?.ticks_history) {
           const sym = String(data.echo_req.ticks_history).trim();
           if (!symbolsRef.current.includes(sym)) return;
-          const prices = data.history.prices as number[];
+          const prices = (data.history.prices || []) as number[];
+          if (prices.length === 0) return;
           const ticks = prices.map(p => parseDigitAndPrice(p, sym).digit);
           const lastP = prices.at(-1) ?? null;
           const lastD = ticks.at(-1) ?? null;
@@ -138,55 +128,30 @@ function useSharedMarketWS(symbols: string[]) {
             return next;
           });
         }
+      });
 
-        if (data.msg_type === 'tick' && data.tick) {
-          const sym = String(data.tick.symbol || data.echo_req?.ticks || '').trim();
-          if (!sym || !symbolsRef.current.includes(sym)) return;
-          if (data.subscription) subIds.current.set(sym, data.subscription.id);
-          const quote = data.tick.quote as number;
-          const { digit } = parseDigitAndPrice(quote, sym);
-          setMarkets(prev => {
-            const next = new Map(prev);
-            const ex = next.get(sym);
-            if (!ex) {
-              next.set(sym, { symbol: sym, ticks: [digit], quotes: [quote], lastPrice: quote, lastDigit: digit, mwa: null });
-              return next;
-            }
-            const newTicks  = [...ex.ticks,  digit].slice(-1000);
-            const newQuotes = [...ex.quotes, quote].slice(-1000);
-            const mwa = analyzeMultiWindow(newTicks, newQuotes);
-            next.set(sym, { ...ex, ticks: newTicks, quotes: newQuotes, mwa, lastPrice: quote, lastDigit: digit });
-            return next;
-          });
-        }
-      } catch { /* ignore */ }
-    };
-  } catch {
-    if (!mountedRef.current) return;
-    setIsConnected(false);
-  }
-}, [fetchHistory]);
+      // Request history for all selected symbols
+      symbols.forEach(sym => {
+        api_base.api.send({
+          ticks_history: sym,
+          count: 1000,
+          end: 'latest',
+          style: 'ticks',
+        }).catch(() => {});
+      });
 
-  // Fetch history & subscribe for newly added symbols while already connected
-  useEffect(() => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    for (const sym of symbols) {
-      const st = markets.get(sym);
-      if (!st || st.ticks.length === 0) fetchHistory(wsRef.current, sym);
+    } catch (e) {
+      console.warn('[MarketMonitor] api_base history subscription error:', e);
     }
-  }, [symbols.join(','), isConnected]);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    connect();
     return () => {
-      mountedRef.current = false;
-      if (reconnectRef.current) clearTimeout(reconnectRef.current);
-      wsRef.current?.close();
+      if (sub) {
+        try { sub.unsubscribe(); } catch {}
+      }
     };
-  }, []);
+  }, [symbols.join(',')]);
 
-  return { isConnected, markets };
+  return { markets, isConnected };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
