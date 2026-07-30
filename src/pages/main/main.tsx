@@ -47,6 +47,7 @@ const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 const CirclesAnalysisPage = lazy(() => import('../circles-analysis'));
 const DigitCrackerPage = lazy(() => import('../digit-cracker'));
+const AutomatedPage = lazy(() => import('../automated/automated'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
@@ -91,6 +92,7 @@ const AppWrapper = observer(() => {
         'chart',
         'trading_bots',
         'analysis_tool',
+        'automated',
         'circles_analysis',
         'digit_cracker',
         'signals',
@@ -331,6 +333,16 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Analysis Tool...')} />}>
                     <AnalysisTools />
+                </Suspense>
+            )
+        },
+        {
+            key: 'automated',
+            id: 'id-automated',
+            label: <TabIcon iconKey='automated' label='Automated' />,
+            content: (
+                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Automated Suite...')} />}>
+                    <AutomatedPage />
                 </Suspense>
             )
         },
