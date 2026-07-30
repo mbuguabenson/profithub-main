@@ -20,7 +20,10 @@ type TTransactions = {
 };
 
 type TTransactionItem = {
-    row?: any;
+    row?: {
+        type: string;
+        data: TContractInfo;
+    };
     onClickTransaction?: (transaction_id: null | number) => void;
     active_transaction_id?: number | null;
 };
