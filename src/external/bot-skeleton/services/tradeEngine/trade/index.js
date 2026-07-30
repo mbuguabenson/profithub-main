@@ -127,6 +127,10 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
 
         this.initArgs = args;
         this.options = options;
+        this.initialStakeAmount = null;
+        this.trade_option = null;
+        this.tradeOptions = null;
+        this.processedSoldContractIds = new Set();
         this.startPromise = this.loginAndGetBalance(token);
 
         if (!this.checkTicksPromiseExists()) this.watchTicks(symbol);
@@ -142,6 +146,8 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         const validated_trade_options = this.validateTradeOptions(tradeOptions);
 
         this.tradeOptions = { ...validated_trade_options, symbol: this.options.symbol };
+        this.trade_option = { ...(this.trade_option || {}), ...this.tradeOptions };
+
         if (!this.initialStakeAmount || this.initialStakeAmount <= 0) {
             this.initialStakeAmount = Number(validated_trade_options.amount || 0);
         }
