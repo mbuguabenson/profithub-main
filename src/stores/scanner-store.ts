@@ -997,32 +997,32 @@ export default class ScannerStore implements IScannerStore {
 
     const evenOddConditionMet = maxEvenOdd >= 55 && isEvenOddIncreasing;
 
-    if (evenOddConditionMet) {
-      if (maxEvenOdd >= 60) {
-        signals.set('even_odd', {
-          type: 'even_odd',
-          status: 'TRADE NOW',
-          probability: maxEvenOdd / 100,
-          recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%`,
-          entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
-          signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
-        });
-      } else {
-        signals.set('even_odd', {
-          type: 'even_odd',
-          status: 'WAIT',
-          probability: maxEvenOdd / 100,
-          recommendation: `Moderate ${isEvenBias ? 'even' : 'odd'} bias at ${maxEvenOdd.toFixed(1)}%`,
-          entryCondition: 'Monitor for stronger signal'
-        });
-      }
+    if (maxEvenOdd >= 55) {
+      signals.set('even_odd', {
+        type: 'even_odd',
+        status: 'TRADE NOW',
+        probability: maxEvenOdd / 100,
+        recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%`,
+        entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
+        signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
+      });
+    } else if (maxEvenOdd >= 50) {
+      signals.set('even_odd', {
+        type: 'even_odd',
+        status: 'WAIT',
+        probability: maxEvenOdd / 100,
+        recommendation: `Moderate ${isEvenBias ? 'even' : 'odd'} bias at ${maxEvenOdd.toFixed(1)}%`,
+        entryCondition: 'Monitor for stronger signal',
+        signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
+      });
     } else {
       signals.set('even_odd', {
         type: 'even_odd',
         status: 'NEUTRAL',
-        probability: 0,
-        recommendation: 'No clear pattern or not increasing',
-        entryCondition: ''
+        probability: 0.50,
+        recommendation: 'Balanced market distribution',
+        entryCondition: 'Wait for trend emergence',
+        signalDetails: { bias: 'even' }
       });
     }
 

@@ -938,7 +938,9 @@ const Scanner = observer(() => {
       ? { lossThreshold: parseInt(recLossThreshold, 10) || 3, altTradeTypeId: recAltType }
       : undefined;
 
-    const targetSymbol = activeSig?.symbol || single_market_symbol || '1HZ100V';
+    const targetSymbol = scan_market_mode === 'single'
+      ? (single_market_symbol || '1HZ100V')
+      : (activeSig?.symbol || single_market_symbol || '1HZ100V');
 
     const xml = generateBotXML({
       stake: scanner.stake.toString(),
@@ -2257,35 +2259,29 @@ const Scanner = observer(() => {
               </div>
             </div>
 
-            {/* ── 5-Tile Stat Dashboard Bar ── */}
-            <div style={{ padding: '0 14px', marginTop: 10 }}>
-              <div className="grid grid-cols-5 gap-1.5 text-center">
-                <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
-                  <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('Runs')}</span>
-                  <span className="text-xs font-black text-white mt-0.5 block">{scanner.total_runs}</span>
-                </div>
-                <div className="bg-slate-900/60 p-2 rounded-xl border border-emerald-500/20">
-                  <span className="text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider block">{localize('Wins')}</span>
-                  <span className="text-xs font-black text-emerald-400 mt-0.5 block">{scanner.wins}</span>
-                </div>
-                <div className="bg-slate-900/60 p-2 rounded-xl border border-rose-500/20">
-                  <span className="text-[8px] font-extrabold text-rose-400 uppercase tracking-wider block">{localize('Losses')}</span>
-                  <span className="text-xs font-black text-rose-400 mt-0.5 block">{scanner.losses}</span>
-                </div>
-                <div className="bg-slate-900/60 p-2 rounded-xl border border-sky-500/20">
-                  <span className="text-[8px] font-extrabold text-sky-400 uppercase tracking-wider block">{localize('Win %')}</span>
-                  <span className="text-xs font-black text-sky-300 mt-0.5 block">
-                    {scanner.total_runs > 0 ? `${((scanner.wins / scanner.total_runs) * 100).toFixed(0)}%` : '0%'}
-                  </span>
-                </div>
-                <div className="bg-slate-900/60 p-2 rounded-xl border border-amber-500/20">
-                  <span className="text-[8px] font-extrabold text-amber-300 uppercase tracking-wider block">{localize('Profit')}</span>
-                  <span className={`text-xs font-black mt-0.5 block ${scanner.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    ${scanner.total_profit.toFixed(2)}
-                  </span>
+            {/* ── Compact Stat Summary Bar (Wins/Losses & Win Rate) ── */}
+            {scanner.is_full_ai_automation && (
+              <div style={{ padding: '0 14px', marginTop: 10 }}>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+                    <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('Trades')}</span>
+                    <span className="text-xs font-black text-white mt-0.5 block">{scanner.total_runs}</span>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded-xl border border-emerald-500/20">
+                    <span className="text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider block">{localize('Wins / Losses')}</span>
+                    <span className="text-xs font-black text-emerald-400 mt-0.5 block">
+                      {scanner.wins} / <span className="text-rose-400">{scanner.losses}</span>
+                    </span>
+                  </div>
+                  <div className="bg-slate-900/60 p-2 rounded-xl border border-sky-500/20">
+                    <span className="text-[8px] font-extrabold text-sky-400 uppercase tracking-wider block">{localize('Win Rate')}</span>
+                    <span className="text-xs font-black text-sky-300 mt-0.5 block">
+                      {scanner.total_runs > 0 ? `${((scanner.wins / scanner.total_runs) * 100).toFixed(0)}%` : '0%'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* ── Auto-Pilot Switches Bar ── */}
             <div style={{ padding: '0 14px', marginTop: 10 }}>
