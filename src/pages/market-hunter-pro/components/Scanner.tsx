@@ -521,15 +521,6 @@ export default function Scanner() {
     }
   }, [isFullAiAutomation, selectedSymbol, selectedTradeType, stake, martingale, takeProfit, stopLoss, autoPauseThreshold, autoResumeThreshold, autoMarketSwitch, autoStrategyRotate, combinedSignals, selectedSignal, addEngineLog]);
 
-  if (false as boolean) {
-    console.log(
-      minimized, setStake, setTakeProfit, setStopLoss, setMartingale,
-      setMultiMarket, scanProgress, scanTarget, setAutoScan, signalShift,
-      signalUpdated, setAutoMarketSwitch, setAutoStrategyRotate, engineLogs,
-      engineStatus, engineStats, toggleFullAiEngine, resetScan
-    );
-  }
-
   const allowedTypes = useMemo(() => {
     const tt = TRADE_TYPES.find((t) => t.id === selectedTradeType);
     return tt?.types ?? [];
@@ -659,6 +650,15 @@ export default function Scanner() {
     setSelectedSignal(null);
     setPredictionChoice(null);
   }, []);
+
+  if (false as boolean) {
+    console.log(
+      minimized, setStake, setTakeProfit, setStopLoss, setMartingale,
+      setMultiMarket, scanProgress, scanTarget, setAutoScan, signalShift,
+      signalUpdated, setAutoMarketSwitch, setAutoStrategyRotate, engineLogs,
+      engineStatus, engineStats, toggleFullAiEngine, resetScan
+    );
+  }
 
   const handleLoadBot = useCallback(async () => {
     const signalToUse = selectedSignal || combinedSignals[0] || null;
