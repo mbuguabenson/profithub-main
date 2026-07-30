@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getAppId, getSocketURL } from '@/components/shared/utils/config/config';
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 
 export type TickData = {
   quote: number;
@@ -16,6 +17,13 @@ type SubscriptionState = {
   ticks: number[];
   quotes: number[];
 };
+
+function parseDigit(price: number, symbol?: string): number {
+  const pipSize = symbol && (symbol.includes('1HZ') || symbol.startsWith('R_')) ? 2 : 4;
+  const str = price.toFixed(pipSize);
+  const digit = parseInt(str[str.length - 1], 10);
+  return isNaN(digit) ? 0 : digit;
+}
 
 export function useDerivWS(options: DerivWSOptions = {}) {
   const appId = options.appId || getAppId() || '1089';
@@ -34,6 +42,46 @@ export function useDerivWS(options: DerivWSOptions = {}) {
   useEffect(() => {
     activeSymbolRef.current = activeSymbol;
   }, [activeSymbol]);
+
+  // Listen to primary Deriv WS connection (api_base.api)
+  useEffect(() => {
+    let primarySub: any = null;
+    if (api_base?.api?.onMessage) {
+      try {
+        primarySub = api_base.api.onMessage().subscribe((res: any) => {
+          if (!mountedRef.current) return;
+          const data = res?.data || res;
+          if (data.msg_type === 'tick' && data.tick) {
+            const tick: TickData = {
+              quote: data.tick.quote,
+              epoch: data.tick.epoch,
+              symbol: data.tick.symbol,
+            };
+            tickHandlersRef.current.forEach((h) => h(tick));
+            if (data.subscription) subIdRef.current = data.subscription.id;
+          }
+          if (data.msg_type === 'history' && data.history) {
+            const prices = data.history.prices as number[];
+            const currentSymbol = activeSymbolRef.current;
+            setSubscriptionState({
+              symbol: currentSymbol ?? '',
+              ticks: prices.map((p) => parseDigit(p, currentSymbol ?? undefined)),
+              quotes: prices,
+            });
+          }
+        });
+        setIsConnected(true);
+      } catch (err) {
+        console.warn('[useDerivWS] Primary api_base subscription fallback:', err);
+      }
+    }
+
+    return () => {
+      if (primarySub) {
+        try { primarySub.unsubscribe(); } catch {}
+      }
+    };
+  }, []);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -55,6 +103,12 @@ export function useDerivWS(options: DerivWSOptions = {}) {
               count: 1000,
               end: 'latest',
               style: 'ticks',
+              req_id: reqId.current++,
+            })
+          );
+          ws.send(
+            JSON.stringify({
+              ticks: activeSymbolRef.current,
               req_id: reqId.current++,
             })
           );
@@ -99,19 +153,11 @@ export function useDerivWS(options: DerivWSOptions = {}) {
           if (data.msg_type === 'history' && data.history) {
             const prices = data.history.prices as number[];
             const currentSymbol = activeSymbolRef.current;
-            setSubscriptionState((prev) => ({
-              symbol: currentSymbol ?? prev?.symbol ?? '',
+            setSubscriptionState({
+              symbol: currentSymbol ?? '',
               ticks: prices.map((p) => parseDigit(p, currentSymbol ?? undefined)),
               quotes: prices,
-            }));
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentSymbol) {
-              wsRef.current.send(
-                JSON.stringify({
-                  ticks: currentSymbol,
-                  req_id: reqId.current++,
-                })
-              );
-            }
+            });
           }
         } catch {
           // ignore parse errors
@@ -128,6 +174,29 @@ export function useDerivWS(options: DerivWSOptions = {}) {
       activeSymbolRef.current = symbol;
       setActiveSymbol(symbol);
       setSubscriptionState({ symbol, ticks: [], quotes: [] });
+
+      // Use primary Deriv API connection first
+      if (api_base?.api?.send) {
+        try {
+          if (subIdRef.current) {
+            api_base.api.send({ forget: subIdRef.current }).catch(() => {});
+            subIdRef.current = null;
+          }
+          api_base.api.send({
+            ticks_history: symbol,
+            count: 1000,
+            end: 'latest',
+            style: 'ticks',
+          }).catch(() => {});
+
+          api_base.api.send({
+            ticks: symbol,
+          }).catch(() => {});
+          return;
+        } catch (err) {
+          console.warn('[useDerivWS] api_base.send fallback to custom socket:', err);
+        }
+      }
 
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         connect();
@@ -152,6 +221,12 @@ export function useDerivWS(options: DerivWSOptions = {}) {
           count: 1000,
           end: 'latest',
           style: 'ticks',
+          req_id: reqId.current++,
+        })
+      );
+      wsRef.current.send(
+        JSON.stringify({
+          ticks: symbol,
           req_id: reqId.current++,
         })
       );
