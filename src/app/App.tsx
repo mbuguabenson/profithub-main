@@ -104,6 +104,23 @@ function App() {
         }
     }, [isProcessing, isValid, params.code, error, cleanupURL]);
 
+    React.useEffect(() => {
+        const handleChunkError = (event: PromiseRejectionEvent) => {
+            const reason = event?.reason;
+            const message = String(reason?.message || reason || '');
+            if (/Loading chunk .* failed/i.test(message) || /missing: https:\/\//i.test(message) || reason?.name === 'ChunkLoadError') {
+                const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
+                if (!hasReloaded) {
+                    sessionStorage.setItem('chunk_reload_attempted', 'true');
+                    window.location.reload();
+                }
+            }
+        };
+
+        window.addEventListener('unhandledrejection', handleChunkError);
+        return () => window.removeEventListener('unhandledrejection', handleChunkError);
+    }, []);
+
     return <RouterProvider router={router} />;
 }
 
