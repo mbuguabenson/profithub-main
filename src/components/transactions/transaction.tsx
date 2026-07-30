@@ -23,7 +23,7 @@ type TTransactionIconWithText = {
 
 type TPopoverItem = {
     icon?: React.ReactElement;
-    title: React.ReactNode;
+    title: string;
     children: React.ReactNode;
 };
 
@@ -142,17 +142,17 @@ const PopoverContent = ({ contract }: TPopoverContent) => (
                 )}
             </PopoverItem>
         )}
-        {((contract as any)?.exit_spot && contract.exit_tick_time && (
+        {(contract.exit_spot && contract.exit_tick_time && (
             <PopoverItem title={localize('Exit spot')}>
-                <div className='transactions__popover-value'>{(contract as any).exit_spot}</div>
+                <div className='transactions__popover-value'>{contract.exit_spot}</div>
                 <div className='transactions__popover-value'>
                     {convertDateFormat(contract.exit_tick_time, 'YYYY-M-D HH:mm:ss [GMT]', 'YYYY-MM-DD HH:mm:ss [GMT]')}
                 </div>
             </PopoverItem>
         )) ||
-            ((contract as any)?.exit_spot && (
+            (contract.exit_spot && (
                 <PopoverItem title={localize('Exit time')}>
-                    <div className='transactions__popover-value'>{(contract as any).exit_spot}</div>
+                    <div className='transactions__popover-value'>{contract.exit_spot}</div>
                 </PopoverItem>
             ))}
     </div>
@@ -214,7 +214,7 @@ const Transaction = ({ contract, active_transaction_id, onClickTransaction }: TT
                     <TransactionIconWithText
                         icon={<LegacyRadioOffIcon height={10} width={10} />}
                         title={localize('Exit spot')}
-                        message={(contract as any)?.exit_spot ?? <TransactionFieldLoader />}
+                        message={contract?.exit_spot ?? <TransactionFieldLoader />}
                     />
                 </div>
                 <div className='transactions__cell transactions__stake'>

@@ -764,11 +764,10 @@ a.href = url;
                 >
                   {t.label}
                 </button>
-                          <Zap size={8} /> Aligned
-                        </span>
-                      )}
-                    </div>
-                  </div>
+              );
+            })}
+          </div>
+        </div>
 
                   {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
 

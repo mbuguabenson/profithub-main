@@ -2,9 +2,8 @@ import crc32 from 'crc-32/crc32';
 import { action, makeObservable, observable, reaction } from 'mobx';
 import { cloneObject, isProduction } from '@/components/shared';
 import { convertStrategyToIsDbot, DBot } from '@/external/bot-skeleton';
+import { TStores } from '@deriv/stores/types';
 import RootStore from './root-store';
-
-type TStores = any;
 
 export default class DataCollectionStore {
     root_store: RootStore;
@@ -58,7 +57,7 @@ export default class DataCollectionStore {
 
     async trackRun() {
         const converted_workspace_to_dom = this.cleanXmlDom(
-            window.Blockly.Xml.workspaceToDom(DBot.workspace, /* opt_noId */ true) as unknown as Element
+            window.Blockly.Xml.workspaceToDom(DBot.workspace, /* opt_noId */ true)
         );
         const xml_dom = convertStrategyToIsDbot(converted_workspace_to_dom);
         const xml_string = window.Blockly.Xml.domToText(xml_dom);
@@ -73,11 +72,19 @@ export default class DataCollectionStore {
         this.setRunStart(this.core.common.server_time.unix());
     }
 
-    async trackTransaction(contracts: any[]) {
-        const pako: any = await import(/* webpackChunkName: "dbot-collection" */ 'pako');
-        const contract = contracts?.[0]; // Most recent contract.
+    async trackTransaction(
+        contracts: {
+            data: {
+                transaction_ids: {
+                    buy: number;
+                };
+            };
+        }[]
+    ) {
+        const pako = await import(/* webpackChunkName: "dbot-collection" */ 'pako');
+        const contract = contracts[0]; // Most recent contract.
 
-        const transaction_id = contract?.data?.transaction_ids?.buy ?? contract?.data?.contract_id;
+        const transaction_id = contract.data?.transaction_ids?.buy ?? contract.data?.contract_id;
         if (!transaction_id) {
             return;
         }

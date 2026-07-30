@@ -20,7 +20,7 @@ type TTransactions = {
 };
 
 type TTransactionItem = {
-    row?: {
+    row: {
         type: string;
         data: TContractInfo;
     };
@@ -28,8 +28,7 @@ type TTransactionItem = {
     active_transaction_id?: number | null;
 };
 
-const TransactionItem = ({ row, onClickTransaction, active_transaction_id }: TTransactionItem) => {
-    if (!row) return null;
+const TransactionItem = ({ row = false, onClickTransaction, active_transaction_id }: TTransactionItem) => {
     switch (row.type) {
         case transaction_elements.CONTRACT: {
             const { data: contract } = row;
