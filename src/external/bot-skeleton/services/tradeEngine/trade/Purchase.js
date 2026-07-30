@@ -146,19 +146,6 @@ export default Engine =>
                 this.initialStakeAmount = Number(currentTradeOpts.amount);
             }
 
-            // 🛡️ Martingale Stake Safety Safeguard:
-            // Cap purchase amount to max 10x initial stake so imported/custom XML bots in Bot Builder
-            // never risk runaway trades ($213.62, $534.06). Reset to initial stake if cap exceeded!
-            const safeMaxStake = Math.max(initialStake * 10, initialStake);
-            if (Number(currentTradeOpts.amount) > safeMaxStake) {
-                log(LogTypes.WARN, {
-                    message: `🛡️ [STAKE SAFETY CAP] Stake ($${currentTradeOpts.amount}) exceeded maximum safety limit ($${safeMaxStake.toFixed(2)}). Resetting stake to initial ($${initialStake.toFixed(2)})!`
-                });
-                currentTradeOpts.amount = initialStake;
-                if (this.tradeOptions) this.tradeOptions.amount = initialStake;
-                if (this.trade_option) this.trade_option.amount = initialStake;
-            }
-
             const bulkCount = isBulkEnabled ? Math.max(1, Math.min(10, Number(this.purchase_block_bulk_count || window.scanner_store?.bulk_trades_count || 2))) : 1;
 
             if (bulkCount > 1) {

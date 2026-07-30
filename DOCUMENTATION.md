@@ -106,10 +106,8 @@ All Trading API methods are standardized and exported from [trade-purchase.ts](f
 
 ## 🛡️ Safety & Reliability Systems
 
-1. **Martingale Stake Cap (10x Base Stake Limit)**:
-   - Compounding martingale stakes are strictly capped at `10x initial stake`.
-   - Any loss streak exceeding the safety threshold automatically resets the trade stake to `initial stake` instead of escalating to oversized amounts ($213.62, $534.06).
-   - Applied across `auto-trades.tsx`, `full-ai-trade-engine.ts`, `bot-xml-generator.ts`, `scanner.tsx`, and `Purchase.js` in `bot-skeleton`.
+1. **Unconstrained Bot Martingale Execution**:
+   - The exact martingale multipliers and compounding stake progression defined by the user inside their custom strategy/Blockly XML bot run 100% unimpeded without artificial resets or caps.
 
 2. **Journal Log Deduplication**:
    - `journalStore` automatically deduplicates identical log messages emitted within the exact same second (`HH:mm:ss [GMT]`).
