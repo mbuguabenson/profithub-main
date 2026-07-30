@@ -86,10 +86,13 @@ function useSharedMarketWS(symbols: string[]) {
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
 
-    const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${APP_ID}`);
-    wsRef.current = ws;
+    try {
+      const appId = getAppId() || '1089';
+      const serverUrl = getSocketURL() || 'ws.derivws.com';
+      const ws = new WebSocket(`wss://${serverUrl}/websockets/v3?app_id=${appId}`);
+      wsRef.current = ws;
 
     ws.onopen = () => {
       if (!mountedRef.current) return;
@@ -158,7 +161,11 @@ function useSharedMarketWS(symbols: string[]) {
         }
       } catch { /* ignore */ }
     };
-  }, [fetchHistory]);
+  } catch {
+    if (!mountedRef.current) return;
+    setIsConnected(false);
+  }
+}, [fetchHistory]);
 
   // Fetch history & subscribe for newly added symbols while already connected
   useEffect(() => {
