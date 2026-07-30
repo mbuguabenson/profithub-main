@@ -995,8 +995,6 @@ export default class ScannerStore implements IScannerStore {
       isEvenOddIncreasing = maxEvenOdd > prevPct;
     }
 
-    const evenOddConditionMet = maxEvenOdd >= 55 && isEvenOddIncreasing;
-
     if (maxEvenOdd >= 55) {
       signals.set('even_odd', {
         type: 'even_odd',
