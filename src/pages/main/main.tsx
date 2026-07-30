@@ -43,10 +43,8 @@ import TradingBots from '../free-bots/trading-bots';
 
 
 const ManualTrading = lazy(() => import('../manual-trading'));
-const EasyTool = lazy(() => import('../easy-tool'));
 const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
-const SignalCentrePage = lazy(() => import('../smart-trading/components/signal-centre-tab'));
 
 const AppWrapper = observer(() => {
     const { connectionStatus } = useApiBase();
