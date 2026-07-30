@@ -945,30 +945,22 @@ a.href = url;
           {isFullAiAutomation && (
             <div className="space-y-3 pt-2 border-t border-white/10 relative z-10">
               
-              {/* 5-Tile Stat Grid */}
-              <div className="grid grid-cols-5 gap-1.5 text-center">
+              {/* Compact Stat Summary Bar (Trades, Wins/Losses, Win Rate) */}
+              <div className="grid grid-cols-3 gap-1.5 text-center">
                 <div className="rounded-xl bg-slate-900/60 p-2 border border-white/5 backdrop-blur-sm">
-                  <span className="block text-[8px] font-extrabold text-slate-400 uppercase tracking-wider">Runs</span>
+                  <span className="block text-[8px] font-extrabold text-slate-400 uppercase tracking-wider">Trades</span>
                   <span className="block text-xs font-black text-white mt-0.5">{engineStats.runs}</span>
                 </div>
                 <div className="rounded-xl bg-slate-900/60 p-2 border border-emerald-500/20 backdrop-blur-sm">
-                  <span className="block text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider">Wins</span>
-                  <span className="block text-xs font-black text-emerald-400 mt-0.5">{engineStats.wins}</span>
-                </div>
-                <div className="rounded-xl bg-slate-900/60 p-2 border border-rose-500/20 backdrop-blur-sm">
-                  <span className="block text-[8px] font-extrabold text-rose-400 uppercase tracking-wider">Losses</span>
-                  <span className="block text-xs font-black text-rose-400 mt-0.5">{engineStats.losses}</span>
+                  <span className="block text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider">Wins / Losses</span>
+                  <span className="block text-xs font-black text-emerald-400 mt-0.5">
+                    {engineStats.wins} / <span className="text-rose-400">{engineStats.losses}</span>
+                  </span>
                 </div>
                 <div className="rounded-xl bg-slate-900/60 p-2 border border-sky-500/20 backdrop-blur-sm">
                   <span className="block text-[8px] font-extrabold text-sky-400 uppercase tracking-wider">Win Rate</span>
                   <span className="block text-xs font-black text-sky-300 mt-0.5">
                     {engineStats.runs > 0 ? `${((engineStats.wins / engineStats.runs) * 100).toFixed(0)}%` : '0%'}
-                  </span>
-                </div>
-                <div className="rounded-xl bg-slate-900/60 p-2 border border-amber-500/20 backdrop-blur-sm">
-                  <span className="block text-[8px] font-extrabold text-amber-300 uppercase tracking-wider">Profit</span>
-                  <span className={`block text-xs font-black mt-0.5 ${engineStats.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    ${engineStats.profit.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -1004,22 +996,6 @@ a.href = url;
                   />
                 </label>
               </div>
-
-              {/* Live AI Execution Stream */}
-              {engineLogs.length > 0 && (
-                <div className="rounded-xl bg-black/60 p-2.5 border border-white/10 max-h-28 overflow-y-auto space-y-1 font-mono text-[9.5px]">
-                  <div className="text-[8px] font-extrabold text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1">
-                    <Activity size={9} className="text-emerald-400 animate-pulse" />
-                    Live AI Stream
-                  </div>
-                  {engineLogs.slice(0, 6).map((log, idx) => (
-                    <div key={idx} className="text-emerald-300/90 truncate flex items-center gap-1">
-                      <span className="text-slate-500 text-[8px]">&gt;</span>
-                      <span>{log}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>
