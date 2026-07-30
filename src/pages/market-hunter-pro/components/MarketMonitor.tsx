@@ -33,10 +33,10 @@ const DIGIT_SYMBOLS = SYMBOLS.filter(s =>
 
 // ─── Shared multi-market WebSocket hook ──────────────────────────────────────
 function parseDigitAndPrice(quote: number, symbol: string) {
-  const pipSize = (symbol.includes('1HZ10V') || symbol.includes('1HZ100V') || symbol.startsWith('R_')) ? 2 : 4;
+  const pipSize = (symbol.includes('1HZ') || symbol.startsWith('R_')) ? 2 : 4;
   const str = quote.toFixed(pipSize);
   const digit = parseInt(str[str.length - 1], 10);
-  return { digit: isNaN(digit) ? 0 : digit, quote };
+  return { digit: isNaN(digit) ? 0 : digit, quote, formattedPrice: str };
 }
 
 function useSharedMarketWS(symbols: string[]) {
@@ -80,9 +80,9 @@ function useSharedMarketWS(symbols: string[]) {
       count: 1000,
       end: 'latest',
       style: 'ticks',
+      subscribe: 1,
       req_id: reqId.current++,
     }));
-    ws.send(JSON.stringify({ ticks: symbol, subscribe: 1, req_id: reqId.current++ }));
   }, []);
 
   const connect = useCallback(() => {
@@ -104,7 +104,7 @@ function useSharedMarketWS(symbols: string[]) {
       subIds.current.clear();
       wsRef.current = null;
       if (reconnectRef.current) clearTimeout(reconnectRef.current);
-      reconnectRef.current = setTimeout(() => { if (mountedRef.current) connect(); }, 2500);
+      reconnectRef.current = setTimeout(() => { if (mountedRef.current) connect(); }, 2000);
     };
 
     ws.onerror = () => ws.close();
@@ -115,7 +115,7 @@ function useSharedMarketWS(symbols: string[]) {
         const data = JSON.parse(ev.data);
 
         if (data.msg_type === 'history' && data.history && data.echo_req?.ticks_history) {
-          const sym = data.echo_req.ticks_history as string;
+          const sym = String(data.echo_req.ticks_history).trim();
           if (!symbolsRef.current.includes(sym)) return;
           const prices = data.history.prices as number[];
           const ticks = prices.map(p => parseDigitAndPrice(p, sym).digit);
@@ -135,14 +135,11 @@ function useSharedMarketWS(symbols: string[]) {
             });
             return next;
           });
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ ticks: sym, subscribe: 1, req_id: reqId.current++ }));
-          }
         }
 
         if (data.msg_type === 'tick' && data.tick) {
-          const sym = data.tick.symbol as string;
-          if (!symbolsRef.current.includes(sym)) return;
+          const sym = String(data.tick.symbol || data.echo_req?.ticks || '').trim();
+          if (!sym || !symbolsRef.current.includes(sym)) return;
           if (data.subscription) subIds.current.set(sym, data.subscription.id);
           const quote = data.tick.quote as number;
           const { digit } = parseDigitAndPrice(quote, sym);
@@ -200,55 +197,44 @@ function EvenOddBar({ evenPct }: { evenPct: number }) {
         <div className="h-full transition-all duration-700" style={{ width: `${evenPct}%`, background: 'linear-gradient(90deg,#3b82f6,#60a5fa)' }} />
         <div className="h-full transition-all duration-700" style={{ width: `${oddPct}%`, background: 'linear-gradient(90deg,#f59e0b,#fbbf24)' }} />
       </div>
-      <div className="flex justify-between text-[8px] text-white/25">
-        <span>{evenPct >= 52 ? '▲ EVEN bias' : evenPct <= 48 ? '▲ ODD bias' : 'Balanced'}</span>
-        <span>{Math.abs(evenPct - 50).toFixed(1)}% edge</span>
-      </div>
     </div>
   );
 }
 
 function OverUnderBar({ highPct, lowPct }: { highPct: number; lowPct: number }) {
-  const total = highPct + lowPct;
-  const normLow  = total > 0 ? (lowPct  / total) * 100 : 50;
-  const normHigh = 100 - normLow;
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider">
-        <span style={{ color: '#10b981' }}>UNDER 0–4 · {lowPct.toFixed(1)}%</span>
-        <span style={{ color: '#ef4444' }}>OVER 5–9 · {highPct.toFixed(1)}%</span>
+        <span style={{ color: '#10b981' }}>UNDER 0-4 ({lowPct.toFixed(1)}%)</span>
+        <span style={{ color: '#ec4899' }}>OVER 5-9 ({highPct.toFixed(1)}%)</span>
       </div>
       <div className="relative h-2 rounded-full overflow-hidden flex" style={{ background: 'rgba(255,255,255,0.06)' }}>
-        <div className="h-full transition-all duration-700" style={{ width: `${normLow}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
-        <div className="h-full transition-all duration-700" style={{ width: `${normHigh}%`, background: 'linear-gradient(90deg,#ef4444,#f87171)' }} />
-      </div>
-      <div className="flex justify-between text-[8px] text-white/25">
-        <span>{lowPct > highPct ? '▲ UNDER bias' : '▲ OVER bias'}</span>
-        <span>{Math.abs(highPct - lowPct).toFixed(1)}% gap</span>
+        <div className="h-full transition-all duration-700" style={{ width: `${lowPct}%`, background: 'linear-gradient(90deg,#10b981,#34d399)' }} />
+        <div className="h-full transition-all duration-700" style={{ width: `${highPct}%`, background: 'linear-gradient(90deg,#ec4899,#f472b6)' }} />
       </div>
     </div>
   );
 }
 
-function DigitFreqMiniBar({ frequencies }: { frequencies: { digit: number; percentage: number }[] }) {
-  const max = Math.max(...frequencies.map(f => f.percentage), 1);
+function DigitFreqMiniBar({ frequencies }: { frequencies: Record<number, number> }) {
+  const maxFreq = Math.max(...Object.values(frequencies), 1);
   return (
-    <div className="flex items-end gap-px h-10">
-      {frequencies.map(f => {
-        const heightPct = (f.percentage / max) * 100;
-        const isHigh    = f.digit >= 5;
-        const isEven    = f.digit % 2 === 0;
-        const base      = isHigh ? '#ef4444' : '#10b981';
-        const border    = isEven ? '1px solid rgba(59,130,246,0.4)' : 'none';
+    <div className="grid grid-cols-10 gap-1 pt-1">
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => {
+        const freq = frequencies[digit] ?? 0;
+        const pct = ((freq / 1000) * 100).toFixed(1);
+        const intensity = freq / maxFreq;
+        const color = digit >= 5 ? `rgba(239, 68, 68, ${0.4 + intensity * 0.6})` : `rgba(16, 185, 129, ${0.4 + intensity * 0.6})`;
         return (
-          <div key={f.digit} className="flex-1 flex flex-col items-center gap-0.5 relative group">
-            <div className="w-full rounded-sm transition-all duration-500"
-              style={{ height: `${Math.max(heightPct, 4)}%`, background: base, opacity: 0.7, border }} />
-            <span className="text-[7px] text-white/35 leading-none">{f.digit}</span>
-            {/* Tooltip */}
-            <div className="absolute bottom-full mb-1 hidden group-hover:flex text-[7px] bg-black/80 px-1 py-0.5 rounded text-white whitespace-nowrap z-10">
-              {f.digit}: {f.percentage.toFixed(1)}%
+          <div key={digit} className="flex flex-col items-center gap-1">
+            <span className="text-[8px] font-black text-white/50">{digit}</span>
+            <div className="w-full h-8 rounded bg-white/5 relative flex items-end overflow-hidden">
+              <div
+                className="w-full rounded-t transition-all duration-500"
+                style={{ height: `${(freq / maxFreq) * 100}%`, background: color }}
+              />
             </div>
+            <span className="text-[7px] text-white/30">{pct}%</span>
           </div>
         );
       })}
@@ -256,28 +242,25 @@ function DigitFreqMiniBar({ frequencies }: { frequencies: { digit: number; perce
   );
 }
 
-function DigitDetailGrid({ frequencies, trends }: {
-  frequencies: { digit: number; percentage: number }[];
-  trends: { digit: number; delta: number; trendDirection: string }[];
-}) {
+function DigitDetailGrid({ frequencies, trends }: { frequencies: Record<number, number>; trends?: Record<number, any> }) {
   return (
-    <div className="grid grid-cols-5 gap-1">
-      {frequencies.map(df => {
-        const trend  = trends[df.digit];
-        const isStrong = df.percentage >= 12;
-        const isWeak   = df.percentage < 8;
-        const color    = isStrong ? '#f5c542' : isWeak ? '#4b5563' : '#e67e22';
-        const arrow    = trend?.trendDirection === 'increasing' ? '▲' : trend?.trendDirection === 'decreasing' ? '▼' : '–';
+    <div className="grid grid-cols-5 gap-1.5 pt-1">
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => {
+        const freq = frequencies[digit] ?? 0;
+        const pct = (freq / 1000) * 100;
+        const trend = trends?.[digit];
+        const arrow = trend?.trendDirection === 'increasing' ? '▲' : trend?.trendDirection === 'decreasing' ? '▼' : '▬';
+        const color = digit >= 5 ? '#ef4444' : '#10b981';
         const arrowColor = trend?.trendDirection === 'increasing' ? '#10b981' : trend?.trendDirection === 'decreasing' ? '#ef4444' : '#6b7280';
         return (
-          <div key={df.digit} className="rounded-lg p-1.5 text-center"
+          <div key={digit} className="rounded-lg p-1.5 text-center"
             style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${color}22` }}>
-            <div className="text-xs font-black" style={{ color }}>{df.digit}</div>
-            <div className="text-[8px] text-white/40">{df.percentage.toFixed(1)}%</div>
+            <div className="text-xs font-black" style={{ color }}>{digit}</div>
+            <div className="text-[8px] text-white/40">{pct.toFixed(1)}%</div>
             <div className="text-[7px] font-bold mt-0.5" style={{ color: arrowColor }}>{arrow}</div>
             <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
               <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.min(df.percentage * 5.5, 100)}%`, background: color }} />
+                style={{ width: `${Math.min(pct * 5.5, 100)}%`, background: color }} />
             </div>
           </div>
         );
@@ -331,6 +314,10 @@ function MarketRow({
   const loading = !state || state.ticks.length === 0;
 
   const topSignal = signals[0];
+  const pipDecimals = (state?.symbol.includes('1HZ') || state?.symbol.startsWith('R_')) ? 2 : 4;
+  const formattedPrice = state?.lastPrice !== null && state?.lastPrice !== undefined
+    ? state.lastPrice.toFixed(pipDecimals)
+    : '—';
 
   return (
     <div className="rounded-xl border overflow-hidden transition-all"
@@ -350,9 +337,9 @@ function MarketRow({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[11px] font-bold text-white leading-tight">{label}</span>
             {state?.lastDigit !== null && state?.lastDigit !== undefined && (
-              <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center rounded text-white"
-                style={{ background: (state.lastDigit ?? 0) >= 5 ? 'rgba(239,68,68,0.25)' : 'rgba(16,185,129,0.25)',
-                         border: (state.lastDigit ?? 0) % 2 === 0 ? '1px solid rgba(59,130,246,0.5)' : '1px solid rgba(245,158,11,0.4)' }}>
+              <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center rounded text-white font-mono animate-pulse"
+                style={{ background: (state.lastDigit ?? 0) >= 5 ? 'rgba(239,68,68,0.35)' : 'rgba(16,185,129,0.35)',
+                         border: (state.lastDigit ?? 0) % 2 === 0 ? '1px solid rgba(59,130,246,0.6)' : '1px solid rgba(245,158,11,0.5)' }}>
                 {state.lastDigit}
               </span>
             )}
