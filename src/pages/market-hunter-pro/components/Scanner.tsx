@@ -13,6 +13,7 @@ import {
   Target,
   Sparkles,
   BarChart2,
+  Search,
 } from 'lucide-react';
 import MarketMonitor from './MarketMonitor';
 import { useDerivWS } from '../hooks/useDerivWS';
@@ -427,6 +428,10 @@ export default function Scanner() {
   const recTypePickerRef = useRef<HTMLDivElement>(null);
   const tradeTypePickerRef = useRef<HTMLDivElement>(null);
   const symbolPickerRef = useRef<HTMLDivElement>(null);
+  const prevSignalKeyRef = useRef<string>('');
+  const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isManualScanning, setIsManualScanning] = useState(false);
 
   const triggerManualScan = useCallback(() => {
