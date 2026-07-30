@@ -1,0 +1,32 @@
+{
+  "version": "v3",
+  "websocket_url": "wss://ws.derivws.com/websockets/v3",
+  "sync_url": "https://api.deriv.com",
+  "endpoints": {
+    "trading": [
+      { "name": "proposal", "description": "Get contract quotes and payout details", "auth_required": false },
+      { "name": "buy", "description": "Purchase contract by proposal ID or parameters", "auth_required": true, "scope": "trade" },
+      { "name": "sell", "description": "Sell open contract at market price", "auth_required": true, "scope": "trade" },
+      { "name": "proposal_open_contract", "description": "Stream live updates of active contract", "auth_required": true, "scope": "read" },
+      { "name": "contract_update", "description": "Update Stop Loss or Take Profit limits", "auth_required": true, "scope": "trade" },
+      { "name": "contract_update_history", "description": "Audit trail of contract limit updates", "auth_required": true, "scope": "read" },
+      { "name": "cancel", "description": "Cancel multiplier/accumulator contract", "auth_required": true, "scope": "trade" },
+      { "name": "payout_currencies", "description": "Get list of available payout currencies", "auth_required": false }
+    ],
+    "market_data": [
+      { "name": "ticks", "description": "Stream live tick quotes for symbol", "auth_required": false },
+      { "name": "ticks_history", "description": "Fetch historic ticks or OHLC candles", "auth_required": false },
+      { "name": "active_symbols", "description": "List of active market symbols and assets", "auth_required": false },
+      { "name": "contracts_for", "description": "List contract options available for symbol", "auth_required": false },
+      { "name": "time", "description": "Get Deriv server UTC time", "auth_required": false }
+    ],
+    "account": [
+      { "name": "authorize", "description": "Authenticate WebSocket connection with token", "auth_required": false },
+      { "name": "balance", "description": "Stream real-time account balance updates", "auth_required": true, "scope": "read" },
+      { "name": "profit_table", "description": "Retrieve closed trading history", "auth_required": true, "scope": "read" },
+      { "name": "statement", "description": "Retrieve account ledger statement", "auth_required": true, "scope": "read" },
+      { "name": "get_account_status", "description": "Retrieve account status and restrictions", "auth_required": true, "scope": "read" },
+      { "name": "portfolio", "description": "Get currently open contracts", "auth_required": true, "scope": "read" }
+    ]
+  }
+}
