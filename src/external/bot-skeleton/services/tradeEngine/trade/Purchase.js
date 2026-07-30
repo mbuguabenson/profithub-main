@@ -12,13 +12,15 @@ let purchase_reference;
 export default Engine =>
     class Purchase extends Engine {
         purchase(contract_type) {
-            // Prevent calling purchase twice
+            // Prevent calling purchase twice or firing parallel trades in the same cycle
             const speed = localStorage.getItem('bot_execution_speed') || '1';
             const isSpeedMode = speed !== '1';
             const isBulkEnabled = this.purchase_block_allow_bulk === 'yes';
-            if (this.store.getState().scope !== BEFORE_PURCHASE) {
+
+            if (this.isPurchasing || this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
+            this.isPurchasing = true;
 
             if (isSpeedMode) {
                 const now = Date.now();
@@ -27,6 +29,7 @@ export default Engine =>
                 const is1sMarket = symbol && (symbol.startsWith('1HZ') || symbol.includes('1s') || symbol.includes('1S'));
                 const minDelay = speed === '3' ? 0 : (speed === '2' ? 50 : (is1sMarket ? 200 : 400));
                 if (minDelay > 0 && now - lastPurchase < minDelay) {
+                    this.isPurchasing = false;
                     return Promise.resolve();
                 }
                 this.lastPurchaseTime = now;
@@ -63,6 +66,7 @@ export default Engine =>
                     // Advance DBot state engine smoothly so the strategy loop continues
                     return new Promise(resolve => {
                         setTimeout(() => {
+                            this.isPurchasing = false;
                             this.store.dispatch(purchaseSuccessful());
                             if (this.afterPromise) {
                                 this.afterPromise();
@@ -81,6 +85,7 @@ export default Engine =>
 
             const onSuccess = response => {
                 const { buy } = response;
+                this.isPurchasing = false;
 
                 contractStatus({
                     id: 'contract.purchase_received',
@@ -270,6 +275,7 @@ export default Engine =>
                     console.warn('[Purchase] Proposal purchase failed, retrying with parameters:', err);
                     const paramAction = () => api_base.api.send(trade_option);
                     return paramAction().then(onSuccess).catch(paramErr => {
+                        this.isPurchasing = false;
                         const errMsg = paramErr?.error?.message || paramErr?.message || 'Purchase failed';
                         log(LogTypes.ERROR, { message: `❌ [PURCHASE FAILED] ${errMsg}` });
                         this.store.dispatch(purchaseSuccessful());
@@ -299,6 +305,7 @@ export default Engine =>
             });
 
             return action().then(onSuccess).catch(err => {
+                this.isPurchasing = false;
                 const errMsg = err?.error?.message || err?.message || 'Purchase failed';
                 log(LogTypes.ERROR, { message: `❌ [PURCHASE FAILED] ${errMsg}` });
                 this.store.dispatch(purchaseSuccessful());
