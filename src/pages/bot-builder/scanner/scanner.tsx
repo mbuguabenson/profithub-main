@@ -5,6 +5,7 @@ import { localize } from '@deriv-com/translations';
 import DraggableResizeWrapper from '@/components/draggable/draggable-resize-wrapper';
 import { api_base } from '@/external/bot-skeleton';
 import classNames from 'classnames';
+import { X, Sparkles, AlertTriangle, RefreshCw, Download, Play, Check } from 'lucide-react';
 import './scanner.scss';
 
 // ─── Helper: stats for Stats tab ──────────────────────────────────────────────
@@ -1135,13 +1136,27 @@ const Scanner = observer(() => {
                 <span>📡</span>
                 <span style={{ fontWeight: 800, color: '#38bdf8' }}>{localize('AI Floating Market Scanner')}</span>
               </div>
-              <span className={classNames('mhp-conn-badge', connection_status)}>
-                <span className="mhp-conn-dot" />
-                {connection_status === 'connected' ? 'LIVE' : connection_status.toUpperCase()}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className={classNames('mhp-conn-badge', connection_status)}>
+                  <span className="mhp-conn-dot" />
+                  {connection_status === 'connected' ? 'LIVE' : connection_status.toUpperCase()}
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setScannerVisibility(false);
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 2, display: 'flex', alignItems: 'center' }}
+                  title="Close Scanner"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           }
-          onClose={setScannerVisibility}
+          onClose={() => setScannerVisibility(false)}
           modalWidth={560}
           modalHeight={700}
           minWidth={360}
