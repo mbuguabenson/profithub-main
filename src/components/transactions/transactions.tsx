@@ -20,10 +20,9 @@ type TTransactions = {
 };
 
 type TTransactionItem = {
-    row?: {
-        type: string;
-        data: TContractInfo;
-    };
+    row?: any;
+    is_footer?: boolean;
+    columns_map?: Record<string, any>;
     onClickTransaction?: (transaction_id: null | number) => void;
     active_transaction_id?: number | null;
 };
@@ -33,7 +32,7 @@ const TransactionItem = (props: TTransactionItem) => {
     if (!row || typeof row !== 'object' || !row.type) return null;
     switch (row.type) {
         case transaction_elements.CONTRACT: {
-            const { data: contract } = row;
+            const contract: TContractInfo = row.data;
             return (
                 <Transaction
                     contract={contract}
