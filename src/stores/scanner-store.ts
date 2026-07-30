@@ -1000,7 +1000,7 @@ export default class ScannerStore implements IScannerStore {
     if (maxEvenOdd >= 55) {
       signals.set('even_odd', {
         type: 'even_odd',
-        status: isEvenOddIncreasing ? 'TRADE NOW' : 'MONITOR',
+        status: isEvenOddIncreasing ? 'TRADE NOW' : 'WAIT',
         probability: maxEvenOdd / 100,
         recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%${isEvenOddIncreasing ? ' (Rising)' : ''}`,
         entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
