@@ -148,7 +148,7 @@ const Transactions = observer(({ is_drawer_open }: TTransactions) => {
                             keyMapper={row => {
                                 switch (row.type) {
                                     case transaction_elements.CONTRACT: {
-                                        return row.data.transaction_ids.buy;
+                                        return row.data?.transaction_ids?.buy ?? row.data?.contract_id ?? Math.random().toString();
                                     }
                                     case transaction_elements.DIVIDER: {
                                         return row.data;

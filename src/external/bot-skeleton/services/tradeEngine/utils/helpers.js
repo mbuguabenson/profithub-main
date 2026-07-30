@@ -304,20 +304,23 @@ export const doUntilDone = (promiseFn, errors_to_ignore, api_base) => {
 };
 
 export const createDetails = contract => {
-    const { sell_price: sellPrice, buy_price: buyPrice, currency } = contract;
+    if (!contract) return [];
+    const sellPrice = contract.sell_price ?? 0;
+    const buyPrice = contract.buy_price ?? 0;
+    const currency = contract.currency;
     const profit = getRoundedNumber(sellPrice - buyPrice, currency);
     const result = profit < 0 ? 'loss' : 'win';
 
     return [
-        contract.transaction_ids.buy,
-        +contract.buy_price,
-        +contract.sell_price,
+        contract.transaction_ids?.buy ?? contract.transaction_id ?? '',
+        +buyPrice,
+        +sellPrice,
         profit,
-        contract.contract_type,
-        formatTime(parseInt(`${contract.entry_tick_time}000`), 'HH:mm:ss'),
-        +contract.entry_tick,
-        formatTime(parseInt(`${contract.exit_tick_time}000`), 'HH:mm:ss'),
-        +contract.exit_tick,
+        contract.contract_type ?? '',
+        formatTime(parseInt(`${contract.entry_tick_time || 0}000`), 'HH:mm:ss'),
+        +(contract.entry_tick ?? 0),
+        formatTime(parseInt(`${contract.exit_tick_time || 0}000`), 'HH:mm:ss'),
+        +(contract.exit_tick ?? 0),
         +(contract.barrier ? contract.barrier : 0),
         result,
     ];

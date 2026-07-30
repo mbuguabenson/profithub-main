@@ -84,11 +84,10 @@ export default class DataCollectionStore {
         const pako = await import(/* webpackChunkName: "dbot-collection" */ 'pako');
         const contract = contracts[0]; // Most recent contract.
 
-        if (!contract) {
+        const transaction_id = contract.data?.transaction_ids?.buy ?? contract.data?.contract_id;
+        if (!transaction_id) {
             return;
         }
-
-        const { buy: transaction_id } = contract.data.transaction_ids;
         const is_known_transaction = Object.keys(this.transaction_ids).includes(transaction_id.toString());
 
         if (!is_known_transaction) {
