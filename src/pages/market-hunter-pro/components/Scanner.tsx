@@ -869,10 +869,10 @@ a.href = url;
                 <button
                   key={t.id}
                   onClick={() => { setSelectedTradeType(t.id); setSelectedSignal(null); }}
-                  className={`py-2.5 px-3 text-xs font-bold rounded-xl border transition-all ${
+                  className={`py-2.5 px-3 text-xs font-black rounded-xl border transition-all ${
                     isSelected
-                      ? 'border-blue-500 bg-blue-50/80 text-blue-600 shadow-sm'
-                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                      ? 'border-emerald-500/60 bg-emerald-500/20 text-emerald-300 shadow-md shadow-emerald-500/10'
+                      : 'border-white/10 bg-slate-900/60 text-slate-300 hover:bg-white/5'
                   }`}
                 >
                   {t.label}
