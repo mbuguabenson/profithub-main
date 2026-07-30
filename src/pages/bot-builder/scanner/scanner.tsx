@@ -926,17 +926,18 @@ const Scanner = observer(() => {
 
   // Custom Bot Loader that loads generated XML directly into Blockly
   const handleLoadBot = async () => {
-    const signalToUse = mapSignalToBestSignal(current_signal);
+    const activeSig = current_signal || (activeSelectedStrategySignals && activeSelectedStrategySignals[0]) || (scanner.signals && scanner.signals[0]);
+    const signalToUse = mapSignalToBestSignal(activeSig);
     const entryDigit = predictionChoice ?? signalToUse?.targetDigit ?? undefined;
 
-    const strategyName = current_signal?.strategy || 'even_odd';
+    const strategyName = activeSig?.strategy || 'even_odd';
     const tradeTypeLabel = STRATEGY_OPTIONS.find(t => t.value === strategyName)?.label ?? strategyName;
 
     const recovery = recMode
       ? { lossThreshold: parseInt(recLossThreshold, 10) || 3, altTradeTypeId: recAltType }
       : undefined;
 
-    const targetSymbol = current_signal?.symbol || single_market_symbol;
+    const targetSymbol = activeSig?.symbol || single_market_symbol || '1HZ100V';
 
     const xml = generateBotXML({
       stake: scanner.stake.toString(),
@@ -2094,10 +2095,10 @@ const Scanner = observer(() => {
               <button className="mhp-btn mhp-btn-scan" onClick={is_scanning ? stopScanning : startScanning}>
                 {is_scanning ? localize('Stop Scanning') : localize('Start Scan')}
               </button>
-              <button className="mhp-btn mhp-btn-load" onClick={handleLoadBot} disabled={!current_signal}>
+              <button className="mhp-btn mhp-btn-load" onClick={handleLoadBot}>
                 {localize('Load Bot')}
               </button>
-              <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun} disabled={!current_signal}>
+              <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun}>
                 {localize('Load & Run')}
               </button>
             </div>
@@ -2498,10 +2499,10 @@ const Scanner = observer(() => {
               <button className="mhp-btn mhp-btn-scan" onClick={is_scanning ? stopScanning : startScanning}>
                 {is_scanning ? localize('Stop Scanning') : localize('Start Scan')}
               </button>
-              <button className="mhp-btn mhp-btn-load" onClick={handleLoadBot} disabled={!current_signal}>
+              <button className="mhp-btn mhp-btn-load" onClick={handleLoadBot}>
                 {localize('Load Bot')}
               </button>
-              <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun} disabled={!current_signal}>
+              <button className="mhp-btn mhp-btn-run" onClick={handleLoadBotAndRun}>
                 {localize('Load & Run')}
               </button>
             </div>

@@ -720,26 +720,26 @@ a.href = url;
     </div>
   );
 
-  // ── AI Scanner Panel Modal (Clean Light Design - Reference Image 2) ──
+  // ── AI Scanner Panel Modal (Sleek Compact Dark Design) ──
   const panel = step !== 'orb' && (
     <DraggableResizeWrapper
       boundary=".main"
       header={
         <div className="flex items-center justify-between w-full pr-1">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-extrabold text-slate-900 text-sm tracking-tight">AI Market Scanner</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-extrabold text-slate-100 text-xs tracking-tight">AI Market Scanner</span>
           </div>
         </div>
       }
       onClose={() => setStep('orb')}
-      modalWidth={420}
-      modalHeight={620}
-      minWidth={340}
-      minHeight={480}
+      modalWidth={380}
+      modalHeight={550}
+      minWidth={320}
+      minHeight={440}
       enableResizing={true}
     >
-      <div className="flex flex-col h-full w-full bg-white overflow-y-auto text-slate-800 font-sans p-4 space-y-4">
+      <div className="flex flex-col h-full w-full bg-[#12131a] overflow-y-auto text-slate-200 font-sans p-3 space-y-3">
         
         {/* ── Section 1: TRADE TYPE ── */}
         <div>
