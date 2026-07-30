@@ -308,17 +308,12 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
     { key: 'auto_trades', label: 'Auto Trades', enabled: true, order: 8 },
     { key: 'scanner', label: 'AI Strategy Scanner', enabled: true, order: 9 },
     { key: 'manual_trading', label: 'Manual Trading', enabled: true, order: 10 },
-    { key: 'easy_tool', label: 'Easy Tool', enabled: true, order: 11 },
-    { key: 'signal_centre', label: 'Signal Centre', enabled: true, order: 12 },
-    { key: 'marketkiller', label: 'MarketKiller', enabled: true, order: 13 },
-    { key: 'multi_trader', label: 'Multi Trader', enabled: true, order: 14 },
-    { key: 'ai_compounding_engine', label: 'AI Compounding Engine', enabled: true, order: 15 },
-    { key: 'dtrader', label: 'DTrader', enabled: true, order: 16 },
-    { key: 'ai_trading_engine', label: 'AI Trading Engine 🤖', enabled: true, order: 17 },
+    { key: 'marketkiller', label: 'Market Killer', enabled: true, order: 11 },
+    { key: 'multi_trader', label: 'Multi Trader', enabled: true, order: 12 },
 ];
 
 // Bump this when new tabs are added to force clients to pick up new defaults
-const TAB_CONFIG_VERSION = 7;
+const TAB_CONFIG_VERSION = 8;
 
 export const getSiteConfig = (): SiteConfig => {
     try {
