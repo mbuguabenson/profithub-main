@@ -42,6 +42,33 @@ Welcome to the official developer documentation for **ProfitHub** — a high-per
 
 ---
 
+## 🤖 Detailed Module Specifications
+
+### 1. Bot Builder / DBot Module (`src/pages/bot-builder/`)
+The Bot Builder engine is built on Deriv's `bot-skeleton` framework ([src/external/bot-skeleton/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/external/bot-skeleton)) and provides 5 primary sub-tabs:
+
+1. **Dashboard Tab** ([src/pages/bot-builder/quick-strategy/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/bot-builder/quick-strategy)):
+   - **Features**: Quick Strategy creation (Martingale, D'Alembert, Oscar's Grind, Accumulators).
+   - **WebSocket APIs**: `active_symbols`, `contracts_for`.
+
+2. **Bot Builder Workspace Tab** ([src/pages/bot-builder/bot-builder.tsx](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/bot-builder/bot-builder.tsx)):
+   - **Features**: Interactive Google Blockly visual workspace, block palette, custom XML import/export.
+   - **Safety Safeguard**: Enforces `10x initial stake` maximum cap in [Purchase.js](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/external/bot-skeleton/services/tradeEngine/trade/Purchase.js).
+   - **WebSocket APIs**: `proposal`, `buy`, `proposal_open_contract`, `sell`, `ticks_history`.
+
+3. **Charts Tab** ([src/pages/bot-builder/chart/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/bot-builder/chart)):
+   - **Features**: Live financial market charting with technical overlays and tick subscriptions.
+   - **WebSocket APIs**: `ticks`, `ticks_history`.
+
+4. **Tutorial Tab** ([src/pages/tutorials/](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/tutorials)):
+   - **Features**: Interactive onboarding guides and strategy video documentation.
+
+5. **AI Market Scanner Tab** ([src/pages/bot-builder/scanner/scanner.tsx](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/pages/bot-builder/scanner/scanner.tsx)):
+   - **Features**: Automated market scanning, digit frequency analysis, dynamic XML bot generation.
+   - **WebSocket APIs**: `ticks_history`, `proposal`, `buy`.
+
+---
+
 ## ⚡ Central Trading WebSocket API Suite
 
 All Trading API methods are standardized and exported from [trade-purchase.ts](file:///c:/Users/Castel%20Technologies/Videos/profithub-main-main/profithub-main-main/src/utils/trade-purchase.ts):
