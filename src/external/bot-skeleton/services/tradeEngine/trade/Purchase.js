@@ -140,7 +140,10 @@ export default Engine =>
                 });
             };
 
-            const currentTradeOpts = this.tradeOptions || this.trade_option || {};
+            const currentTradeOpts = {
+                ...(this.trade_option || {}),
+                ...(this.tradeOptions || {}),
+            };
             const initialStake = Number(this.initialStakeAmount || currentTradeOpts.amount || 1);
             if ((!this.initialStakeAmount || this.initialStakeAmount <= 0) && currentTradeOpts.amount > 0) {
                 this.initialStakeAmount = Number(currentTradeOpts.amount);
@@ -238,7 +241,11 @@ export default Engine =>
                 }
             }
 
-            if (selectedProposal && selectedProposal.id) {
+            // Only use cached proposal if its askPrice matches the current trade amount.
+            // If Martingale or strategy modified the stake, bypass cached proposal and buy via parameters!
+            const isStakeMatching = selectedProposal && selectedProposal.askPrice && Number(selectedProposal.askPrice) === Number(currentTradeOpts.amount);
+
+            if (selectedProposal && selectedProposal.id && isStakeMatching) {
                 const { id, askPrice } = selectedProposal;
 
                 try {
