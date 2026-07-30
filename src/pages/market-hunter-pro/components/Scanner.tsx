@@ -427,10 +427,14 @@ export default function Scanner() {
   const recTypePickerRef = useRef<HTMLDivElement>(null);
   const tradeTypePickerRef = useRef<HTMLDivElement>(null);
   const symbolPickerRef = useRef<HTMLDivElement>(null);
-  const prevSignalKeyRef = useRef<string>('');
-  const shiftTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isManualScanning, setIsManualScanning] = useState(false);
+
+  const triggerManualScan = useCallback(() => {
+    setIsManualScanning(true);
+    setTimeout(() => {
+      setIsManualScanning(false);
+    }, 1200);
+  }, []);
 
   const { isConnected, subscriptionState, subscribeSymbol } = useDerivWS();
   const orb = useDraggableOrb();
@@ -788,6 +792,21 @@ a.href = url;
           </div>
         </div>
 
+        {/* ── Scan Markets Action Banner ── */}
+        <button
+          onClick={triggerManualScan}
+          disabled={isManualScanning}
+          className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-lg transition active:scale-95 disabled:opacity-80"
+          style={{
+            background: isManualScanning
+              ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+              : 'linear-gradient(135deg, #2563eb, #7c3aed)',
+          }}
+        >
+          <Search size={14} className={isManualScanning ? 'animate-spin' : ''} />
+          <span>{isManualScanning ? 'SCANNING MARKETS...' : '⚡ SCAN MARKETS NOW'}</span>
+        </button>
+
         <>
           {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
 
@@ -966,10 +985,10 @@ a.href = url;
       {/* Fixed Always-Visible Footer Action Buttons Bar */}
       <div className="shrink-0 pt-2.5 pb-1 bg-[#12131a] border-t border-white/10 mt-auto z-30">
         <div className="grid grid-cols-3 gap-2">
-          <button onClick={resetScan} className="border rounded-xl text-white/70 text-xs font-black py-2.5 transition active:scale-95 hover:bg-white/10 flex items-center justify-center gap-1"
-            style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)' }}>
-            <RefreshCw size={12} />
-            New Scan
+          <button onClick={triggerManualScan} disabled={isManualScanning} className="border rounded-xl text-sky-400 text-xs font-black py-2.5 transition active:scale-95 hover:bg-sky-500/10 flex items-center justify-center gap-1"
+            style={{ borderColor: 'rgba(56,189,248,0.3)', background: 'rgba(56,189,248,0.1)' }}>
+            <RefreshCw size={12} className={isManualScanning ? 'animate-spin' : ''} />
+            {isManualScanning ? 'Scanning...' : 'Re-Scan'}
           </button>
           <button onClick={handleLoadBot} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/20">
             <Download size={12} />
