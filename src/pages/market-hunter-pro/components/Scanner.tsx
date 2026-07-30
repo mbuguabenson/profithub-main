@@ -769,7 +769,8 @@ a.href = url;
           </div>
         </div>
 
-                  {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
+        <>
+          {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
 
                   {selectedSignal && (
                     <div className="rounded-2xl p-3 flex items-center justify-between gap-3"
@@ -954,25 +955,20 @@ a.href = url;
                       Load & Run
                     </button>
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── MARKET MONITOR TAB ── */}
-          {activeTab === 'monitor' && (
-            <div className="p-3 flex-1 flex flex-col min-h-0">
-              <MarketMonitor
-                embedded
-                onSelectSymbol={(symId) => {
-                  setSelectedSymbol(symId);
-                  setActiveTab('scanner');
-                }}
-              />
-            </div>
-          )}
         </>
-      )}
+
+        {/* ── MARKET MONITOR TAB ── */}
+        {activeTab === 'monitor' && (
+          <div className="p-3 flex-1 flex flex-col min-h-0">
+            <MarketMonitor
+              embedded
+              onSelectSymbol={(symId) => {
+                setSelectedSymbol(symId);
+                setActiveTab('scanner');
+              }}
+            />
+          </div>
+        )}
       </div>
     </DraggableResizeWrapper>
   );
