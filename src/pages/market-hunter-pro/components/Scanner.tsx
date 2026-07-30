@@ -983,7 +983,7 @@ a.href = url;
       </div>
 
       {/* Fixed Always-Visible Footer Action Buttons Bar */}
-      <div className="shrink-0 pt-2.5 pb-1 bg-[#12131a] border-t border-white/10 mt-auto z-30">
+      <div className="shrink-0 pt-2.5 pb-1 bg-[#12131a] border-t border-white/10 z-30">
         <div className="grid grid-cols-3 gap-2">
           <button onClick={triggerManualScan} disabled={isManualScanning} className="border rounded-xl text-sky-400 text-xs font-black py-2.5 transition active:scale-95 hover:bg-sky-500/10 flex items-center justify-center gap-1"
             style={{ borderColor: 'rgba(56,189,248,0.3)', background: 'rgba(56,189,248,0.1)' }}>
@@ -1002,19 +1002,19 @@ a.href = url;
         </div>
       </div>
 
-        {/* ── MARKET MONITOR TAB ── */}
-        {activeTab === 'monitor' && (
-          <div className="p-3 flex-1 flex flex-col min-h-0">
-            <MarketMonitor
-              embedded
-              onSelectSymbol={(symId) => {
-                setSelectedSymbol(symId);
-                setActiveTab('scanner');
-              }}
-            />
-          </div>
-        )}
-      </div>
+      {/* ── MARKET MONITOR TAB ── */}
+      {activeTab === 'monitor' && (
+        <div className="p-3 flex-1 flex flex-col min-h-0">
+          <MarketMonitor
+            embedded
+            onSelectSymbol={(symId) => {
+              setSelectedSymbol(symId);
+              setActiveTab('scanner');
+            }}
+          />
+        </div>
+      )}
+    </div>
     </DraggableResizeWrapper>
   );
 
