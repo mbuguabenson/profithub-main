@@ -15,6 +15,8 @@
         background: #151520;
         border-radius: 16px;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
 
         &__header {
             cursor: move;
@@ -26,6 +28,7 @@
             background: #181825;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
 
             &__title {
                 font-size: 15px;
@@ -51,7 +54,11 @@
 
         &__body {
             padding: 2px;
-            display: contents;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
         }
     }
 
