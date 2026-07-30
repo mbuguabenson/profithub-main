@@ -15,6 +15,7 @@ import {
   BarChart2,
   Search,
   X,
+  Activity,
 } from 'lucide-react';
 import MarketMonitor from './MarketMonitor';
 import { useDerivWS } from '../hooks/useDerivWS';
