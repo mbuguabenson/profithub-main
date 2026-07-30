@@ -2144,38 +2144,154 @@ const Scanner = observer(() => {
           minHeight={500}
           enableResizing
         >
-          <div className="mhp-scanner mhp-ai-engine-card">
-            {/* ── Neural Core Hero Header ── */}
-            <div className="mhp-ai-hero-card">
-              <div className="mhp-ai-neural-ring">
-                <div className={classNames("mhp-ai-pulse-dot", { active: scanner.is_full_ai_automation })} />
+          <div className="mhp-scanner mhp-ai-engine-card shadow-2xl rounded-2xl overflow-hidden border border-emerald-500/30" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(10,15,30,0.99) 100%)' }}>
+            {/* ── Futuristic Neural Core Hero Header ── */}
+            <div className="mhp-ai-hero-card p-4 relative overflow-hidden" style={{ background: scanner.is_full_ai_automation ? 'linear-gradient(135deg, rgba(16,185,129,0.18) 0%, rgba(6,182,212,0.12) 100%)' : 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              
+              {/* Header Top Bar */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="relative flex items-center justify-center">
+                    <div className={classNames("w-3.5 h-3.5 rounded-full transition-all", {
+                      'bg-emerald-400': scanner.is_full_ai_automation && scanner.engine_status !== 'paused',
+                      'bg-amber-400': scanner.engine_status === 'paused' || scanner.is_auto_paused,
+                      'bg-slate-500': !scanner.is_full_ai_automation,
+                    })} />
+                    {scanner.is_full_ai_automation && (
+                      <div className={classNames("absolute inset-0 rounded-full animate-ping opacity-75", {
+                        'bg-emerald-400': scanner.engine_status !== 'paused',
+                        'bg-amber-400': scanner.engine_status === 'paused' || scanner.is_auto_paused,
+                      })} />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-white uppercase tracking-wide">{localize('AI Autonomous Trading Engine')}</span>
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        v4.2 PRO
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">
+                      {scanner.is_full_ai_automation
+                        ? (scanner.engine_status === 'paused' || scanner.is_auto_paused
+                            ? localize('⏸️ Engine Paused (Awaiting Recovery Signal)')
+                            : localize(`🚀 Trading on ${scanner.single_market_symbol} (${(scanner.current_auto_strategy || 'EVEN/ODD').toUpperCase()})`))
+                        : localize('Ready to auto-rotate markets & execute optimal signals')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Primary Action Buttons: Launch Engine + Pause/Resume */}
+                <div className="flex items-center gap-1.5">
+                  {scanner.is_full_ai_automation && (
+                    <button
+                      className="py-1.5 px-2.5 rounded-xl text-xs font-black transition active:scale-95 bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                      onClick={() => {
+                        if (scanner.engine_status === 'paused' || scanner.is_auto_paused) {
+                          scanner.resumeNativeEngine();
+                        } else {
+                          scanner.pauseNativeEngine();
+                        }
+                      }}
+                    >
+                      {scanner.engine_status === 'paused' || scanner.is_auto_paused ? localize('▶️ RESUME') : localize('⏸️ PAUSE')}
+                    </button>
+                  )}
+
+                  <button
+                    className={classNames("mhp-ai-toggle-btn py-2 px-3.5 rounded-xl text-xs font-black transition active:scale-95 flex items-center gap-1.5", { active: scanner.is_full_ai_automation })}
+                    onClick={() => scanner.setFullAiAutomation(!scanner.is_full_ai_automation)}
+                    style={{
+                      background: scanner.is_full_ai_automation
+                        ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                        : 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      boxShadow: scanner.is_full_ai_automation ? '0 4px 15px rgba(239,68,68,0.3)' : '0 4px 15px rgba(16,185,129,0.3)',
+                    }}
+                  >
+                    {scanner.is_full_ai_automation ? localize('STOP ENGINE') : localize('LAUNCH ENGINE')}
+                  </button>
+                </div>
               </div>
-              <div className="mhp-ai-hero-info">
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {localize('Autonomous Mode')}
+
+              {/* Real-time Market Live Price Stream & Dynamic Market Switcher */}
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-2.5 border-t border-white/10">
+                <div className="bg-slate-900/80 p-2 rounded-xl border border-white/5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('ACTIVE MARKET')}</span>
+                    <select
+                      className="bg-transparent text-xs font-black text-emerald-400 outline-none cursor-pointer mt-0.5"
+                      value={scanner.single_market_symbol}
+                      onChange={(e) => {
+                        const newSym = e.target.value;
+                        scanner.setSingleMarketSymbol(newSym);
+                        scanner.logEngineActivity(`🔄 Market Switched to ${newSym} — Market state updated.`);
+                      }}
+                    >
+                      {(available_symbols || []).map((sym: any) => (
+                        <option key={sym.symbol || sym.underlying_symbol} value={sym.symbol || sym.underlying_symbol} className="bg-slate-900 text-white">
+                          {sym.display_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                    LIVE STREAM
+                  </span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: scanner.is_full_ai_automation ? '#34d399' : '#cbd5e1' }}>
-                  {scanner.is_full_ai_automation ? localize('🔥 AI Auto-Pilot ACTIVE') : localize('⏸️ AI Engine Standby')}
-                </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-                  {scanner.is_full_ai_automation
-                    ? localize(`Trading on ${scanner.current_auto_market} (${scanner.current_auto_strategy.toUpperCase()})`)
-                    : localize('Ready to auto-rotate markets & execute optimal signals')}
+
+                <div className="bg-slate-900/80 p-2 rounded-xl border border-white/5 flex items-center justify-between">
+                  <div>
+                    <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('LIVE PRICE')}</span>
+                    <span className="text-xs font-black text-white mt-0.5 block">
+                      {scanner.single_market_price !== null ? Number(scanner.single_market_price).toFixed(scanner.single_market_symbol.includes('1HZ') || scanner.single_market_symbol.startsWith('R_') ? 2 : 4) : 'Loading...'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('LAST DIGIT')}</span>
+                    <span className="text-xs font-black text-amber-400 mt-0.5 block">
+                      {scanner.single_market_last_digit !== null ? scanner.single_market_last_digit : '-'}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <button
-                className={classNames("mhp-ai-toggle-btn", { active: scanner.is_full_ai_automation })}
-                onClick={() => scanner.setFullAiAutomation(!scanner.is_full_ai_automation)}
-              >
-                {scanner.is_full_ai_automation ? localize('STOP ENGINE') : localize('LAUNCH ENGINE')}
-              </button>
+            </div>
+
+            {/* ── 5-Tile Stat Dashboard Bar ── */}
+            <div style={{ padding: '0 14px', marginTop: 10 }}>
+              <div className="grid grid-cols-5 gap-1.5 text-center">
+                <div className="bg-slate-900/60 p-2 rounded-xl border border-white/5">
+                  <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-wider block">{localize('Runs')}</span>
+                  <span className="text-xs font-black text-white mt-0.5 block">{scanner.total_runs}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-xl border border-emerald-500/20">
+                  <span className="text-[8px] font-extrabold text-emerald-400 uppercase tracking-wider block">{localize('Wins')}</span>
+                  <span className="text-xs font-black text-emerald-400 mt-0.5 block">{scanner.wins}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-xl border border-rose-500/20">
+                  <span className="text-[8px] font-extrabold text-rose-400 uppercase tracking-wider block">{localize('Losses')}</span>
+                  <span className="text-xs font-black text-rose-400 mt-0.5 block">{scanner.losses}</span>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-xl border border-sky-500/20">
+                  <span className="text-[8px] font-extrabold text-sky-400 uppercase tracking-wider block">{localize('Win %')}</span>
+                  <span className="text-xs font-black text-sky-300 mt-0.5 block">
+                    {scanner.total_runs > 0 ? `${((scanner.wins / scanner.total_runs) * 100).toFixed(0)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="bg-slate-900/60 p-2 rounded-xl border border-amber-500/20">
+                  <span className="text-[8px] font-extrabold text-amber-300 uppercase tracking-wider block">{localize('Profit')}</span>
+                  <span className={`text-xs font-black mt-0.5 block ${scanner.total_profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    ${scanner.total_profit.toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* ── Auto-Pilot Switches Bar ── */}
             <div style={{ padding: '0 14px', marginTop: 10 }}>
               <div className="mhp-grid-2">
                 <label className="mhp-switch-row">
-                  <span>{localize('Auto Market Switch')}</span>
+                  <span>{localize('Smart Market Hopper')}</span>
                   <input
                     type="checkbox"
                     checked={scanner.auto_market_switch_enabled}
@@ -2183,7 +2299,7 @@ const Scanner = observer(() => {
                   />
                 </label>
                 <label className="mhp-switch-row">
-                  <span>{localize('Auto Strategy Rotate')}</span>
+                  <span>{localize('Strategy Auto-Rotator')}</span>
                   <input
                     type="checkbox"
                     checked={scanner.auto_strategy_rotate_enabled}
