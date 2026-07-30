@@ -7,11 +7,16 @@ export const MARKET_PIP_SIZE: Record<string, number> = {
     '1HZ50V': 2,
     '1HZ75V': 2,
     '1HZ100V': 2,
-    R_10: 3,
-    R_25: 3,
-    R_50: 4,
-    R_75: 4,
+    R_10: 2,
+    R_25: 2,
+    R_50: 2,
+    R_75: 2,
     R_100: 2,
+    JD10: 2,
+    JD25: 2,
+    JD50: 2,
+    JD75: 2,
+    JD100: 2,
 };
 
 export const getMarketPipSize = (symbol: string, fallback = 2) => {
