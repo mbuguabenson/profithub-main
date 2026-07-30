@@ -727,7 +727,6 @@ export default class ScannerStore implements IScannerStore {
             end: 'latest',
             count: 120,
             style: 'ticks',
-            subscribe: 1
           });
           if (response && response.history && response.history.prices) {
             const { prices, times } = response.history;
@@ -736,8 +735,13 @@ export default class ScannerStore implements IScannerStore {
               ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
             }
             this.ticks_cache.set(symbol, ticks);
-            if (response.subscription && response.subscription.id) {
-              this.tick_subscriptions.set(symbol, response.subscription.id);
+            try {
+              const subResp = await (api_base.api as any).send({ ticks: symbol });
+              if (subResp && subResp.subscription && subResp.subscription.id) {
+                this.tick_subscriptions.set(symbol, subResp.subscription.id);
+              }
+            } catch (subErr) {
+              console.warn(`[ScannerStore] Live tick sub error for ${symbol}:`, subErr);
             }
           }
         } catch (e) {
@@ -765,7 +769,6 @@ export default class ScannerStore implements IScannerStore {
         end: 'latest',
         count: 120,
         style: 'ticks',
-        subscribe: 1
       });
       if (response && response.history && response.history.prices) {
         const { prices, times } = response.history;
@@ -774,8 +777,13 @@ export default class ScannerStore implements IScannerStore {
           ticks.push({ epoch: Number(times[i]), quote: Number(prices[i]) });
         }
         this.ticks_cache.set(activeSymbol, ticks);
-        if (response.subscription && response.subscription.id) {
-          this.tick_subscriptions.set(activeSymbol, response.subscription.id);
+        try {
+          const subResp = await (api_base.api as any).send({ ticks: activeSymbol });
+          if (subResp && subResp.subscription && subResp.subscription.id) {
+            this.tick_subscriptions.set(activeSymbol, subResp.subscription.id);
+          }
+        } catch (subErr) {
+          console.warn(`[ScannerStore] Live tick sub error for ${activeSymbol}:`, subErr);
         }
       }
     } catch (e) {
