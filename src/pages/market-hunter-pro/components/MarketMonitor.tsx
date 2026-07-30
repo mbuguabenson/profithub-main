@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { X, Wifi, WifiOff, ChevronDown, ChevronUp, Activity, LayoutGrid, Upload } from 'lucide-react';
 import { SYMBOLS } from '../lib/symbols';
-import { analyzeMultiWindow, MultiWindowAnalysis } from '../lib/analysis';
+import { analyzeMultiWindow, MultiWindowAnalysis, DigitFrequency, DigitTrend } from '../lib/analysis';
 import { generateCombinedRankedSignals, SignalType } from '../lib/signals';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -216,14 +216,23 @@ function OverUnderBar({ highPct, lowPct }: { highPct: number; lowPct: number }) 
   );
 }
 
-function DigitFreqMiniBar({ frequencies }: { frequencies: Record<number, number> }) {
-  const maxFreq = Math.max(...Object.values(frequencies), 1);
+function DigitFreqMiniBar({ frequencies }: { frequencies: DigitFrequency[] }) {
+  const freqMap = useMemo(() => {
+    const map: Record<number, number> = {};
+    if (Array.isArray(frequencies)) {
+      for (const f of frequencies) map[f.digit] = f.percentage;
+    }
+    return map;
+  }, [frequencies]);
+
+  const maxPct = Math.max(...(Array.isArray(frequencies) ? frequencies.map(f => f.percentage) : [1]), 1);
+
   return (
     <div className="grid grid-cols-10 gap-1 pt-1">
       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => {
-        const freq = frequencies[digit] ?? 0;
-        const pct = ((freq / 1000) * 100).toFixed(1);
-        const intensity = freq / maxFreq;
+        const pctVal = freqMap[digit] ?? 0;
+        const pct = pctVal.toFixed(1);
+        const intensity = pctVal / maxPct;
         const color = digit >= 5 ? `rgba(239, 68, 68, ${0.4 + intensity * 0.6})` : `rgba(16, 185, 129, ${0.4 + intensity * 0.6})`;
         return (
           <div key={digit} className="flex flex-col items-center gap-1">
@@ -231,7 +240,7 @@ function DigitFreqMiniBar({ frequencies }: { frequencies: Record<number, number>
             <div className="w-full h-8 rounded bg-white/5 relative flex items-end overflow-hidden">
               <div
                 className="w-full rounded-t transition-all duration-500"
-                style={{ height: `${(freq / maxFreq) * 100}%`, background: color }}
+                style={{ height: `${(pctVal / maxPct) * 100}%`, background: color }}
               />
             </div>
             <span className="text-[7px] text-white/30">{pct}%</span>
@@ -242,13 +251,28 @@ function DigitFreqMiniBar({ frequencies }: { frequencies: Record<number, number>
   );
 }
 
-function DigitDetailGrid({ frequencies, trends }: { frequencies: Record<number, number>; trends?: Record<number, any> }) {
+function DigitDetailGrid({ frequencies, trends }: { frequencies: DigitFrequency[]; trends?: DigitTrend[] }) {
+  const freqMap = useMemo(() => {
+    const map: Record<number, number> = {};
+    if (Array.isArray(frequencies)) {
+      for (const f of frequencies) map[f.digit] = f.percentage;
+    }
+    return map;
+  }, [frequencies]);
+
+  const trendMap = useMemo(() => {
+    const map: Record<number, DigitTrend> = {};
+    if (Array.isArray(trends)) {
+      for (const t of trends) map[t.digit] = t;
+    }
+    return map;
+  }, [trends]);
+
   return (
     <div className="grid grid-cols-5 gap-1.5 pt-1">
       {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => {
-        const freq = frequencies[digit] ?? 0;
-        const pct = (freq / 1000) * 100;
-        const trend = trends?.[digit];
+        const pct = freqMap[digit] ?? 0;
+        const trend = trendMap[digit];
         const arrow = trend?.trendDirection === 'increasing' ? '▲' : trend?.trendDirection === 'decreasing' ? '▼' : '▬';
         const color = digit >= 5 ? '#ef4444' : '#10b981';
         const arrowColor = trend?.trendDirection === 'increasing' ? '#10b981' : trend?.trendDirection === 'decreasing' ? '#ef4444' : '#6b7280';
@@ -345,7 +369,7 @@ function MarketRow({
             )}
           </div>
           <div className="text-[9px] font-mono text-white/35 mt-0.5">
-            {loading ? 'Loading…' : state?.lastPrice?.toFixed(4) ?? '—'}
+            {loading ? 'Loading…' : formattedPrice}
           </div>
         </div>
 
