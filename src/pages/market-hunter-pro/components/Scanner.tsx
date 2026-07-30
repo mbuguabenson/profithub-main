@@ -693,7 +693,7 @@ a.href = url;
       onPointerDown={orb.onPointerDown}
       onPointerMove={orb.onPointerMove}
       onPointerUp={orb.onPointerUp}
-      onClick={handleOrbClick}
+      onClick={() => setStep('open')}
       className="fixed z-[60] cursor-grab active:cursor-grabbing select-none"
       style={{
         transform: `translate(${orb.position.x}px, ${orb.position.y}px)`,
@@ -924,7 +924,9 @@ a.href = url;
 
                   {/* Signal list */}
                   <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
-                    {combinedSignals.length > 0
+                    {(() => {
+                      const lastDigit = mwa?.lastDigit ?? 0;
+                      return combinedSignals.length > 0
                       ? combinedSignals.map((s, i) => (
                           <button key={`${s.type}-${s.tradeDirection}-${i}`} onClick={() => setSelectedSignal(s)} className="w-full text-left">
                             <UnifiedSignalCard signal={s} rank={i + 1} selected={selectedSignal === s} lastDigit={lastDigit} isTop={i === 0} marketLabel={selectedSymbol} />
@@ -936,7 +938,8 @@ a.href = url;
                             <p className="text-sm font-bold text-white/50">No signals detected</p>
                             <p className="text-[10px] text-white/30 mt-1">Collecting ticks...</p>
                           </div>
-                        )}
+                        );
+                    })()}
                   </div>
 
                   {/* Bot action buttons */}
