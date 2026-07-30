@@ -458,6 +458,11 @@ export default function Scanner() {
   const [engineStats, setEngineStats] = useState({ runs: 0, wins: 0, losses: 0, profit: 0 });
   const fullEngineRef = useRef<FullAiTradeEngine | null>(null);
 
+  // Waiting for Entry Condition state
+  const [isWaitingEntry, setIsWaitingEntry] = useState(false);
+  const [entryStreakCount, setEntryStreakCount] = useState(0);
+  const [entryStatusMsg, setEntryStatusMsg] = useState('Watching live ticks for entry condition...');
+
   const addEngineLog = useCallback((msg: string) => {
     const ts = new Date().toLocaleTimeString();
     setEngineLogs(prev => [`[${ts}] ${msg}`, ...prev].slice(0, 50));
@@ -727,10 +732,11 @@ a.href = url;
     setIsManualScanning(true);
     await new Promise(resolve => setTimeout(resolve, 800));
     setIsManualScanning(false);
-    await handleLoadBotAndRun();
-  }, [handleLoadBotAndRun]);
+    setIsWaitingEntry(true);
+    setEntryStatusMsg('⏳ Waiting for entry condition to be met on live market ticks...');
+  }, []);
 
-  // ── Floating AI Scanner Orb (Red Glossy Radar Design - Reference Image 1) ──
+  // ── Floating AI Scanner Orb (Redesigned Compact Mini Cyber Radar) ──
   const orbEl = (
     <div
       ref={orb.ref}
@@ -738,28 +744,21 @@ a.href = url;
       onPointerMove={orb.onPointerMove}
       onPointerUp={orb.onPointerUp}
       onClick={() => setStep('open')}
-      className="fixed z-[60] cursor-grab active:cursor-grabbing select-none"
+      className="fixed z-[60] cursor-grab active:cursor-grabbing select-none flex items-center justify-center"
       style={{
         transform: `translate(${orb.position.x}px, ${orb.position.y}px)`,
         touchAction: 'none',
       }}
     >
-      {/* Outer red ambient radial glow */}
-      <div className="absolute pointer-events-none"
-        style={{
-          width: 96, height: 96, top: -12, left: -12,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(220,38,38,0.3) 0%, rgba(153,27,27,0.12) 50%, transparent 75%)',
-          animation: 'orb-pulse 3s ease-in-out infinite',
-        }} />
+      {/* Mini Ambient Pulse Ring */}
+      <div className="absolute w-12 h-12 rounded-full bg-emerald-500/25 animate-ping pointer-events-none" />
+      <div className="absolute w-11 h-11 rounded-full bg-cyan-500/20 blur-sm pointer-events-none" />
 
-      {/* Red Glossy Orb */}
-      <div className="ai-red-orb-wrapper shadow-2xl">
-        <div className="ai-radar-sweep" />
-        <div className="ai-orb-dot" />
-        <span className="relative z-10 text-xl font-black text-white tracking-wider" style={{ textShadow: '0 2px 6px rgba(0,0,0,0.7)' }}>
-          AI
-        </span>
+      {/* Sleek Compact 40px Radar Orb Button */}
+      <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-900 via-emerald-950 to-teal-900 border border-emerald-400/50 shadow-xl flex flex-col items-center justify-center relative overflow-hidden backdrop-blur-md hover:scale-105 active:scale-95 transition-all">
+        <div className="absolute inset-0 bg-emerald-500/10 animate-pulse pointer-events-none" />
+        <Radar size={16} className="text-emerald-400 animate-spin relative z-10" style={{ animationDuration: '6s' }} />
+        <span className="text-[8px] font-black text-emerald-300 tracking-tighter uppercase relative z-10">AI</span>
       </div>
     </div>
   );
@@ -1001,6 +1000,122 @@ a.href = url;
         </div>
 
         <>
+          {/* ── Waiting for Entry Condition Card ── */}
+          {isWaitingEntry && (
+            <div className="rounded-2xl border p-4 space-y-3 relative overflow-hidden shadow-2xl animate-pulse"
+              style={{
+                background: 'linear-gradient(135deg, rgba(245,158,11,0.18) 0%, rgba(15,23,42,0.95) 100%)',
+                borderColor: 'rgba(245,158,11,0.5)',
+                boxShadow: '0 0 25px rgba(245,158,11,0.2)',
+              }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
+                  <span className="text-xs font-black text-amber-300 uppercase tracking-wider">Waiting for Entry Condition</span>
+                </div>
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  LIVE TICK SCANNER
+                </span>
+              </div>
+
+              <div className="bg-slate-900/80 p-3 rounded-xl border border-amber-500/20 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-400">Target Market & Signal:</span>
+                  <span className="text-amber-400 font-black">{selectedSymbol} {(selectedSignal?.tradeDirection || 'EVEN').toUpperCase()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-slate-400">Entry Condition:</span>
+                  <span className="text-emerald-400 font-bold text-[10px]">Wait for 2+ consecutive opposite digits, then trade</span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold pt-1 border-t border-white/10">
+                  <span className="text-slate-400">Consecutive Opposite Streak:</span>
+                  <span className="text-white font-black text-sm">{entryStreakCount} / 2</span>
+                </div>
+              </div>
+
+              <p className="text-[11px] font-bold text-amber-200/90 leading-snug">{entryStatusMsg}</p>
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  onClick={() => setIsWaitingEntry(false)}
+                  className="flex-1 py-2 rounded-xl text-xs font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 transition active:scale-95"
+                >
+                  Cancel Waiting
+                </button>
+                <button
+                  onClick={() => {
+                    setIsWaitingEntry(false);
+                    handleLoadBotAndRun();
+                  }}
+                  className="flex-1 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg transition active:scale-95 flex items-center justify-center gap-1"
+                >
+                  <Play size={12} />
+                  Force Start Trade
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Risk Management Parameter Inputs Grid ── */}
+          <div className="rounded-2xl border p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider flex items-center gap-1">
+                <Sliders size={12} className="text-emerald-400" />
+                Trade Risk Parameters
+              </span>
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                CONFIGURED
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Initial Stake ($)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0.35"
+                  value={stake}
+                  onChange={e => setStake(e.target.value)}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-500 transition-all text-center"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Take Profit ($)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={takeProfit}
+                  onChange={e => setTakeProfit(e.target.value)}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-black text-emerald-400 focus:outline-none focus:border-emerald-500 transition-all text-center"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Stop Loss ($)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={stopLoss}
+                  onChange={e => setStopLoss(e.target.value)}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-black text-rose-400 focus:outline-none focus:border-rose-500 transition-all text-center"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Martingale Multiplier</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  value={martingale}
+                  onChange={e => setMartingale(e.target.value)}
+                  className="w-full bg-slate-900/90 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs font-black text-amber-400 focus:outline-none focus:border-amber-500 transition-all text-center"
+                />
+              </div>
+            </div>
+          </div>
+
           {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
 
                   {selectedSignal && (
