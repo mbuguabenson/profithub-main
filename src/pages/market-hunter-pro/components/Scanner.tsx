@@ -14,6 +14,7 @@ import {
   Sparkles,
   BarChart2,
   Search,
+  X,
 } from 'lucide-react';
 import MarketMonitor from './MarketMonitor';
 import { useDerivWS } from '../hooks/useDerivWS';
