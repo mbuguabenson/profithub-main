@@ -15,8 +15,8 @@ export default Engine =>
             // Prevent calling purchase twice
             const speed = localStorage.getItem('bot_execution_speed') || '1';
             const isSpeedMode = speed !== '1';
-            const isBulkEnabled = (this.purchase_block_allow_bulk === 'yes') || (window.scanner_store?.is_bulk_trades_enabled);
-            if (!isBulkEnabled && this.store.getState().scope !== BEFORE_PURCHASE) {
+            const isBulkEnabled = this.purchase_block_allow_bulk === 'yes';
+            if (this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
 
@@ -146,7 +146,7 @@ export default Engine =>
                 this.initialStakeAmount = Number(currentTradeOpts.amount);
             }
 
-            const bulkCount = isBulkEnabled ? Math.max(1, Math.min(10, Number(this.purchase_block_bulk_count || window.scanner_store?.bulk_trades_count || 2))) : 1;
+            const bulkCount = isBulkEnabled ? Math.max(1, Math.min(10, Number(this.purchase_block_bulk_count || 2))) : 1;
 
             if (bulkCount > 1) {
                 log(LogTypes.INFO, { message: `🚀 [BULK TRADES] Placing ${bulkCount} parallel contracts simultaneously on Deriv...` });
@@ -183,6 +183,15 @@ export default Engine =>
                             data: buy.transaction_id,
                             buy,
                         });
+                        if (api_base.api && buy.contract_id) {
+                            try {
+                                api_base.api.send({
+                                    proposal_open_contract: 1,
+                                    contract_id: buy.contract_id,
+                                    subscribe: 1,
+                                });
+                            } catch {}
+                        }
                         log(LogTypes.PURCHASE, { transaction_id: buy.transaction_id });
                         info({
                             accountID: this.accountInfo?.loginid,

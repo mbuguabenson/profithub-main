@@ -60,7 +60,10 @@ export default Engine =>
         }
 
         expectedContractId(contractId) {
-            return this.contractId && String(contractId) === String(this.contractId);
+            if (!contractId) return false;
+            if (this.contractId && String(contractId) === String(this.contractId)) return true;
+            if (this.purchasedContractIds && this.purchasedContractIds.includes(String(contractId))) return true;
+            return Boolean(this.contractId);
         }
 
         getSellPrice() {
