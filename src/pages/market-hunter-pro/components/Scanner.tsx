@@ -782,6 +782,33 @@ a.href = url;
       enableResizing={true}
     >
       <div className="flex flex-col h-full w-full bg-[#12131a] text-slate-200 font-sans p-3 overflow-hidden">
+        {/* ── AI Top Tab Navigation Bar ── */}
+        <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-white/5 border border-white/10 shrink-0 mb-2">
+          <button
+            onClick={() => setActiveTab('scanner')}
+            className={`py-1.5 text-[11px] font-black rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'scanner'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <Zap size={12} />
+            AI Signals & Scanner
+          </button>
+          <button
+            onClick={() => setActiveTab('monitor')}
+            className={`py-1.5 text-[11px] font-black rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'monitor'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <BarChart2 size={12} />
+            Market Analytics
+          </button>
+        </div>
+
+        {activeTab === 'scanner' && (
         <div className="flex-1 overflow-y-auto space-y-3 pr-0.5">
         
         {/* ── Section 1: TRADE TYPE ── */}
@@ -1135,6 +1162,7 @@ a.href = url;
                   </div>
         </>
       </div>
+      )}
 
       {/* Fixed Always-Visible Footer Action Buttons Bar */}
       <div className="shrink-0 pt-2.5 pb-1 bg-[#12131a] border-t border-white/10 z-30">

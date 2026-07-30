@@ -1155,21 +1155,21 @@ const Scanner = observer(() => {
                 className={classNames('mhp-tab', { active: activeTab === 'scanner' })}
                 onClick={() => setActiveTab('scanner')}
               >
-                {localize('Scanner')}
+                {localize('AI Signals & Scanner')}
                 {activeTab === 'scanner' && <span className="mhp-tab-indicator" />}
               </button>
               <button
                 className={classNames('mhp-tab', { active: activeTab === 'stats' })}
                 onClick={() => setActiveTab('stats')}
               >
-                {localize('Stats')}
+                {localize('Market Analytics')}
                 {activeTab === 'stats' && <span className="mhp-tab-indicator" />}
               </button>
               <button
                 className={classNames('mhp-tab', { active: activeTab === 'dollarflipper' })}
                 onClick={() => setActiveTab('dollarflipper')}
               >
-                {localize('Dollarflipper')}
+                {localize('AI Auto Trader')}
                 {activeTab === 'dollarflipper' && <span className="mhp-tab-indicator" />}
               </button>
             </div>
