@@ -693,7 +693,16 @@ a.href = url;
     a.download = `proai_${tradeLabel}_${selectedSymbol}.xml`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [store, stake, takeProfit, stopLoss, martingale, selectedSymbol, selectedSignal, combinedSignals, predictionChoice, recMode, recLossThreshold, recAltType]);
+  }, [store, stake, takeProfit, stopLoss, martingale, selectedSymbol, selectedSignal, combinedSignals, predictionChoice, recMode, recLossThreshold, recAltType, selectedTradeType]);
+
+  const handleLoadBotAndRun = useCallback(async () => {
+    await handleLoadBot();
+    setTimeout(() => {
+      if (store?.run_panel) {
+        store.run_panel.onRunButtonClick();
+      }
+    }, 800);
+  }, [handleLoadBot, store]);
 
   // ── Floating AI Scanner Orb (Red Glossy Radar Design - Reference Image 1) ──
   const orbEl = (
@@ -951,21 +960,24 @@ a.href = url;
                     })()}
                   </div>
 
-                  {/* Bot action buttons */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <button onClick={resetScan} className="border rounded-xl text-white/60 text-xs font-black py-3 transition active:scale-95"
-                      style={{ borderColor: 'rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.05)' }}>
-                      New Scan
-                    </button>
-                    <button onClick={handleLoadBot} className="bg-green-500 hover:bg-green-600 text-white text-xs font-black py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-1">
-                      <Download size={12} />
-                      Load Bot
-                    </button>
-                    <button onClick={handleLoadBot} className="text-white text-xs font-black py-3 rounded-xl transition active:scale-95 flex items-center justify-center gap-1"
-                      style={{ background: 'linear-gradient(135deg, #E67E22, #8E44AD)' }}>
-                      <Play size={12} />
-                      Load & Run
-                    </button>
+                  {/* Sticky Bot Action Buttons Bar */}
+                  <div className="sticky bottom-0 left-0 right-0 z-30 pt-3 pb-1 bg-[#12131a] border-t border-white/10 mt-auto shrink-0">
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={resetScan} className="border rounded-xl text-white/70 text-xs font-black py-2.5 transition active:scale-95 hover:bg-white/10 flex items-center justify-center gap-1"
+                        style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)' }}>
+                        <RefreshCw size={12} />
+                        New Scan
+                      </button>
+                      <button onClick={handleLoadBot} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/20">
+                        <Download size={12} />
+                        Load Bot
+                      </button>
+                      <button onClick={handleLoadBotAndRun} className="text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-amber-500/20"
+                        style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
+                        <Play size={12} />
+                        Load & Run
+                      </button>
+                    </div>
                   </div>
         </>
 
