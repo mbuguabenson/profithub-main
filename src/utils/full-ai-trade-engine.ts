@@ -126,56 +126,62 @@ export class FullAiTradeEngine {
             }
             if (!this.running || signal.aborted) break;
 
-            // ── Read current signal confidence ─────────────────────────────
+            // ── Read current signal confidence and status ──────────────────
             const currentSig = this.cb.getCurrentSignal();
-            const confidence = currentSig?.confidence ?? 0;
+            const confidence = currentSig?.confidence ?? (currentSig?.probability ? currentSig.probability / 100 : 0);
+            const isSignalWeakOrChanged = confidence < this.config.autoPauseThreshold || currentSig?.status === 'WAIT' || !currentSig;
 
-            // ── Auto-pause check ───────────────────────────────────────────
-            if (confidence < this.config.autoPauseThreshold) {
-                this.cb.onLog(`⚠️ Confidence dropped to ${(confidence * 100).toFixed(0)}% (threshold: ${(this.config.autoPauseThreshold * 100).toFixed(0)}%)`);
+            // ── Auto-pause check on signal change or drop ───────────────────
+            if (isSignalWeakOrChanged) {
+                if (!this.paused) {
+                    this.pause();
+                    this.cb.onLog(`⚠️ Signal changed/weakened on ${this.market} (${(confidence * 100).toFixed(0)}%). Auto-pausing trading...`);
+                }
                 const now = Date.now();
 
-                // Try auto-switch market
+                // Try auto-alternating market
                 if (this.config.autoMarketSwitch && now > this.switchCooldownUntil) {
                     const bestMarket = this.cb.getBestMarket();
                     if (bestMarket && bestMarket !== this.market) {
-                        this.switchCooldownUntil = now + 15000;
-                        const bestSig = this.cb.getSignals().find((s: any) => s.symbol === bestMarket);
+                        this.switchCooldownUntil = now + 10000;
+                        const bestSig = this.cb.getSignals().find((s: any) => s.symbol === bestMarket || s.market === bestMarket);
                         this.market = bestMarket;
-                        this.strategy = bestSig?.strategy ?? this.strategy;
+                        this.strategy = bestSig?.strategy ?? bestSig?.type ?? this.strategy;
                         this.cb.switchMarket(bestMarket, bestSig);
-                        this.cb.onLog(`🔄 Switched market → ${bestMarket} | Strategy: ${this.strategy}`);
+                        this.cb.onLog(`🔄 Alternate market found → ${bestMarket} | Strategy: ${this.strategy}. Auto-resuming trading...`);
                         this.cb.onStatusChange('switching_market');
-                        await this._sleep(2000);
+                        await this._sleep(1500);
+                        this.resume();
                         this.cb.onStatusChange('trading');
                         continue;
                     }
 
-                    // Try auto-rotate strategy
+                    // Try auto-rotating strategy on current market
                     if (this.config.autoStrategyRotate) {
                         const bestStrategy = this.cb.getBestStrategy(this.market);
                         if (bestStrategy && bestStrategy !== this.strategy) {
-                            this.switchCooldownUntil = now + 10000;
-                            const bestSig = this.cb.getSignals().find((s: any) => s.symbol === this.market && s.strategy === bestStrategy);
+                            this.switchCooldownUntil = now + 8000;
+                            const bestSig = this.cb.getSignals().find((s: any) => (s.symbol === this.market || s.market === this.market) && (s.strategy === bestStrategy || s.type === bestStrategy));
                             this.strategy = bestStrategy;
                             this.cb.switchStrategy(bestStrategy, bestSig);
-                            this.cb.onLog(`🔀 Rotated strategy → ${bestStrategy} on ${this.market}`);
+                            this.cb.onLog(`🔀 Alternating strategy → ${bestStrategy} on ${this.market}. Auto-resuming...`);
                             this.cb.onStatusChange('switching_strategy');
-                            await this._sleep(1500);
+                            await this._sleep(1200);
+                            this.resume();
                             this.cb.onStatusChange('trading');
                             continue;
                         }
                     }
                 }
 
-                // Pause and wait for signal recovery
-                this.pause();
-                await this._sleep(3000);
+                // Wait in paused state while checking for signal recovery
+                await this._sleep(2000);
                 continue;
             }
 
-            // ── Auto-resume check ──────────────────────────────────────────
-            if (this.paused && confidence >= this.config.autoResumeThreshold) {
+            // ── Auto-resume check when signal recovers ─────────────────────
+            if (this.paused && confidence >= this.config.autoResumeThreshold && currentSig?.status === 'TRADE NOW') {
+                this.cb.onLog(`▶ Signal recovered on ${this.market} (${(confidence * 100).toFixed(0)}%). Auto-resuming fully automated trading...`);
                 this.resume();
             }
 

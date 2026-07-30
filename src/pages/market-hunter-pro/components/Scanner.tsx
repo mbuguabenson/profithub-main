@@ -433,6 +433,7 @@ export default function Scanner() {
   const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [isManualScanning, setIsManualScanning] = useState(false);
+  const [isContinuousScan, setIsContinuousScan] = useState(true);
 
   const triggerManualScan = useCallback(() => {
     setIsManualScanning(true);
@@ -713,6 +714,13 @@ a.href = url;
     }, 800);
   }, [handleLoadBot, store]);
 
+  const handleLoadAndScan = useCallback(async () => {
+    setIsManualScanning(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsManualScanning(false);
+    await handleLoadBotAndRun();
+  }, [handleLoadBotAndRun]);
+
   // ── Floating AI Scanner Orb (Red Glossy Radar Design - Reference Image 1) ──
   const orbEl = (
     <div
@@ -797,20 +805,42 @@ a.href = url;
           </div>
         </div>
 
-        {/* ── Scan Markets Action Banner ── */}
-        <button
-          onClick={triggerManualScan}
-          disabled={isManualScanning}
-          className="w-full py-2.5 px-4 rounded-xl text-xs font-black text-white flex items-center justify-center gap-2 shadow-lg transition active:scale-95 disabled:opacity-80"
-          style={{
-            background: isManualScanning
-              ? 'linear-gradient(135deg, #0284c7, #2563eb)'
-              : 'linear-gradient(135deg, #2563eb, #7c3aed)',
-          }}
-        >
-          <Search size={14} className={isManualScanning ? 'animate-spin' : ''} />
-          <span>{isManualScanning ? 'SCANNING MARKETS...' : '⚡ SCAN MARKETS NOW'}</span>
-        </button>
+        {/* ── Scan Markets Action Controls ── */}
+        <div className="space-y-2">
+          <button
+            onClick={triggerManualScan}
+            disabled={isManualScanning}
+            className="w-full py-2.5 px-3.5 rounded-xl text-xs font-black text-white flex items-center justify-between shadow-lg transition active:scale-95 disabled:opacity-80"
+            style={{
+              background: isManualScanning
+                ? 'linear-gradient(135deg, #0284c7, #2563eb)'
+                : 'linear-gradient(135deg, #2563eb, #7c3aed)',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Search size={14} className={isManualScanning ? 'animate-spin' : ''} />
+              <span>{isManualScanning ? 'SCANNING (120 TICKS + 25 CONFIRMATION)...' : '⚡ SCAN MARKET NOW'}</span>
+            </div>
+            <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-white/20 uppercase tracking-wider">
+              120+25 Ticks
+            </span>
+          </button>
+
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl border" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
+            <div className="flex items-center gap-2">
+              <RefreshCw size={12} className={isContinuousScan ? 'animate-spin text-emerald-400' : 'text-slate-400'} />
+              <span className="text-[11px] font-bold text-white/80">Auto Continuous Scanning</span>
+            </div>
+            <button
+              onClick={() => setIsContinuousScan(v => !v)}
+              className={`px-2.5 py-0.5 rounded-lg text-[10px] font-black transition ${
+                isContinuousScan ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-white/10 text-white/40 border border-white/10'
+              }`}
+            >
+              {isContinuousScan ? 'ACTIVE (ON)' : 'PAUSED (OFF)'}
+            </button>
+          </div>
+        </div>
 
         <>
           {mwa && <StatsCard mwa={mwa} tradeTypeId={selectedTradeType} />}
@@ -931,17 +961,38 @@ a.href = url;
 
                   {/* Prediction picker */}
                   {(selectedTradeType === 'over_under' || selectedTradeType === 'pro_over_under' || selectedTradeType === 'under_7' || selectedTradeType === 'over_2' || selectedTradeType === 'matches' || selectedTradeType === 'differs') && (() => {
+                    const scannedTarget = selectedSignal?.targetDigit ?? combinedSignals[0]?.targetDigit;
+                    const hasScannedTarget = scannedTarget !== undefined;
+
+                    if (!hasScannedTarget) {
+                      return (
+                        <div className="rounded-xl border p-3 text-center" style={{ borderColor: 'rgba(245,197,66,0.3)', background: 'rgba(245,197,66,0.04)' }}>
+                          <Target size={16} className="text-[#f5c542] mx-auto mb-1 opacity-80" />
+                          <p className="text-xs font-black text-white/90">Target Entry Predictions Locked</p>
+                          <p className="text-[10px] text-white/40 mt-0.5 mb-2">Run Market Scan (120 Ticks + 25 Ticks Confirmation) to calculate AI suggested target entries</p>
+                          <button
+                            onClick={triggerManualScan}
+                            disabled={isManualScanning}
+                            className="py-1.5 px-3 rounded-lg text-[10px] font-black text-black bg-[#f5c542] hover:bg-[#e5b532] transition active:scale-95 flex items-center justify-center gap-1 mx-auto"
+                          >
+                            <Search size={11} className={isManualScanning ? 'animate-spin' : ''} />
+                            {isManualScanning ? 'Scanning Ticks...' : '⚡ Scan Market for Target Entry'}
+                          </button>
+                        </div>
+                      );
+                    }
+
                     const digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-                    const autoDigit = selectedSignal?.targetDigit ?? (selectedTradeType === 'over_2' ? 2 : (selectedTradeType === 'under_7' ? 7 : 5));
-                    const dir = selectedSignal?.tradeDirection ?? (selectedTradeType === 'over_2' ? 'OVER' : (selectedTradeType === 'under_7' ? 'UNDER' : (selectedTradeType === 'matches' ? 'MATCH' : (selectedTradeType === 'differs' ? 'DIFF' : 'UNDER'))));
+                    const autoDigit = scannedTarget;
+                    const dir = selectedSignal?.tradeDirection ?? combinedSignals[0]?.tradeDirection ?? (selectedTradeType === 'over_2' ? 'OVER' : (selectedTradeType === 'under_7' ? 'UNDER' : (selectedTradeType === 'matches' ? 'MATCH' : (selectedTradeType === 'differs' ? 'DIFF' : 'UNDER'))));
                     const lbl = dir.toUpperCase().startsWith('OVER') ? 'OVER' : dir.toUpperCase().startsWith('UNDER') ? 'UNDER' : dir.toUpperCase().startsWith('MATCH') ? 'MATCH' : 'DIFF';
                     return (
                       <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(245,197,66,0.35)', background: 'rgba(245,197,66,0.06)' }}>
                         <div className="flex items-center gap-1.5 mb-2">
                           <TrendingUp size={11} className="text-[#f5c542]" />
-                          <span className="text-[10px] font-black text-white/80 uppercase tracking-wide">Set Prediction</span>
+                          <span className="text-[10px] font-black text-white/80 uppercase tracking-wide">Scanned AI Entry Prediction</span>
                           <span className="text-[9px] text-white/40 ml-auto">
-                            {predictionChoice !== null ? `Digit ${predictionChoice}` : `Auto: ${autoDigit}`}
+                            {predictionChoice !== null ? `Selected: ${predictionChoice}` : `Suggested Entry: ${autoDigit}`}
                           </span>
                         </div>
                         <div className="grid grid-cols-5 gap-2">
@@ -949,14 +1000,14 @@ a.href = url;
                             <button key={d} onClick={() => setPredictionChoice(predictionChoice === d ? null : d)}
                               className="rounded-lg py-1.5 text-center font-black transition active:scale-95 animate-none"
                               style={{
-                                background: predictionChoice === d ? 'linear-gradient(135deg,#e67e22,#f5c542)' : autoDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.05)',
+                                background: predictionChoice === d ? 'linear-gradient(135deg,#e67e22,#f5c542)' : autoDigit === d && predictionChoice === null ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.05)',
                                 color: predictionChoice === d ? '#000' : '#fff',
-                                border: predictionChoice === d ? '1px solid #f5c542' : autoDigit === d && predictionChoice === null ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                border: predictionChoice === d ? '1px solid #f5c542' : autoDigit === d && predictionChoice === null ? '1.5px solid rgba(16,185,129,0.6)' : '1px solid rgba(255,255,255,0.1)',
                               }}>
                               <span className="block text-[8px] leading-none font-bold text-white/45">{lbl}</span>
                               <span className="block text-sm font-black mt-0.5">{d}</span>
                               {autoDigit === d && predictionChoice === null && (
-                                <span className="block text-[8px] text-green-400 mt-0.5">AI</span>
+                                <span className="block text-[8px] text-green-400 font-extrabold mt-0.5">AI</span>
                               )}
                             </button>
                           ))}
@@ -997,12 +1048,12 @@ a.href = url;
           </button>
           <button onClick={handleLoadBot} className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-emerald-500/20">
             <Download size={12} />
-            Load Bot
+            Load Signal
           </button>
-          <button onClick={handleLoadBotAndRun} className="text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-amber-500/20"
+          <button onClick={handleLoadAndScan} disabled={isManualScanning} className="text-white text-xs font-black py-2.5 rounded-xl transition active:scale-95 flex items-center justify-center gap-1 shadow-lg shadow-amber-500/20 disabled:opacity-80"
             style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-            <Play size={12} />
-            Load & Run
+            <Play size={12} className={isManualScanning ? 'animate-spin' : ''} />
+            {isManualScanning ? 'Scanning...' : 'Load & Scan'}
           </button>
         </div>
       </div>
