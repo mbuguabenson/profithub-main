@@ -568,8 +568,10 @@ export default class ScannerStore implements IScannerStore {
       if (response && response.history && response.history.prices) {
         const { prices, times } = response.history;
         const lastPrice = Number(prices[prices.length - 1]);
-        this.single_market_price = lastPrice;
-        this.single_market_last_digit = getLastDigitFromQuote(lastPrice, symbol);
+        runInAction(() => {
+          this.single_market_price = lastPrice;
+          this.single_market_last_digit = getLastDigitFromQuote(lastPrice, symbol);
+        });
 
         const ticks = [];
         for (let i = 0; i < prices.length; i++) {
@@ -701,8 +703,8 @@ export default class ScannerStore implements IScannerStore {
   private setupMessageListener = () => {
     if (!this.is_subscribed_to_messages && api_base.api) {
       this.message_subscription = api_base.api.onMessage().subscribe((msg: any) => {
-        const data = msg.data || msg;
-        if (data.msg_type === 'tick' && data.tick) {
+        const data = msg?.data || msg;
+        if (data && data.msg_type === 'tick' && data.tick) {
           const tick = data.tick;
           const symbol = tick.symbol;
           if (symbol === this.single_market_symbol) {
@@ -998,9 +1000,9 @@ export default class ScannerStore implements IScannerStore {
     if (maxEvenOdd >= 55) {
       signals.set('even_odd', {
         type: 'even_odd',
-        status: 'TRADE NOW',
+        status: isEvenOddIncreasing ? 'TRADE NOW' : 'MONITOR',
         probability: maxEvenOdd / 100,
-        recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%`,
+        recommendation: `Strong ${isEvenBias ? 'even' : 'odd'} bias detected at ${maxEvenOdd.toFixed(1)}%${isEvenOddIncreasing ? ' (Rising)' : ''}`,
         entryCondition: `Wait for 2+ consecutive ${isEvenBias ? 'odd' : 'even'} digits, then trade ${isEvenBias ? 'even' : 'odd'}`,
         signalDetails: { bias: isEvenBias ? 'even' : 'odd' }
       });
