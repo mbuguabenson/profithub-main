@@ -38,7 +38,8 @@ export default Engine =>
                         }
 
                         this.contractId = '';
-                        clearTimeout(this.transaction_recovery_timeout);
+                        if (this.watchdog_timer) clearTimeout(this.watchdog_timer);
+                        if (this.transaction_recovery_timeout) clearTimeout(this.transaction_recovery_timeout);
                         this.updateTotals(contract);
                         contractStatus({
                             id: 'contract.sold',

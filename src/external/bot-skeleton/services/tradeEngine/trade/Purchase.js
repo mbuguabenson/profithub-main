@@ -114,7 +114,8 @@ export default Engine =>
                 const purchasedContractId = buy.contract_id;
                 const watchdogDuration = (Number(this.tradeOptions?.duration || 5) * 1100) + 1000;
 
-                const watchdogTimer = setTimeout(async () => {
+                if (this.watchdog_timer) clearTimeout(this.watchdog_timer);
+                this.watchdog_timer = setTimeout(async () => {
                     if (this.contractId === purchasedContractId && !this.isSold) {
                         try {
                             const res = await api_base.api?.send({
@@ -123,10 +124,24 @@ export default Engine =>
                             });
                             if (res && res.proposal_open_contract) {
                                 const poc = res.proposal_open_contract;
-                                if (poc.is_sold) {
+                                const pocId = String(purchasedContractId);
+                                if (poc.is_sold && !this.processedSoldContractIds?.has(pocId)) {
                                     this.data.contract = poc;
                                     this.setContractFlags(poc);
-                                    if (this.afterPromise) this.afterPromise();
+                                    if (this.processedSoldContractIds) {
+                                        this.processedSoldContractIds.add(pocId);
+                                    }
+                                    this.contractId = '';
+                                    clearTimeout(this.transaction_recovery_timeout);
+                                    this.updateTotals(poc);
+                                    contractStatus({
+                                        id: 'contract.sold',
+                                        data: poc.transaction_ids?.sell ?? poc.transaction_id ?? '',
+                                        contract: poc,
+                                    });
+                                    const resolveAfter = this.afterPromise;
+                                    this.afterPromise = null;
+                                    if (resolveAfter) resolveAfter();
                                     this.store.dispatch(sell());
                                 }
                             }
