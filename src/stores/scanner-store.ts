@@ -1,4 +1,4 @@
-import { action, makeObservable, observable } from 'mobx';
+import { action, makeObservable, observable, runInAction } from 'mobx';
 import { api_base } from '@/external/bot-skeleton';
 import RootStore from './root-store';
 import { getLastDigitFromQuote } from '@/utils/market-data';
@@ -508,12 +508,19 @@ export default class ScannerStore implements IScannerStore {
   };
 
   setSymbolAnalysis = (symbol: string, analysis: TAnalysisResult) => {
-    this.symbol_analysis[symbol] = analysis;
+    runInAction(() => {
+      this.symbol_analysis = {
+        ...this.symbol_analysis,
+        [symbol]: analysis,
+      };
+    });
   };
 
   subscribeToSymbolTicks = async (symbol: string) => {
     if (!symbol) return;
-    this.single_market_symbol = symbol;
+    runInAction(() => {
+      this.single_market_symbol = symbol;
+    });
     this.setupMessageListener();
 
     // Subscribe via HybridMarketAdapter for instant live tick stream with dual WS fallback
@@ -523,8 +530,10 @@ export default class ScannerStore implements IScannerStore {
         const digit = tickData.digit ?? getLastDigitFromQuote(price, symbol);
 
         if (symbol === this.single_market_symbol) {
-          this.single_market_price = price;
-          this.single_market_last_digit = digit;
+          runInAction(() => {
+            this.single_market_price = price;
+            this.single_market_last_digit = digit;
+          });
         }
 
         const ticks = this.ticks_cache.get(symbol) || [];
@@ -697,8 +706,10 @@ export default class ScannerStore implements IScannerStore {
           const tick = data.tick;
           const symbol = tick.symbol;
           if (symbol === this.single_market_symbol) {
-            this.single_market_price = Number(tick.quote);
-            this.single_market_last_digit = getLastDigitFromQuote(tick.quote, symbol);
+            runInAction(() => {
+              this.single_market_price = Number(tick.quote);
+              this.single_market_last_digit = getLastDigitFromQuote(tick.quote, symbol);
+            });
           }
           if (this.ticks_cache.has(symbol)) {
             const ticks = this.ticks_cache.get(symbol)!;

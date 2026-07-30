@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api_base } from '@/external/bot-skeleton/services/api/api-base';
+import { getAppId, getSocketURL } from '@/components/shared/utils/config/config';
 
 export interface HybridTickData {
   quote: number;
@@ -50,7 +51,9 @@ class HybridMarketAdapter {
     }
 
     try {
-      this.fallbackWs = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+      const appId = getAppId() || '1089';
+      const serverUrl = getSocketURL() || 'ws.derivws.com';
+      this.fallbackWs = new WebSocket(`wss://${serverUrl}/websockets/v3?app_id=${appId}`);
 
       this.fallbackWs.onopen = () => {
         this.activeSubscriptions.forEach((symbol) => this.sendSubscription(symbol));

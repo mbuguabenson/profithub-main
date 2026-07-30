@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { X, Wifi, WifiOff, ChevronDown, ChevronUp, Activity, LayoutGrid, Upload } from 'lucide-react';
+import { getAppId, getSocketURL } from '@/components/shared/utils/config/config';
 import { SYMBOLS } from '../lib/symbols';
 import { analyzeMultiWindow, MultiWindowAnalysis, DigitFrequency, DigitTrend } from '../lib/analysis';
 import { generateCombinedRankedSignals, SignalType } from '../lib/signals';
@@ -13,8 +14,6 @@ type MarketState = {
   lastDigit: number | null;
   mwa: MultiWindowAnalysis | null;
 };
-
-const APP_ID = '1089';
 
 const STRATEGIES = [
   { id: 'even_odd',   label: 'Even / Odd',  types: ['even_odd', 'pro_even_odd'] as SignalType[] },

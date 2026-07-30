@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { getAppId, getSocketURL } from '@/components/shared/utils/config/config';
 
 export type TickData = {
   quote: number;
@@ -17,7 +18,7 @@ type SubscriptionState = {
 };
 
 export function useDerivWS(options: DerivWSOptions = {}) {
-  const appId = options.appId || '1089';
+  const appId = options.appId || getAppId() || '1089';
   const wsRef = useRef<WebSocket | null>(null);
   const reqId = useRef(1);
   const subIdRef = useRef<string | null>(null);
@@ -36,91 +37,90 @@ export function useDerivWS(options: DerivWSOptions = {}) {
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) return;
 
-    const ws = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${appId}`);
-    wsRef.current = ws;
+    try {
+      const serverUrl = getSocketURL() || 'ws.derivws.com';
+      const ws = new WebSocket(`wss://${serverUrl}/websockets/v3?app_id=${appId}`);
+      wsRef.current = ws;
 
-    ws.onopen = () => {
-      if (!mountedRef.current) return;
-      setIsConnected(true);
-      // Auto-resubscribe if we had an active symbol
-      if (activeSymbolRef.current) {
-        ws.send(
-          JSON.stringify({
-            ticks_history: activeSymbolRef.current,
-            count: 1000,
-            end: 'latest',
-            style: 'ticks',
-            req_id: reqId.current++,
-          })
-        );
-      }
-    };
+      ws.onopen = () => {
+        if (!mountedRef.current) return;
+        setIsConnected(true);
+        // Auto-resubscribe if we had an active symbol
+        if (activeSymbolRef.current) {
+          ws.send(
+            JSON.stringify({
+              ticks_history: activeSymbolRef.current,
+              count: 1000,
+              end: 'latest',
+              style: 'ticks',
+              req_id: reqId.current++,
+            })
+          );
+        }
+      };
 
-    ws.onclose = () => {
+      ws.onclose = () => {
+        if (!mountedRef.current) return;
+        setIsConnected(false);
+        subIdRef.current = null;
+        wsRef.current = null;
+        // Auto-reconnect after 3 seconds
+        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) connect();
+        }, 3000);
+      };
+
+      ws.onerror = () => {
+        if (!mountedRef.current) return;
+        setIsConnected(false);
+      };
+
+      ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.msg_type === 'tick' && data.tick) {
+            const tick: TickData = {
+              quote: data.tick.quote,
+              epoch: data.tick.epoch,
+              symbol: data.tick.symbol,
+            };
+            tickHandlersRef.current.forEach((h) => h(tick));
+
+            // Store subscription ID for later forget
+            if (data.subscription) {
+              subIdRef.current = data.subscription.id;
+            }
+          }
+
+          if (data.msg_type === 'history' && data.history) {
+            const prices = data.history.prices as number[];
+            const currentSymbol = activeSymbolRef.current;
+            setSubscriptionState((prev) => ({
+              symbol: currentSymbol ?? prev?.symbol ?? '',
+              ticks: prices.map((p) => parseDigit(p, currentSymbol ?? undefined)),
+              quotes: prices,
+            }));
+            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentSymbol) {
+              wsRef.current.send(
+                JSON.stringify({
+                  ticks: currentSymbol,
+                  req_id: reqId.current++,
+                })
+              );
+            }
+          }
+        } catch {
+          // ignore parse errors
+        }
+      };
+    } catch {
       if (!mountedRef.current) return;
       setIsConnected(false);
-      subIdRef.current = null;
-      wsRef.current = null;
-      // Auto-reconnect after 2 seconds
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (mountedRef.current) connect();
-      }, 2000);
-    };
-
-    ws.onerror = () => {
-      if (!mountedRef.current) return;
-      setIsConnected(false);
-      ws.close();
-    };
-
-    ws.onmessage = (event) => {
-      if (!mountedRef.current) return;
-      try {
-        const data = JSON.parse(event.data);
-        if (data.msg_type === 'tick' && data.tick) {
-          const tick: TickData = {
-            quote: data.tick.quote,
-            epoch: data.tick.epoch,
-            symbol: data.tick.symbol,
-          };
-          tickHandlersRef.current.forEach((h) => h(tick));
-
-          // Store subscription ID for later forget
-          if (data.subscription) {
-            subIdRef.current = data.subscription.id;
-          }
-        }
-function parseDigit(price: number, symbol?: string): number {
-  const pipSize = symbol && (symbol.includes('1HZ') || symbol.startsWith('R_')) ? 2 : 4;
-  const str = price.toFixed(pipSize);
-  const digit = parseInt(str[str.length - 1], 10);
-  return isNaN(digit) ? 0 : digit;
-}
-
-        if (data.msg_type === 'history' && data.history) {
-          const prices = data.history.prices as number[];
-          const currentSymbol = activeSymbolRef.current;
-          setSubscriptionState((prev) => ({
-            symbol: currentSymbol ?? prev?.symbol ?? '',
-            ticks: prices.map((p) => parseDigit(p, currentSymbol ?? undefined)),
-            quotes: prices,
-          }));
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentSymbol) {
-            wsRef.current.send(
-              JSON.stringify({
-                ticks: currentSymbol,
-                req_id: reqId.current++,
-              })
-            );
-          }
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
+    }
   }, [appId]);
 
   const subscribeSymbol = useCallback(
