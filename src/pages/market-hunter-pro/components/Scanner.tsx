@@ -588,6 +588,13 @@ export default function Scanner() {
     startScan();
   }, [isConnected, startScan]);
 
+  // Subscribe to WebSocket ticks for selectedSymbol on mount and whenever selectedSymbol or WS connection changes
+  useEffect(() => {
+    if (selectedSymbol && subscribeSymbol) {
+      subscribeSymbol(selectedSymbol);
+    }
+  }, [selectedSymbol, isConnected, subscribeSymbol]);
+
   // Continuous automatic scanner — runs every 60 seconds when enabled
   useEffect(() => {
     if (!autoScan) return;
@@ -840,6 +847,97 @@ a.href = url;
               {isContinuousScan ? 'ACTIVE (ON)' : 'PAUSED (OFF)'}
             </button>
           </div>
+        </div>
+
+        {/* ── Section 2: AI AUTONOMOUS TRADING ENGINE ── */}
+        <div className="rounded-2xl border p-3.5 space-y-3 transition-all"
+          style={{
+            background: isFullAiAutomation
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06))'
+              : 'rgba(255,255,255,0.03)',
+            borderColor: isFullAiAutomation ? 'rgba(16,185,129,0.4)' : 'rgba(255,255,255,0.08)',
+          }}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`w-2.5 h-2.5 rounded-full ${isFullAiAutomation ? (engineStatus === 'paused' ? 'bg-amber-400 animate-ping' : 'bg-emerald-400 animate-pulse') : 'bg-slate-500'}`} />
+              <div>
+                <span className="text-xs font-black text-white block">AI Autonomous Trading Engine</span>
+                <span className="text-[9px] text-white/50 block">
+                  {isFullAiAutomation
+                    ? (engineStatus === 'paused' ? '⏸ Auto-Paused (Waiting for Signal Recovery)' : `🚀 Active Trading on ${selectedSymbol}`)
+                    : 'Disabled — Manual or Auto mode ready'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={toggleFullAiEngine}
+              className={`py-1.5 px-3 rounded-xl text-xs font-black transition active:scale-95 flex items-center gap-1.5 ${
+                isFullAiAutomation
+                  ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+              }`}
+            >
+              {isFullAiAutomation ? <Zap size={12} /> : <Play size={12} />}
+              {isFullAiAutomation ? 'STOP ENGINE' : 'START ENGINE'}
+            </button>
+          </div>
+
+          {isFullAiAutomation && (
+            <div className="space-y-2.5 pt-1">
+              {/* Engine Stats Grid */}
+              <div className="grid grid-cols-4 gap-1.5 text-center">
+                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
+                  <span className="block text-[8px] font-bold text-white/40 uppercase">Trades</span>
+                  <span className="block text-xs font-black text-white mt-0.5">{engineStats.runs}</span>
+                </div>
+                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
+                  <span className="block text-[8px] font-bold text-emerald-400/80 uppercase">Wins</span>
+                  <span className="block text-xs font-black text-emerald-400 mt-0.5">{engineStats.wins}</span>
+                </div>
+                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
+                  <span className="block text-[8px] font-bold text-rose-400/80 uppercase">Losses</span>
+                  <span className="block text-xs font-black text-rose-400 mt-0.5">{engineStats.losses}</span>
+                </div>
+                <div className="rounded-xl bg-black/30 p-2 border border-white/5">
+                  <span className="block text-[8px] font-bold text-amber-300/80 uppercase">Profit</span>
+                  <span className={`block text-xs font-black mt-0.5 ${engineStats.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    ${engineStats.profit.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Engine Controls Toggles */}
+              <div className="flex items-center justify-between text-[10px] text-white/60 bg-black/20 p-2 rounded-xl border border-white/5">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoMarketSwitch}
+                    onChange={e => setAutoMarketSwitch(e.target.checked)}
+                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                  />
+                  <span>Auto-Alternate Market</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoStrategyRotate}
+                    onChange={e => setAutoStrategyRotate(e.target.checked)}
+                    className="rounded border-white/20 text-emerald-500 focus:ring-0"
+                  />
+                  <span>Auto-Rotate Strategy</span>
+                </label>
+              </div>
+
+              {/* Live Engine Activity Logs */}
+              {engineLogs.length > 0 && (
+                <div className="rounded-xl bg-black/40 p-2 border border-white/5 max-h-24 overflow-y-auto space-y-1 font-mono text-[9px]">
+                  {engineLogs.slice(0, 5).map((log, idx) => (
+                    <div key={idx} className="text-white/70 truncate">{log}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <>
