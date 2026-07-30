@@ -93,22 +93,25 @@ export function useDerivWS(options: DerivWSOptions = {}) {
             subIdRef.current = data.subscription.id;
           }
         }
+function parseDigit(price: number, symbol?: string): number {
+  const pipSize = symbol && (symbol.includes('1HZ') || symbol.startsWith('R_')) ? 2 : 4;
+  const str = price.toFixed(pipSize);
+  const digit = parseInt(str[str.length - 1], 10);
+  return isNaN(digit) ? 0 : digit;
+}
+
         if (data.msg_type === 'history' && data.history) {
           const prices = data.history.prices as number[];
           const currentSymbol = activeSymbolRef.current;
           setSubscriptionState((prev) => ({
             symbol: currentSymbol ?? prev?.symbol ?? '',
-            ticks: prices.map((p) => {
-              const s = p.toString();
-              return parseInt(s[s.length - 1], 10);
-            }),
+            ticks: prices.map((p) => parseDigit(p, currentSymbol ?? undefined)),
             quotes: prices,
           }));
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN && currentSymbol) {
             wsRef.current.send(
               JSON.stringify({
                 ticks: currentSymbol,
-                subscribe: 1,
                 req_id: reqId.current++,
               })
             );
@@ -177,8 +180,7 @@ export function useDerivWS(options: DerivWSOptions = {}) {
   useEffect(() => {
     const unsub = onTick((tick) => {
       if (tick.symbol !== activeSymbolRef.current) return;
-      const s = tick.quote.toString();
-      const digit = parseInt(s[s.length - 1], 10);
+      const digit = parseDigit(tick.quote, tick.symbol || activeSymbolRef.current || undefined);
       setSubscriptionState((prev) => {
         if (!prev) return prev;
         const newTicks = [...prev.ticks, digit].slice(-1000);

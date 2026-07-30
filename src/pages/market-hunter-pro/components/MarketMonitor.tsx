@@ -80,9 +80,9 @@ function useSharedMarketWS(symbols: string[]) {
       count: 1000,
       end: 'latest',
       style: 'ticks',
-      subscribe: 1,
       req_id: reqId.current++,
     }));
+    ws.send(JSON.stringify({ ticks: symbol, req_id: reqId.current++ }));
   }, []);
 
   const connect = useCallback(() => {
