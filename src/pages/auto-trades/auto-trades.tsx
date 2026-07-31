@@ -1843,6 +1843,9 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
             } catch (err) {
                 console.error('[AutoTrades] executeTrade exception:', err);
                 setError(err instanceof Error ? err.message : 'Auto Trades could not purchase this contract.');
+                const state = marketStatesRef.current[symbol];
+                if (state) state.trading = false;
+                globalTradingRef.current = false;
                 return 0;
             } finally {
                 contractStreamAbortControllersRef.current.delete(abortController);

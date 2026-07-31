@@ -106,79 +106,84 @@ export const buyContractForUi = async ({ parameters, price, source }: TBuyContra
         throw new Error(`${source} skipped: Could not acquire trade mutex lock.`);
     }
 
-    await ensureAuthorizedForTrading();
-    assertApiTokenScope('trade');
-
-    globalObserver.emit('bot.running');
-    globalObserver.emit('bot.setPurchaseInProgress');
-
-    const normalized_parameters = normalizeTradeParameters(parameters);
-
     try {
-        const proposal_response = await (api_base.api as any).send({
-            proposal: 1,
-            subscribe: 0,
-            ...normalized_parameters,
-        });
-        throwApiError(proposal_response, source);
+        await ensureAuthorizedForTrading();
+        assertApiTokenScope('trade');
 
-        const proposal = proposal_response?.proposal;
-        if (!proposal?.id) {
-            throw new Error(`${source} could not get a contract proposal.`);
+        globalObserver.emit('bot.running');
+        globalObserver.emit('bot.setPurchaseInProgress');
+
+        const normalized_parameters = normalizeTradeParameters(parameters);
+
+        try {
+            const proposal_response = await (api_base.api as any).send({
+                proposal: 1,
+                subscribe: 0,
+                ...normalized_parameters,
+            });
+            throwApiError(proposal_response, source);
+
+            const proposal = proposal_response?.proposal;
+            if (proposal?.id) {
+                const ask_price = Number(proposal.ask_price ?? price);
+                assertSufficientDemoBalance(ask_price, source);
+                globalObserver.emit('contract.status', {
+                    id: 'contract.purchase_sent',
+                    data: ask_price,
+                });
+
+                const buy_response = await (api_base.api as any).send({ buy: proposal.id, price: ask_price });
+                throwApiError(buy_response, source);
+
+                const buy = buy_response?.buy;
+                if (buy) {
+                    globalObserver.emit('contract.status', {
+                        id: 'contract.purchase_received',
+                        data: buy.transaction_id,
+                        buy,
+                    });
+
+                    tradeLockManager.setActiveContract(String(buy.contract_id));
+                    return buy;
+                }
+            }
+        } catch (proposal_error) {
+            if (proposal_error instanceof InsufficientDemoBalanceError) {
+                throw proposal_error;
+            }
+            console.warn(`[${source}] Proposal buy failed, retrying with direct buy.`, proposal_error);
         }
 
-        const ask_price = Number(proposal.ask_price ?? price);
-        assertSufficientDemoBalance(ask_price, source);
+        assertSufficientDemoBalance(price, source);
         globalObserver.emit('contract.status', {
             id: 'contract.purchase_sent',
-            data: ask_price,
+            data: price,
         });
 
-        const buy_response = await (api_base.api as any).send({ buy: proposal.id, price: ask_price });
-        throwApiError(buy_response, source);
+        const direct_buy_response = await (api_base.api as any).send({
+            buy: '1',
+            price,
+            parameters: normalized_parameters,
+        });
+        throwApiError(direct_buy_response, source);
 
-        const buy = buy_response?.buy;
-        if (buy) {
-            globalObserver.emit('contract.status', {
-                id: 'contract.purchase_received',
-                data: buy.transaction_id,
-                buy,
-            });
-
-            return buy;
+        const buy = direct_buy_response?.buy;
+        if (!buy) {
+            throw new Error(`${source} did not receive a buy confirmation.`);
         }
-    } catch (proposal_error) {
-        if (proposal_error instanceof InsufficientDemoBalanceError) {
-            throw proposal_error;
-        }
-        console.warn(`[${source}] Proposal buy failed, retrying with direct buy.`, proposal_error);
+
+        globalObserver.emit('contract.status', {
+            id: 'contract.purchase_received',
+            data: buy.transaction_id,
+            buy,
+        });
+
+        tradeLockManager.setActiveContract(String(buy.contract_id));
+        return buy;
+    } catch (purchase_error) {
+        tradeLockManager.releaseLock();
+        throw purchase_error;
     }
-
-    assertSufficientDemoBalance(price, source);
-    globalObserver.emit('contract.status', {
-        id: 'contract.purchase_sent',
-        data: price,
-    });
-
-    const direct_buy_response = await (api_base.api as any).send({
-        buy: '1',
-        price,
-        parameters: normalized_parameters,
-    });
-    throwApiError(direct_buy_response, source);
-
-    const buy = direct_buy_response?.buy;
-    if (!buy) {
-        throw new Error(`${source} did not receive a buy confirmation.`);
-    }
-
-    globalObserver.emit('contract.status', {
-        id: 'contract.purchase_received',
-        data: buy.transaction_id,
-        buy,
-    });
-
-    return buy;
 };
 
 export const sellContractForUi = async ({

@@ -990,7 +990,15 @@ const ManualTrading = observer(() => {
             }
 
             if (!api_base.api) {
-                setTradeError('Deriv connection is not ready yet.');
+                try {
+                    await (api_base as any).init?.(true);
+                } catch {
+                    /* Ignore */
+                }
+            }
+
+            if (!api_base.api) {
+                setTradeError('Deriv connection is not ready yet. Please check your login status.');
                 return;
             }
 
