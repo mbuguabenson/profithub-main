@@ -28,10 +28,10 @@ export default function TradeControls({ config, onChange, onToggle, isRunning }:
 
       <button
         onClick={onToggle}
-        className={`w-full py-2 rounded-lg text-sm font-bold transition-all shadow-sm ${
+        className={`w-full py-2 rounded-xl text-sm font-bold transition-all ${
           isRunning
-            ? 'bg-red-500 hover:bg-red-600 text-white'
-            : 'bg-red-500 hover:bg-red-600 text-white border-2 border-red-400'
+            ? 'bg-red-600 hover:bg-red-700 text-white border-2 border-red-600 shadow-md'
+            : 'bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-gray-700/50 text-red-500 border-2 border-red-400 dark:border-red-500'
         }`}
       >
         {isRunning ? 'Stop Auto Trading' : 'Start Auto Trading'}

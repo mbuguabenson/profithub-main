@@ -75,8 +75,11 @@ export default function EvenOddPatternPanel({ stats, ticks, buyContract }: Props
             <DigitBadge key={i} digit={d} type={d % 2 === 0 ? 'even' : 'odd'} />
           ))}
         </div>
-        <div className="panel-text mt-1">
-          E=Even, O=Odd | Current streak: <span className="font-semibold text-gray-700 dark:text-gray-300">{streak.count} {streak.type}</span>
+        <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          Recent digit pattern (E=Even, O=Odd)
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Current streak: <span className="font-semibold text-gray-700 dark:text-gray-300">{streak.count} {streak.type}</span>
         </div>
       </div>
 

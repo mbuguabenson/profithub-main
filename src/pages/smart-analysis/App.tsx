@@ -61,12 +61,15 @@ export default function App() {
         accountId={accountId}
       />
 
-      <div className="p-3">
+      <div className="p-3 flex flex-col gap-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <RiseFallPanel stats={stats} ticks={ticks} buyContract={buyContract} />
           <EvenOddProbPanel stats={stats} ticks={ticks} buyContract={buyContract} />
           <EvenOddPatternPanel stats={stats} ticks={ticks} buyContract={buyContract} />
           <OverUnderProbPanel stats={stats} ticks={ticks} buyContract={buyContract} />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <OverUnderPatternPanel stats={stats} ticks={ticks} buyContract={buyContract} />
           <MatchesDiffersPanel stats={stats} ticks={ticks} buyContract={buyContract} />
         </div>

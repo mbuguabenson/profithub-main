@@ -54,8 +54,8 @@ export default function OverUnderProbPanel({ stats, ticks, buyContract }: Props)
       </div>
 
       <div className="flex flex-col gap-2">
-        <StatBar label="Over" value={stats.over} color="bg-green-500" />
-        <StatBar label="Under" value={stats.under} color="bg-yellow-500" />
+        <StatBar label="Over" value={stats.over} color="bg-teal-500" />
+        <StatBar label="Under" value={stats.under} color="bg-amber-500" />
       </div>
 
       <div className="panel-inner">

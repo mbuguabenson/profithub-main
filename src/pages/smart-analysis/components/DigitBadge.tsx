@@ -5,30 +5,30 @@ interface DigitBadgeProps {
 }
 
 export default function DigitBadge({ digit, type, barrier }: DigitBadgeProps) {
-  let colorClass = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200';
+  let colorClass = 'bg-gray-400 text-white';
   let label = String(digit);
 
-  if (type) {
-    colorClass = type === 'even' || type === 'over'
-      ? 'bg-purple-500 text-white'
-      : type === 'odd' || type === 'under'
-      ? 'bg-purple-500 text-white'
-      : 'bg-yellow-400 text-white';
+  if (type === 'even') {
+    colorClass = 'bg-blue-600 text-white';
+    label = 'E';
+  } else if (type === 'odd') {
+    colorClass = 'bg-purple-600 text-white';
+    label = 'O';
   } else if (barrier !== undefined) {
     if (digit > barrier) {
       colorClass = 'bg-teal-500 text-white';
       label = `${digit}o`;
     } else if (digit < barrier) {
-      colorClass = 'bg-orange-400 text-white';
+      colorClass = 'bg-amber-500 text-white';
       label = `${digit}u`;
     } else {
-      colorClass = 'bg-yellow-400 text-white';
+      colorClass = 'bg-gray-400 text-white';
       label = `${digit}e`;
     }
   }
 
   return (
-    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[11px] font-bold ${colorClass}`}>
+    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-bold shadow-xs ${colorClass}`}>
       {label}
     </span>
   );
