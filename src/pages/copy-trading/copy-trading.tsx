@@ -40,9 +40,12 @@ const getCopyTokensArray = (): string[] => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const CopyTrading = observer(() => {
-    const { client } = useStore();
+    const { client, ui } = useStore();
     const htmlContentRef = useRef<HTMLDivElement>(null);
     const managerRef = useRef<CopyTradingManager | null>(null);
+
+    // Dynamic theme mode directly from main site UI store
+    const isDark = ui.is_dark_mode_on;
 
     // Active tab
     const [activeTab, setActiveTab] = useState<'dashboard' | 'marketplace' | 'clients' | 'logs' | 'settings'>('dashboard');
@@ -80,19 +83,6 @@ const CopyTrading = observer(() => {
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [termsAccepted1, setTermsAccepted1] = useState(false);
     const [termsAccepted2, setTermsAccepted2] = useState(false);
-
-    // Theme Mode state (light / dark)
-    const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
-        const saved = localStorage.getItem('copy_trading_theme');
-        if (saved === 'light' || saved === 'dark') return saved;
-        return document.body.classList.contains('theme--light') ? 'light' : 'dark';
-    });
-
-    const toggleTheme = () => {
-        const newTheme = themeMode === 'light' ? 'dark' : 'light';
-        setThemeMode(newTheme);
-        localStorage.setItem('copy_trading_theme', newTheme);
-    };
 
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -639,7 +629,7 @@ const CopyTrading = observer(() => {
     const truncateToken = (t: string) => (t.length > 14 ? `${t.slice(0, 6)}••••${t.slice(-4)}` : t);
 
     return (
-        <div className={`ct2-root ct2-root--${themeMode}`} ref={htmlContentRef}>
+        <div className={`ct2-root ${isDark ? 'ct2-root--dark' : 'ct2-root--light'}`} ref={htmlContentRef}>
             {/* Error Dialog */}
             <Dialog
                 is_visible={errorModalVisible}
@@ -735,6 +725,10 @@ const CopyTrading = observer(() => {
                         <div className='ct2-hero-banner__badge'>
                             <span className='ct2-hero-banner__badge-icon'>✨</span>
                             <span>LIVE COPY TRADING</span>
+                            <span className='ct2-hero-banner__badge-sep'>•</span>
+                            <span>👤 {loginIdDisplay}</span>
+                            <span className='ct2-hero-banner__badge-sep'>•</span>
+                            <span style={{ color: '#22c55e' }}>💰 {balanceDisplay}</span>
                         </div>
 
                         <h2 className='ct2-hero-banner__headline'>Your account, your control.</h2>
@@ -755,7 +749,7 @@ const CopyTrading = observer(() => {
                             <div className='ct2-stat-pill'>
                                 <span className='ct2-stat-pill__status'>
                                     <span className={`ct2-status-dot ${copyTradingActive ? 'ct2-status-dot--active' : ''}`} />
-                                    {copyTradingActive ? 'Active' : 'Idle'}
+                                    {copyTradingActive ? `Active (${clientsConnected} Connected)` : 'Idle'}
                                 </span>
                                 <span className='ct2-stat-pill__label'>COPY STATUS</span>
                             </div>
@@ -766,14 +760,14 @@ const CopyTrading = observer(() => {
                         </div>
                     </div>
 
-                    {/* Right Radar/Target Emblem & Theme Toggle */}
+                    {/* Right Radar/Target Emblem & Guide Button */}
                     <div className='ct2-hero-banner__right'>
                         <button
-                            className='ct2-theme-toggle-btn'
-                            onClick={toggleTheme}
-                            title='Toggle Light/Dark Theme'
+                            className='ct2-btn-glass'
+                            onClick={openTutorial}
+                            title='Watch Copy Trading Guide'
                         >
-                            {themeMode === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                            ▶ Video Guide
                         </button>
 
                         <div className='ct2-hero-emblem'>
@@ -794,6 +788,9 @@ const CopyTrading = observer(() => {
                     </div>
                 </div>
 
+                {successMessage && (
+                    <div className='ct2-success-banner ct2-success-banner--centered'>{successMessage}</div>
+                )}
                 {successMessage2 && (
                     <div className='ct2-success-banner ct2-success-banner--centered'>{successMessage2}</div>
                 )}

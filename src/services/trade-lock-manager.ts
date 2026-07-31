@@ -36,7 +36,7 @@ class TradeLockManager {
      * @returns boolean - true if lock acquired successfully, false if locked or duplicate signal.
      */
     public acquireLock(signalId?: string): boolean {
-        if (this.isLocked) {
+        if (this.isTradeInProgress()) {
             console.warn('[TradeLockManager] Acquire rejected: Mutex is currently LOCKED by active trade.');
             return false;
         }
@@ -75,8 +75,13 @@ class TradeLockManager {
 
     /**
      * Checks if a trade is currently in progress.
+     * Includes a 10-second auto-expiry safety guard to prevent stale locks.
      */
     public isTradeInProgress(): boolean {
+        if (this.isLocked && Date.now() - this.lastExecutedTimestamp > 10000) {
+            console.warn('[TradeLockManager] Stale trade lock detected (>10s). Auto-releasing lock.');
+            this.releaseLock();
+        }
         return this.isLocked;
     }
 
