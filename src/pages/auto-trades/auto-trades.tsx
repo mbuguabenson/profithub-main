@@ -278,7 +278,7 @@ const DEFAULT_BARRIER: Record<TradeType, string> = {
     RUNLOW: '4',
 };
 
-const isRunTradeType = (trade_type: TradeType) => trade_type === 'RUNHIGH' || trade_type === 'RUNLOW';
+export const isRunTradeType = (trade_type: TradeType) => trade_type === 'RUNHIGH' || trade_type === 'RUNLOW';
 const usesLossPrediction = (trade_type: TradeType) => trade_type === 'DIGITOVER' || trade_type === 'DIGITUNDER';
 const STRATEGY_TEMPLATE_IDS: StrategyTemplate[] = ['STANDARD', 'OVER_2_MARKET', 'UNDER_7_MARKET'];
 
@@ -2686,7 +2686,6 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
 
     if (!show_auto) return null;
 
-    const _baseStakeNum = Number(stake) || 1;
     const inCooldown = cooldownDisplay > 0;
     const selectedMarketDisplayStates = selectedMarkets.map(
         market =>
