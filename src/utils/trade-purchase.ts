@@ -1,6 +1,7 @@
 import { api_base, observer as globalObserver } from '@/external/bot-skeleton';
 import { assertApiTokenScope } from '@/utils/api-token-permissions';
 import { safeSubscribe } from '@/utils/websocket-handler';
+import { tradeLockManager } from '@/services/trade-lock-manager';
 import type { Buy } from '@deriv/api-types';
 
 type TTradeParameters = Record<string, any>;
@@ -97,6 +98,14 @@ const assertSufficientDemoBalance = (required_amount: number, source: string) =>
 };
 
 export const buyContractForUi = async ({ parameters, price, source }: TBuyContractArgs): Promise<Buy> => {
+    if (tradeLockManager.isTradeInProgress()) {
+        throw new Error(`${source} skipped: A trade is currently active on your account.`);
+    }
+
+    if (!tradeLockManager.acquireLock(source)) {
+        throw new Error(`${source} skipped: Could not acquire trade mutex lock.`);
+    }
+
     await ensureAuthorizedForTrading();
     assertApiTokenScope('trade');
 
@@ -372,6 +381,7 @@ export const streamContractUntilSettled = ({
             if (finished) return;
             finished = true;
             cleanup();
+            tradeLockManager.releaseLock(String(contractId));
             resolve(value);
         };
 

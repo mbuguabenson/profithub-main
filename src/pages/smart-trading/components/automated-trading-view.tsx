@@ -3,6 +3,7 @@ import classNames from 'classnames';
 import { observer } from 'mobx-react-lite';
 import { useStore } from '@/hooks/useStore';
 import { api_base } from '@/external/bot-skeleton';
+import { tradeLockManager } from '@/services/trade-lock-manager';
 import './automated-trading.scss';
 
 // Type definitions for configurations
@@ -203,7 +204,8 @@ const AutomatedTradingView = observer(() => {
 
     // Purchase Trades implementation
     const purchaseTrade = async (strategyId: string, contractType: string, prediction?: number) => {
-        if (executingMap[strategyId] || !api_base.api) return;
+        if (executingMap[strategyId] || tradeLockManager.isTradeInProgress() || !api_base.api) return;
+        if (!tradeLockManager.acquireLock(strategyId)) return;
 
         setExecutingMap(prev => ({ ...prev, [strategyId]: true }));
 
