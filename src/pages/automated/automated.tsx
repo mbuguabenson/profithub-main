@@ -3,6 +3,7 @@ import ChunkLoader from '@/components/loader/chunk-loader';
 import { localize } from '@deriv-com/translations';
 import './automated.scss';
 
+const SmartTrading = lazy(() => import('../smart-trading'));
 const CirclesAnalysis = lazy(() => import('../circles-analysis'));
 const DigitCracker = lazy(() => import('../digit-cracker'));
 const AutoTrades = lazy(() => import('../auto-trades/auto-trades'));
@@ -12,6 +13,7 @@ const Marketkiller = lazy(() => import('../marketkiller'));
 const MultiTrader = lazy(() => import('../multi-trader'));
 
 type AutomatedSubTab =
+    | 'smart-auto'
     | 'circles-analysis'
     | 'digit-cracker'
     | 'autotrades'
@@ -28,6 +30,7 @@ interface SubTabDescriptor {
 }
 
 const SUB_TABS: SubTabDescriptor[] = [
+    { id: 'smart-auto', label: 'Smart Auto', icon: '🧠', badge: 'AI 24/7' },
     { id: 'circles-analysis', label: 'Circles Analysis', icon: '⭕', badge: 'ANALYSIS' },
     { id: 'digit-cracker', label: 'Digit Cracker', icon: '🔢', badge: 'DIGITS' },
     { id: 'autotrades', label: 'Autotrades', icon: '⚡', badge: 'AI BOT' },
@@ -38,10 +41,12 @@ const SUB_TABS: SubTabDescriptor[] = [
 ];
 
 const AutomatedPage: React.FC = () => {
-    const [activeSubTab, setActiveSubTab] = useState<AutomatedSubTab>('circles-analysis');
+    const [activeSubTab, setActiveSubTab] = useState<AutomatedSubTab>('smart-auto');
 
     const renderContent = () => {
         switch (activeSubTab) {
+            case 'smart-auto':
+                return <SmartTrading />;
             case 'circles-analysis':
                 return <CirclesAnalysis />;
             case 'digit-cracker':
@@ -57,7 +62,7 @@ const AutomatedPage: React.FC = () => {
             case 'multi-trader':
                 return <MultiTrader />;
             default:
-                return <CirclesAnalysis />;
+                return <SmartTrading />;
         }
     };
 
