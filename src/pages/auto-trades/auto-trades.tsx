@@ -148,6 +148,27 @@ const PERCENTAGE_THRESHOLDS: PercentageThresholds = {
     lower: { minPercentage: 57, momentum: 3, confidence: 85 },
 };
 
+const getDirectionStreakLabel = (tradeType: TradeType): string => {
+    switch (tradeType) {
+        case 'CALL':
+            return 'consecutive rise ticks';
+        case 'PUT':
+            return 'consecutive fall ticks';
+        case 'RUNHIGH':
+            return 'consecutive ups';
+        case 'RUNLOW':
+            return 'consecutive downs';
+        default:
+            return 'consecutive matching ticks';
+    }
+};
+
+const getCandleDirectionLabel = (direction?: Direction | number): string => {
+    if (direction === 1) return 'Bullish ▲';
+    if (direction === -1) return 'Bearish ▼';
+    return 'Waiting...';
+};
+
 export type TradeType =
     | 'DIGITOVER'
     | 'DIGITUNDER'
