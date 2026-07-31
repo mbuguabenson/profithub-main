@@ -106,6 +106,8 @@ const watchScope = ({ store, stopScope, passScope, passFlag }) => {
     });
 };
 
+import { tradeLockManager } from '@/services/trade-lock-manager';
+
 export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Proposal(Ticks(Total(class {}))))))) {
     constructor($scope) {
         super();
@@ -131,6 +133,7 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         this.trade_option = null;
         this.tradeOptions = null;
         this.processedSoldContractIds = new Set();
+        tradeLockManager.reset();
         this.startPromise = this.loginAndGetBalance(token);
 
         if (!this.checkTicksPromiseExists()) this.watchTicks(symbol);
@@ -151,6 +154,7 @@ export default class TradeEngine extends Balance(Purchase(Sell(OpenContract(Prop
         if (!this.initialStakeAmount || this.initialStakeAmount <= 0) {
             this.initialStakeAmount = Number(validated_trade_options.amount || 0);
         }
+        tradeLockManager.reset();
         this.store.dispatch(start());
         this.checkLimits(validated_trade_options);
 
