@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .panel-card {
+    @apply bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-4 flex flex-col gap-3;
+  }
+  .panel-title {
+    @apply text-sm font-bold text-gray-800 dark:text-gray-100;
+  }
+  .panel-inner {
+    @apply bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5 flex flex-col gap-2;
+  }
+  .panel-label {
+    @apply text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider;
+  }
+  .panel-select {
+    @apply text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+  .panel-select-sm {
+    @apply text-xs border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+  .panel-input {
+    @apply text-xs border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 text-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+  .panel-input-sm {
+    @apply text-xs border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300;
+  }
+  .panel-text {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+  .panel-badge-if {
+    @apply text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold px-1.5 py-0.5 rounded;
+  }
+  .panel-badge-then {
+    @apply text-xs bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold px-1.5 py-0.5 rounded;
+  }
+  .panel-btn-buy {
+    @apply text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 rounded font-medium transition-colors;
+  }
+  .panel-result-win {
+    @apply text-xs font-medium px-2 py-1 rounded text-center bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300;
+  }
+  .panel-result-loss {
+    @apply text-xs font-medium px-2 py-1 rounded text-center bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300;
+  }
+}
+
+@layer utilities {
+  .border-3 {
+    border-width: 3px;
+  }
+}
