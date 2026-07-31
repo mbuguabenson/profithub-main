@@ -13,6 +13,7 @@ export default Engine =>
             if (this.openContractSubscription) {
                 try {
                     this.openContractSubscription.unsubscribe();
+                    api_base.subscriptions = (api_base.subscriptions || []).filter(s => s !== this.openContractSubscription);
                 } catch {}
                 this.openContractSubscription = null;
             }

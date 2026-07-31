@@ -7,18 +7,38 @@ import { api_base } from '../../api/api-base';
 import Interface from '../Interface';
 import { createScope } from './cliTools';
 
-// Helper function to clone state snapshot while bypassing immutable AST nodes and functions
+// Helper function to clone state snapshot while bypassing immutable AST nodes, scope parents, and functions
 const snapshotClone = obj => {
     if (!obj || typeof obj !== 'object') return obj;
-    // Fast path: AST nodes (objects with type property) are read-only syntax trees and must not be cloned
-    if (obj.type && typeof obj.type === 'string' && (obj.start !== undefined || obj.end !== undefined || obj.loc !== undefined)) {
+    // Fast path: AST nodes (objects with type property e.g. Program, BlockStatement) are read-only syntax trees
+    if (obj.type && typeof obj.type === 'string') {
         return obj;
     }
-    // Skip functions, DOM nodes, and window references
-    if (typeof obj === 'function' || obj instanceof HTMLElement || (typeof window !== 'undefined' && obj === window)) {
+    // Skip functions, DOM nodes, window, document, and MobX observables
+    if (
+        typeof obj === 'function' ||
+        obj instanceof HTMLElement ||
+        (typeof window !== 'undefined' && (obj === window || obj === document)) ||
+        obj.isMobXObservable ||
+        obj.$mobx
+    ) {
         return obj;
     }
-    return cloneThorough(obj, true, 10, undefined, false);
+    if (Array.isArray(obj)) {
+        return obj.map(item => snapshotClone(item));
+    }
+    const cloned = {};
+    for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            // Do not deep-clone AST node references or parent scope chains
+            if (key === 'node' || key === 'parentScope') {
+                cloned[key] = obj[key];
+            } else {
+                cloned[key] = snapshotClone(obj[key]);
+            }
+        }
+    }
+    return cloned;
 };
 
 JSInterpreter.prototype.takeStateSnapshot = function () {
