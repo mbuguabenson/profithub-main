@@ -87,61 +87,51 @@ const CopyTrading = observer(() => {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     const refreshClientList = useCallback(() => {
-        setCopierList([...getCopyTokensArray()]);
-    }, []);
-
-    // Auto-detect connected account on mount
-    useEffect(() => {
-        const active = getActiveLoginId();
-        if (active) {
-            setLoginIdDisplay(active.startsWith('VR') ? `Demo: ${active}` : active);
+        const tokens = getCopyTokensArray();
+        setCopierList(tokens);
+        setClientsTotal(tokens.length);
+        const manager = managerRef.current;
+        if (manager) {
+            const connected = manager.copiers.filter(c => c.status === 'connected').length;
+            setClientsConnected(connected);
+        } else {
+            setClientsConnected(0);
         }
     }, []);
 
-    // ─── Manager Setup & Token Auto-Sync ─────────────────────────────────────
+    // ─── Copy Trading Manager Initialization ─────────────────────────────────
     useEffect(() => {
         const autoSyncLoginTokens = async (manager: CopyTradingManager) => {
-            try {
-                const accountsList = getAccountsList();
-                const activeToken = getActiveToken();
-                let storedTokens = getCopyTokensArray();
-                let updated = false;
-
-                Object.keys(accountsList).forEach(key => {
-                    const token = accountsList[key];
-                    if (token && token !== activeToken && !storedTokens.includes(token)) {
-                        storedTokens.push(token);
-                        updated = true;
-                    }
-                });
-
-                if (updated) {
-                    localStorage.setItem('copyTokensArray', JSON.stringify(storedTokens));
-                    for (const token of storedTokens) {
-                        if (!manager.copiers.find(c => c.token === token)) {
-                            try {
-                                const copier = manager.addCopier(token);
-                                const isCopyTrading = localStorage.getItem('iscopyTrading') === 'true';
-                                if (isCopyTrading && copier) {
-                                    void manager.connectCopier(copier.id);
-                                }
-                            } catch {
-                                /* Already added */
-                            }
+            const accountsList = getAccountsList();
+            const activeToken = getActiveToken();
+            let arr = getCopyTokensArray();
+            let added = 0;
+            Object.values(accountsList).forEach((token: string) => {
+                if (token && token !== activeToken && !arr.includes(token)) {
+                    arr.push(token);
+                    try {
+                        const copier = manager.addCopier(token);
+                        const isCopyTrading = localStorage.getItem('iscopyTrading') === 'true';
+                        if (isCopyTrading && copier) {
+                            void manager.connectCopier(copier.id).catch(() => {});
                         }
+                        added++;
+                    } catch {
+                        /* Ignore */
                     }
                 }
-                refreshClientList();
-            } catch (e) {
-                console.warn('Auto-sync login tokens failed:', e);
+            });
+            if (added > 0) {
+                localStorage.setItem('copyTokensArray', JSON.stringify(arr));
             }
+            refreshClientList();
         };
 
         const setupManager = () => {
             const globalManager = getGlobalCopyTradingManager();
             if (globalManager) {
                 managerRef.current = globalManager;
-                autoSyncLoginTokens(globalManager);
+                void autoSyncLoginTokens(globalManager);
                 return true;
             }
             return false;
@@ -157,7 +147,7 @@ const CopyTrading = observer(() => {
                 if (!managerRef.current) {
                     const m = new CopyTradingManager();
                     managerRef.current = m;
-                    autoSyncLoginTokens(m);
+                    void autoSyncLoginTokens(m);
                 }
             }, 2000);
         }
@@ -200,7 +190,7 @@ const CopyTrading = observer(() => {
 
         const logInterval = setInterval(() => setTradeLogs(getTradeLogs()), 1000);
         return () => clearInterval(logInterval);
-    }, []);
+    }, [refreshClientList]);
 
     // ─── Account Details Poller ───────────────────────────────────────────────
     useEffect(() => {
@@ -221,27 +211,28 @@ const CopyTrading = observer(() => {
                     }
                 }
             } else {
-                setLoginIdDisplay('Not logged in');
-                setBalanceDisplay('------');
+                setLoginIdDisplay('Not Logged In');
+                setBalanceDisplay('0.00 USD');
             }
+            refreshClientList();
         };
 
-        const interval = setInterval(updateAccountDetails, 2000);
         updateAccountDetails();
+        const interval = setInterval(updateAccountDetails, 3000);
         return () => clearInterval(interval);
-    }, [client.loginid, client.balance, client.currency]);
+    }, [client.loginid, client.balance, client.currency, refreshClientList]);
 
-    // ─── Fetch Admin Copy Request Status ─────────────────────────────────────
-    const fetchAdminStatus = useCallback(async () => {
-        const activeLoginid = getActiveLoginId();
-        if (!activeLoginid) return;
+    // ─── Fetch Supabase Admin Follow Status ────────────────────────────────────
+    const checkAdminFollowStatus = useCallback(async () => {
+        const token = getActiveToken();
+        if (!token) return;
         setIsLoadingAdminStatus(true);
         try {
-            const status = await getCopyRequestStatus(activeLoginid, 'Profithubadmin');
-            if (status) {
-                setAdminFollowStatus(status.status === 'stopped' ? 'none' : status.status);
-            } else {
+            const req = await getCopyRequestStatus(token);
+            if (!req) {
                 setAdminFollowStatus('none');
+            } else {
+                setAdminFollowStatus(req.status as any);
             }
         } catch {
             setAdminFollowStatus('none');
@@ -251,103 +242,144 @@ const CopyTrading = observer(() => {
     }, []);
 
     useEffect(() => {
-        fetchAdminStatus();
-        const poll = setInterval(fetchAdminStatus, 15000);
-        return () => clearInterval(poll);
-    }, [fetchAdminStatus]);
+        void checkAdminFollowStatus();
+    }, [checkAdminFollowStatus]);
 
-    // ─── Client Count Poller ──────────────────────────────────────────────────
-    useEffect(() => {
-        const poll = setInterval(() => {
-            const arr = getCopyTokensArray();
-            setClientsTotal(arr.length);
-            const active = managerRef.current?.copiers?.filter(c => c.status === 'connected').length ?? 0;
-            setClientsConnected(active);
-            setTick(t => t + 1);
-        }, 2000);
-        return () => clearInterval(poll);
-    }, []);
+    // ─── Follow Admin Trigger ──────────────────────────────────────────────────
+    const handleFollowAdmin = () => {
+        const activeId = getActiveLoginId();
+        if (!activeId || activeId.startsWith('VR')) {
+            setErrorMessage('Profithubadmin copy trading is only available for Real Deriv accounts (CR/ROT). Please switch to a real account first.');
+            setErrorModalVisible(true);
+            return;
+        }
+        setTermsAccepted1(false);
+        setTermsAccepted2(false);
+        setIsTermsModalOpen(true);
+    };
 
-    // ─── Real Account Helper ──────────────────────────────────────────────────
-    const findRealAccountToken = useCallback((): { loginid: string; token: string } | null => {
-        // 0. Check custom stored tokens first
-        const customToken = localStorage.getItem('ace_deriv_token') ||
-                            localStorage.getItem('deriv_api_token') ||
-                            localStorage.getItem('active_token') ||
-                            localStorage.getItem('token') ||
-                            localStorage.getItem('user_token');
+    const handleFollowAdminSubmit = async () => {
+        if (!termsAccepted1 || !termsAccepted2) {
+            setErrorMessage('You must accept both the Profit Split Agreement and the Risk Disclaimer to proceed.');
+            setErrorModalVisible(true);
+            return;
+        }
+        setIsTermsModalOpen(false);
 
-        // 1. Check MobX client store
-        if (client?.accounts) {
-            const keys = Object.keys(client.accounts);
-            const realKey = keys.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || keys[0];
-            if (realKey) {
-                const token = (client as any).getTokenForAccount?.(realKey) || (client.accounts[realKey] as any)?.token || customToken;
-                if (token) return { loginid: realKey, token };
-            }
+        const token = getActiveToken();
+        const loginid = getActiveLoginId();
+        if (!token || !loginid) {
+            setErrorMessage('Unable to find active account token. Please ensure you are logged in.');
+            setErrorModalVisible(true);
+            return;
         }
 
-        // 2. Check localStorage accountsList
-        const accountsList = getAccountsList();
-        const keysList = Object.keys(accountsList);
-        const realKey = keysList.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || keysList[0];
-        if (realKey && accountsList[realKey]) {
-            return { loginid: realKey, token: accountsList[realKey] };
-        }
-
-        // 3. Check client.accounts / client_accounts in localStorage
+        setIsLoadingAdminStatus(true);
         try {
-            const rawAccounts = localStorage.getItem('client.accounts') ||
-                                localStorage.getItem('client_accounts') ||
-                                localStorage.getItem('account_list');
-            if (rawAccounts) {
-                const parsed = JSON.parse(rawAccounts);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    const real = parsed.find((a: any) => a.account?.startsWith('CR') || a.account?.startsWith('ROT')) || parsed[0];
-                    if (real?.token) return { loginid: real.account || 'REAL_ACCOUNT', token: real.token };
-                } else if (typeof parsed === 'object') {
-                    const cKeys = Object.keys(parsed);
-                    const cKey = cKeys.find(k => !k.startsWith('VR') && !k.startsWith('VRT')) || cKeys[0];
-                    if (cKey && parsed[cKey]?.token) {
-                        return { loginid: cKey, token: parsed[cKey].token };
-                    }
-                }
+            const result = await requestFollowProvider(loginid, token, 'Profithubadmin');
+            if (result.success) {
+                setAdminFollowStatus('pending');
+                setSuccessMessage('✅ Request submitted! Awaiting admin approval.');
+                setTimeout(() => setSuccessMessage(''), 6000);
+            } else {
+                setErrorMessage(result.error || 'Failed to submit follow request.');
+                setErrorModalVisible(true);
+            }
+        } catch (err: any) {
+            setErrorMessage(err.message || 'An unexpected error occurred while requesting to follow.');
+            setErrorModalVisible(true);
+        } finally {
+            setIsLoadingAdminStatus(false);
+        }
+    };
+
+    const handleStopFollowAdmin = async () => {
+        const token = getActiveToken();
+        if (!token) return;
+        setIsLoadingAdminStatus(true);
+        try {
+            const success = await deleteRequest(token);
+            if (success) {
+                setAdminFollowStatus('none');
+                setSuccessMessage('Stopped following Profithubadmin.');
+                setTimeout(() => setSuccessMessage(''), 4000);
             }
         } catch {
-            /* Ignore */
+            setErrorMessage('Failed to stop following provider.');
+            setErrorModalVisible(true);
+        } finally {
+            setIsLoadingAdminStatus(false);
         }
+    };
 
-        // 4. Fallback to active token
-        const crLoginid = localStorage.getItem('cr_loginid') || localStorage.getItem('active_loginid') || 'REAL_ACCOUNT';
-        if (customToken) {
-            return { loginid: crLoginid, token: customToken };
-        }
-
-        // 5. Check any token in accountsList
-        if (keysList.length > 0 && accountsList[keysList[0]]) {
-            return { loginid: keysList[0], token: accountsList[keysList[0]] };
-        }
-
-        return null;
-    }, [client]);
-
-    // ─── Handlers ─────────────────────────────────────────────────────────────
-    const handleDemoToReal = async () => {
-        const isStart = !demoToRealActive;
+    // ─── Actions ──────────────────────────────────────────────────────────────
+    const handleSyncTokens = async () => {
+        setIsSyncing(true);
         const manager = managerRef.current;
-        if (!manager) return;
-
-        const realAccount = findRealAccountToken();
-
-        if (isStart) {
-            if (realAccount) {
-                const { loginid, token: value } = realAccount;
-                let arr = getCopyTokensArray();
-                if (!arr.includes(value)) arr.push(value);
+        if (manager) {
+            const accountsList = getAccountsList();
+            const activeToken = getActiveToken();
+            let arr = getCopyTokensArray();
+            let added = 0;
+            Object.values(accountsList).forEach((token: string) => {
+                if (token && token !== activeToken && !arr.includes(token)) {
+                    arr.push(token);
+                    try {
+                        manager.addCopier(token);
+                        added++;
+                    } catch {
+                        /* Ignore */
+                    }
+                }
+            });
+            if (added > 0) {
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
+            }
+            refreshClientList();
+        }
+        await new Promise(resolve => setTimeout(resolve, 600));
+        setIsSyncing(false);
+    };
+
+    const handleDemoToReal = async () => {
+        const isDemo = demoToRealActive;
+        const manager = managerRef.current;
+        if (!manager) {
+            setErrorMessage('Copy Trading Engine not initialized. Please refresh.');
+            setErrorModalVisible(true);
+            return;
+        }
+
+        if (!isDemo) {
+            const accounts = getAccountsList();
+            const realAccountKey = Object.keys(accounts).find(k => !k.startsWith('VR'));
+
+            if (realAccountKey) {
+                const realToken = accounts[realAccountKey];
+                const loginid = realAccountKey;
+
+                let copier = manager.copiers.find(c => c.token === realToken);
+                if (!copier) {
+                    try {
+                        copier = manager.addCopier(realToken);
+                    } catch {
+                        /* Ignore */
+                    }
+                }
+
+                if (copier) {
+                    try {
+                        await manager.connectCopier(copier.id);
+                    } catch {
+                        /* Ignore */
+                    }
+                }
+
+                manager.enableReplication(true);
                 localStorage.setItem('demo_to_real', 'true');
-                localStorage.setItem('cr_loginid', loginid);
-                manager.setMasterToken(value);
+                localStorage.setItem('iscopyTrading', 'true');
+                setCopyTradingActive(true);
+
                 if (localStorage.getItem('iscopyTrading') === 'true') {
                     try {
                         await manager.connectMaster();
@@ -355,7 +387,6 @@ const CopyTrading = observer(() => {
                         /* Ignore */
                     }
                 }
-                setDemoToRealActive(true);
 
                 // Reconnect WebSocket to pick up the swapped/overridden token
                 const active = getActiveLoginId();
@@ -369,6 +400,7 @@ const CopyTrading = observer(() => {
                     }
                 }
 
+                setDemoToRealActive(true);
                 setSuccessMessage(`✅ Demo to Real copy trading activated for account ${loginid}`);
                 setTimeout(() => setSuccessMessage(''), 6000);
                 refreshClientList();
@@ -377,18 +409,16 @@ const CopyTrading = observer(() => {
                 setErrorModalVisible(true);
             }
         } else {
-            if (realAccount) {
-                const { token: value } = realAccount;
-                let arr = getCopyTokensArray().filter((t: string) => t !== value);
-                localStorage.setItem('copyTokensArray', JSON.stringify(arr));
-            }
+            manager.enableReplication(false);
             localStorage.setItem('demo_to_real', 'false');
-            manager.disconnectMaster();
-            manager.setMasterToken('');
             setDemoToRealActive(false);
 
-            setSuccessMessage('⏹️ Demo to Real stopped');
-            setTimeout(() => setSuccessMessage(''), 6000);
+            if (!copyTradingActive) {
+                manager.disconnectMaster();
+            }
+
+            setSuccessMessage('⏹️ Demo to Real copy trading deactivated.');
+            setTimeout(() => setSuccessMessage(''), 4000);
             refreshClientList();
         }
     };
@@ -396,36 +426,50 @@ const CopyTrading = observer(() => {
     const handleStartCopyTrading = async () => {
         const isStart = !copyTradingActive;
         const manager = managerRef.current;
-        if (!manager) return;
+        if (!manager) {
+            setErrorMessage('Engine initialization pending. Please try again.');
+            setErrorModalVisible(true);
+            return;
+        }
 
         if (isStart) {
+            const masterToken = getActiveToken();
+            if (!masterToken) {
+                setErrorMessage('No active session token found. Please log in to your account.');
+                setErrorModalVisible(true);
+                return;
+            }
+
+            const copyTokensArray = getCopyTokensArray();
+            if (copyTokensArray.length === 0) {
+                setErrorMessage('No client accounts added yet. Please add client tokens or use Auto-Import from Login Session.');
+                setErrorModalVisible(true);
+                return;
+            }
+
             try {
-                const copyTokensArray = getCopyTokensArray();
-                if (copyTokensArray.length > 0) {
-                    try {
-                        const { saveAllTokensToSupabase } = await import('@/utils/supabase');
-                        void saveAllTokensToSupabase(copyTokensArray);
-                    } catch {
-                        /* Ignore supabase errors */
-                    }
-                }
-                manager.enableReplication(true);
-                if (localStorage.getItem('demo_to_real') === 'true' && manager.master.token) {
-                    try {
-                        await manager.connectMaster();
-                    } catch {
-                        /* Ignore */
-                    }
-                }
+                manager.setMasterToken(masterToken);
+                await manager.connectMaster();
+
                 for (const token of copyTokensArray) {
-                    try {
-                        let copier = manager.copiers.find(c => c.token === token);
-                        if (!copier) copier = manager.addCopier(token);
-                        if (copier.enabled && copier.status !== 'connected') await manager.connectCopier(copier.id);
-                    } catch {
-                        /* Ignore per-copier failures */
+                    let copier = manager.copiers.find(c => c.token === token);
+                    if (!copier) {
+                        try {
+                            copier = manager.addCopier(token);
+                        } catch {
+                            /* Ignore */
+                        }
+                    }
+                    if (copier) {
+                        try {
+                            await manager.connectCopier(copier.id);
+                        } catch (connErr: any) {
+                            console.warn(`Could not connect client ${copier.id}:`, connErr);
+                        }
                     }
                 }
+
+                manager.enableReplication(true);
                 localStorage.setItem('iscopyTrading', 'true');
                 setCopyTradingActive(true);
                 setSuccessMessage2(`🚀 Replication live for ${copyTokensArray.length} clients!`);
@@ -461,19 +505,14 @@ const CopyTrading = observer(() => {
             setErrorModalVisible(true);
         } else {
             try {
-                // Add the copier first
                 const copier = manager.addCopier(newToken);
-                
-                // Validate by connecting immediately
                 try {
                     await manager.connectCopier(copier.id);
                 } catch (connErr: any) {
-                    // Remove copier from manager since validation failed
                     manager.removeCopier(copier.id);
                     throw connErr;
                 }
 
-                // If connection succeeded, save to localStorage
                 arr.push(newToken);
                 localStorage.setItem('copyTokensArray', JSON.stringify(arr));
                 setTokenInput('');
@@ -486,20 +525,14 @@ const CopyTrading = observer(() => {
         }
     };
 
-    const handleRemoveToken = (target: number | string) => {
+    const handleRemoveToken = (tokenToRemove: string) => {
         const manager = managerRef.current;
-        const tokens = getCopyTokensArray();
-        let indexToRemove = typeof target === 'number' ? target : tokens.indexOf(target);
-        if (indexToRemove === -1 && typeof target === 'string') {
-            indexToRemove = tokens.findIndex(t => t === target);
-        }
-        if (indexToRemove < 0) return;
-        const tokenToRemove = tokens[indexToRemove];
-        if (manager && tokenToRemove) {
+        const tokens = getCopyTokensArray().filter(t => t !== tokenToRemove);
+        
+        if (manager) {
             const copier = manager.copiers.find(c => c.token === tokenToRemove);
             if (copier) manager.removeCopier(copier.id);
         }
-        tokens.splice(indexToRemove, 1);
         localStorage.setItem('copyTokensArray', JSON.stringify(tokens));
         refreshClientList();
     };
@@ -514,100 +547,26 @@ const CopyTrading = observer(() => {
                 arr.push(token);
                 if (managerRef.current) {
                     try {
-                        managerRef.current.addCopier(token);
+                        const copier = managerRef.current.addCopier(token);
+                        if (copyTradingActive && copier) {
+                            void managerRef.current.connectCopier(copier.id).catch(() => {});
+                        }
                     } catch {
-                        /* Already added */
+                        /* Ignore */
                     }
                 }
                 added++;
             }
         });
-        localStorage.setItem('copyTokensArray', JSON.stringify(arr));
-        refreshClientList();
-        setSuccessMessage2(
-            added > 0 ? `✅ Auto-imported ${added} token(s) from your session` : 'No new tokens to import'
-        );
-        setTimeout(() => setSuccessMessage2(''), 5000);
-    };
 
-    const handleSyncTokens = async () => {
-        setIsSyncing(true);
-        try {
-            const manager = managerRef.current;
-            if (manager) {
-                const tokens = manager.copiers.map(c => c.token);
-                localStorage.setItem('copyTokensArray', JSON.stringify(tokens));
-                refreshClientList();
-            }
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-
-    const handleFollowAdmin = () => {
-        const activeLoginid = getActiveLoginId();
-        const activeToken = getActiveToken();
-
-        if (!activeLoginid || !activeToken) {
-            setErrorMessage('You must be logged in to copy trades.');
+        if (added > 0) {
+            localStorage.setItem('copyTokensArray', JSON.stringify(arr));
+            setSuccessMessage2(`✅ Auto-imported ${added} account tokens from your login session!`);
+            setTimeout(() => setSuccessMessage2(''), 5000);
+            refreshClientList();
+        } else {
+            setErrorMessage('No additional login tokens found to import.');
             setErrorModalVisible(true);
-            return;
-        }
-        setIsTermsModalOpen(true);
-    };
-
-    const handleFollowAdminSubmit = async () => {
-        if (!termsAccepted1 || !termsAccepted2) {
-            setErrorMessage('You must accept the profit split and risk disclaimer.');
-            setErrorModalVisible(true);
-            return;
-        }
-        setIsTermsModalOpen(false);
-
-        const activeLoginid = getActiveLoginId();
-        const activeToken = getActiveToken();
-
-        if (!activeLoginid || !activeToken) {
-            setErrorMessage('You must be logged in to copy trades.');
-            setErrorModalVisible(true);
-            return;
-        }
-
-        setIsLoadingAdminStatus(true);
-        try {
-            const success = await requestFollowProvider(activeLoginid, activeToken, 'Profithubadmin');
-            if (success) {
-                setAdminFollowStatus('pending');
-                setSuccessMessage('🚀 Follow request sent to Profithubadmin. Awaiting admin approval.');
-                setTimeout(() => setSuccessMessage(''), 8000);
-            } else {
-                setErrorMessage('Failed to send follow request. Try again later.');
-                setErrorModalVisible(true);
-            }
-        } catch (e: any) {
-            setErrorMessage(e.message || 'An error occurred.');
-            setErrorModalVisible(true);
-        } finally {
-            setIsLoadingAdminStatus(false);
-        }
-    };
-
-
-    const handleStopFollowAdmin = async () => {
-        const activeLoginid = getActiveLoginId();
-        if (!activeLoginid) return;
-
-        setIsLoadingAdminStatus(true);
-        try {
-            await deleteRequest(activeLoginid, 'Profithubadmin');
-            setAdminFollowStatus('none');
-            setSuccessMessage('⏹️ Stopped following Profithubadmin.');
-            setTimeout(() => setSuccessMessage(''), 6000);
-        } catch {
-            setErrorMessage('Failed to stop follow.');
-            setErrorModalVisible(true);
-        } finally {
-            setIsLoadingAdminStatus(false);
         }
     };
 
@@ -1154,7 +1113,7 @@ const CopyTrading = observer(() => {
                                                         )}
                                                         <button
                                                             className='ct2-client-del'
-                                                            onClick={() => handleRemoveToken(i)}
+                                                            onClick={() => handleRemoveToken(token)}
                                                             title='Remove'
                                                         >
                                                             🗑
