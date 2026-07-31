@@ -33,7 +33,6 @@ import './main.scss';
 
 const ChartWrapper = lazy(() => import('../chart/chart-wrapper'));
 
-const SmartTrading = lazy(() => import('../smart-trading'));
 const SmartAnalysisPage = lazy(() => import('../smart-analysis/smart-analysis'));
 const TradingView = lazy(() => import('../tradingview'));
 const AnalysisTools = lazy(() => import('../analysis-tool'));
@@ -89,7 +88,6 @@ const AppWrapper = observer(() => {
         'signals',
         'copy_trading',
         'tradingview',
-        'smart_trading',
         'smart_analysis',
     ];
     const { isDesktop } = useDevice();
@@ -361,16 +359,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading TradingView...')} />}>
                     <TradingView />
-                </Suspense>
-            )
-        },
-        {
-            key: 'smart_trading',
-            id: 'id-smart-trading',
-            label: <TabIcon iconKey='smart_trading' label='Smart Trading' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Smart Trading...')} />}>
-                    <SmartTrading />
                 </Suspense>
             )
         },
