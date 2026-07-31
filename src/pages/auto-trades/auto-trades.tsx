@@ -220,7 +220,7 @@ const IS_DIRECTION_TYPE: Record<TradeType, boolean> = {
     RUNLOW: true,
 };
 
-const INVERSE_TRADE_TYPE: Record<TradeType, TradeType> = {
+export const INVERSE_TRADE_TYPE: Record<TradeType, TradeType> = {
     DIGITOVER: 'DIGITUNDER',
     DIGITUNDER: 'DIGITOVER',
     DIGITEVEN: 'DIGITODD',
@@ -1141,8 +1141,8 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     const [activeAnalysisSymbol, setActiveAnalysisSymbol] = useState<string>('');
     const [showDisclaimer, setShowDisclaimer] = useState<boolean>(false);
 
-    const [totalPnl, setTotalPnl] = useState(0);
-    const [totalTrades, setTotalTrades] = useState(0);
+    const [, setTotalPnl] = useState(0);
+    const [, setTotalTrades] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [isRunning, setIsRunning] = useState(false);
@@ -1206,7 +1206,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
         }
     });
 
-    const [currentStakeDisplay, setCurrentStakeDisplay] = useState(1);
+    const [, setCurrentStakeDisplay] = useState(1);
     const [cooldownDisplay, setCooldownDisplay] = useState(0);
     const [dataStreamLoading, setDataStreamLoading] = useState(false);
     const [dataStreamMessage, setDataStreamMessage] = useState('Loading selected market data...');
@@ -2686,7 +2686,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
 
     if (!show_auto) return null;
 
-    const baseStakeNum = Number(stake) || 1;
+    const _baseStakeNum = Number(stake) || 1;
     const inCooldown = cooldownDisplay > 0;
     const selectedMarketDisplayStates = selectedMarkets.map(
         market =>
@@ -2761,7 +2761,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     } as any;
 
     return (
-        <div className='auto-trades-page'>
+        <div className='auto-trades-page' style={aiFabStyle}>
             <ThemedScrollbars className='auto-trades-page__scroll'>
                 <div className='auto-trades-page__inner'>
                     {/* Header */}
