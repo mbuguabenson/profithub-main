@@ -22,14 +22,6 @@ export default Engine =>
                 return Promise.resolve();
             }
 
-            const signalId = `SIG_${contract_type}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-            const lockAcquired = tradeLockManager.acquireLock(signalId);
-            if (!lockAcquired) {
-                return Promise.resolve();
-            }
-
-            this.isPurchasing = true;
-
             if (isSpeedMode) {
                 const now = Date.now();
                 const lastPurchase = this.lastPurchaseTime || 0;
@@ -37,11 +29,18 @@ export default Engine =>
                 const is1sMarket = symbol && (symbol.startsWith('1HZ') || symbol.includes('1s') || symbol.includes('1S'));
                 const minDelay = speed === '3' ? 0 : (speed === '2' ? 50 : (is1sMarket ? 200 : 400));
                 if (minDelay > 0 && now - lastPurchase < minDelay) {
-                    this.isPurchasing = false;
                     return Promise.resolve();
                 }
                 this.lastPurchaseTime = now;
             }
+
+            const signalId = `SIG_${contract_type}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            const lockAcquired = tradeLockManager.acquireLock(signalId);
+            if (!lockAcquired) {
+                return Promise.resolve();
+            }
+
+            this.isPurchasing = true;
 
             // 🛡️ Virtual Hook Execution Check
             const storedVh = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('vh_config') || 'null') : null;
@@ -75,6 +74,7 @@ export default Engine =>
                     return new Promise(resolve => {
                         setTimeout(() => {
                             this.isPurchasing = false;
+                            tradeLockManager.releaseLock();
                             this.store.dispatch(purchaseSuccessful());
                             if (this.afterPromise) {
                                 this.afterPromise();
