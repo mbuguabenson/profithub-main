@@ -104,14 +104,15 @@ export const SmartAnalysisPage: React.FC = () => {
     useEffect(() => {
         let isComponentMounted = true;
 
-        const connectWS = () => {
+        const connectWS = async () => {
             if (wsRef.current) {
                 try {
                     wsRef.current.close();
                 } catch {}
             }
 
-            const wsUrl = `wss://${getSocketURL()}/websockets/v3?app_id=${getAppId()}`;
+            const serverUrl = await getSocketURL();
+            const wsUrl = `wss://${serverUrl}/websockets/v3?app_id=${getAppId()}`;
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 
