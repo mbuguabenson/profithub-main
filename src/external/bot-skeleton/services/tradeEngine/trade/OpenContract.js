@@ -10,10 +10,16 @@ export default Engine =>
     class OpenContract extends Engine {
         observeOpenContract() {
             if (!api_base.api) return;
+            if (this.openContractSubscription) {
+                try {
+                    this.openContractSubscription.unsubscribe();
+                } catch {}
+                this.openContractSubscription = null;
+            }
             if (!this.processedSoldContractIds) {
                 this.processedSoldContractIds = new Set();
             }
-            const subscription = api_base.api.onMessage().subscribe(({ data }) => {
+            this.openContractSubscription = api_base.api.onMessage().subscribe(({ data }) => {
                 if (data.msg_type === 'proposal_open_contract') {
                     const contract = data.proposal_open_contract;
                     const contractId = String(contract?.contract_id || '');
@@ -29,7 +35,7 @@ export default Engine =>
                     broadcastContract({ accountID: api_base.account_info.loginid, ...contract });
 
                     if (this.isSold) {
-                        // 🛡️ Prevent duplicate sold event processing for the same contract
+                        // 🛡️ Prevent duplicate sold event processing for the same contract ID
                         if (this.processedSoldContractIds.has(contractId)) {
                             return;
                         }
@@ -70,7 +76,7 @@ export default Engine =>
                     }
                 }
             });
-            api_base.pushSubscription(subscription);
+            api_base.pushSubscription(this.openContractSubscription);
         }
 
         waitForAfter() {
