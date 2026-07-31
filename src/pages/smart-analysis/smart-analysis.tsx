@@ -114,8 +114,10 @@ export const SmartAnalysisPage: React.FC = () => {
                 } catch {}
             }
 
-            const serverUrl = await getSocketURL();
-            const wsUrl = `wss://${serverUrl}/websockets/v3?app_id=${getAppId()}`;
+            let wsUrl = await getSocketURL();
+            if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+                wsUrl = `wss://${wsUrl}/websockets/v3?app_id=${getAppId()}`;
+            }
             const ws = new WebSocket(wsUrl);
             wsRef.current = ws;
 
