@@ -62,7 +62,7 @@ const AutomatedPage: React.FC = () => {
             case 'multi-trader':
                 return <MultiTrader />;
             default:
-                return <SmartTrading />;
+                return <SmartAnalysisPage />;
         }
     };
 
