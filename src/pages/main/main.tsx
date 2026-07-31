@@ -38,9 +38,6 @@ const AnalysisTools = lazy(() => import('../analysis-tool'));
 const CopyTrading = lazy(() => import('../copy-trading'));
 const Signals = lazy(() => import('../signals'));
 const AutomatedPage = lazy(() => import('../automated/automated'));
-const DTraderPage = lazy(() => import('../dtrader/dtrader'));
-const MatchesTab = lazy(() => import('../smart-trading/components/matches-tab'));
-const DiffersTab = lazy(() => import('../smart-trading/components/differs-tab'));
 import TradingBots from '../free-bots/trading-bots';
 
 const AppWrapper = observer(() => {
@@ -90,12 +87,6 @@ const AppWrapper = observer(() => {
         'signals',
         'copy_trading',
         'tradingview',
-        'analysis',
-        'dtrader',
-        'smart_analysis',
-        'matches',
-        'speedbot',
-        'copy_trader',
     ];
     const { isDesktop } = useDevice();
     const location = useLocation();
@@ -366,66 +357,6 @@ const AppWrapper = observer(() => {
             content: (
                 <Suspense fallback={<ChunkLoader message={localize('Please wait, loading TradingView...')} />}>
                     <TradingView />
-                </Suspense>
-            )
-        },
-        {
-            key: 'analysis',
-            id: 'id-analysis',
-            label: <TabIcon iconKey='analysis_tool' label='Analysis' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Analysis...')} />}>
-                    <AnalysisTools />
-                </Suspense>
-            )
-        },
-        {
-            key: 'dtrader',
-            id: 'id-dtrader',
-            label: <TabIcon iconKey='dtrader' label='D-Trader' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading D-Trader...')} />}>
-                    <DTraderPage />
-                </Suspense>
-            )
-        },
-        {
-            key: 'smart_analysis',
-            id: 'id-smart-analysis',
-            label: <TabIcon iconKey='smart_analysis' label='Smart Analysis' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Smart Analysis...')} />}>
-                    <Scanner />
-                </Suspense>
-            )
-        },
-        {
-            key: 'matches',
-            id: 'id-matches',
-            label: <TabIcon iconKey='matches' label='Matches' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Matches...')} />}>
-                    <MatchesTab />
-                </Suspense>
-            )
-        },
-        {
-            key: 'speedbot',
-            id: 'id-speedbot',
-            label: <TabIcon iconKey='speedbot' label='Speedbot' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Speedbot...')} />}>
-                    <DiffersTab />
-                </Suspense>
-            )
-        },
-        {
-            key: 'copy_trader',
-            id: 'id-copy-trader',
-            label: <TabIcon iconKey='copy_trading' label='Copy Trading' />,
-            content: (
-                <Suspense fallback={<ChunkLoader message={localize('Please wait, loading Copy Trading...')} />}>
-                    <CopyTrading />
                 </Suspense>
             )
         }
