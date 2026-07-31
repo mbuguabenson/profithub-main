@@ -239,8 +239,17 @@ const Interpreter = () => {
                 $scope.is_error_triggered = false;
                 globalObserver.emit('bot.stop');
                 const { ticksService } = $scope;
-                // Unsubscribe previous ticks_history subscription
-                // Unsubscribe the subscriptions from Proposal, Balance and OpenContract
+
+                // Purge active subscriptions, worker queues, and locks
+                try {
+                    const { subscriptionRegistry } = require('@/services/subscription-registry');
+                    const { tradeQueueWorker } = require('@/services/trade-queue-worker');
+                    const { tradeLockManager } = require('@/services/trade-lock-manager');
+                    subscriptionRegistry.purgeAll();
+                    tradeQueueWorker.clear();
+                    tradeLockManager.reset();
+                } catch {}
+
                 api_base.clearSubscriptions();
 
                 ticksService.unsubscribeFromTicksService().then(() => {

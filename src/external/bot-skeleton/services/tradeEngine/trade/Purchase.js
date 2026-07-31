@@ -5,6 +5,7 @@ import { doUntilDone, getUUID, recoverFromError, tradeOptionToBuy } from '../uti
 import { purchaseSuccessful, sell } from './state/actions';
 import { BEFORE_PURCHASE } from './state/constants';
 import { observer as globalObserver } from '../../../utils/observer';
+import { tradeLockManager } from '@/services/trade-lock-manager';
 
 let delayIndex = 0;
 let purchase_reference;
@@ -17,9 +18,16 @@ export default Engine =>
             const isSpeedMode = speed !== '1';
             const isBulkEnabled = this.purchase_block_allow_bulk === 'yes';
 
-            if (this.isPurchasing || this.store.getState().scope !== BEFORE_PURCHASE) {
+            if (this.isPurchasing || tradeLockManager.isTradeInProgress() || this.store.getState().scope !== BEFORE_PURCHASE) {
                 return Promise.resolve();
             }
+
+            const signalId = `SIG_${contract_type}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            const lockAcquired = tradeLockManager.acquireLock(signalId);
+            if (!lockAcquired) {
+                return Promise.resolve();
+            }
+
             this.isPurchasing = true;
 
             if (isSpeedMode) {
@@ -291,6 +299,7 @@ export default Engine =>
                     const paramAction = () => api_base.api.send(trade_option);
                     return paramAction().then(onSuccess).catch(paramErr => {
                         this.isPurchasing = false;
+                        tradeLockManager.releaseLock();
                         const errMsg = paramErr?.error?.message || paramErr?.message || 'Purchase failed';
                         log(LogTypes.ERROR, { message: `❌ [PURCHASE FAILED] ${errMsg}` });
                         this.store.dispatch(purchaseSuccessful());
@@ -321,6 +330,7 @@ export default Engine =>
 
             return action().then(onSuccess).catch(err => {
                 this.isPurchasing = false;
+                tradeLockManager.releaseLock();
                 const errMsg = err?.error?.message || err?.message || 'Purchase failed';
                 log(LogTypes.ERROR, { message: `❌ [PURCHASE FAILED] ${errMsg}` });
                 this.store.dispatch(purchaseSuccessful());

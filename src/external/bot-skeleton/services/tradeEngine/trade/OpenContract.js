@@ -2,6 +2,9 @@ import { getRoundedNumber } from '@/components/shared';
 import { api_base } from '../../api/api-base';
 import { contract as broadcastContract, contractStatus } from '../utils/broadcast';
 import { openContractReceived, sell } from './state/actions';
+import { tradeLockManager } from '@/services/trade-lock-manager';
+import { tradeQueueWorker } from '@/services/trade-queue-worker';
+import { martingaleManager } from '@/services/martingale-manager';
 
 export default Engine =>
     class OpenContract extends Engine {
@@ -40,6 +43,14 @@ export default Engine =>
                         this.contractId = '';
                         if (this.watchdog_timer) clearTimeout(this.watchdog_timer);
                         if (this.transaction_recovery_timeout) clearTimeout(this.transaction_recovery_timeout);
+
+                        const profit = Number(contract.sell_price || 0) - Number(contract.buy_price || 0);
+                        const isWin = profit > 0;
+                        martingaleManager.processContractResult(contractId, isWin);
+
+                        tradeLockManager.releaseLock(contractId);
+                        tradeQueueWorker.onContractCompleted(contractId);
+
                         this.updateTotals(contract);
                         contractStatus({
                             id: 'contract.sold',
