@@ -1262,7 +1262,7 @@ const AutoTrades = observer(({ isModal = false }: TAutoTradesProps) => {
     const restartTimerRef = useRef<number | null>(null);
     const modeTransitionTimerRef = useRef<number | null>(null);
     const contractStreamAbortControllersRef = useRef<Set<AbortController>>(new Set());
-    const show_auto = active_tab === DBOT_TABS.AUTO_TRADES;
+    const show_auto = active_tab === DBOT_TABS.AUTOMATED || active_tab === (DBOT_TABS as any).AUTO_TRADES || active_tab === DBOT_TABS.BOT_BUILDER;
     const show_auto_ref = useRef(show_auto);
     show_auto_ref.current = show_auto;
     const unmountedRef = useRef(false);

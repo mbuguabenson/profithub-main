@@ -346,7 +346,7 @@ const ManualTrading = observer(() => {
     const lastTriggeredEntryKeyRef = useRef('');
     const previousQualifiedSignalKeyRef = useRef<string | null>(null);
 
-    const showManualTrading = active_tab === DBOT_TABS.MANUAL_TRADING;
+    const showManualTrading = active_tab === DBOT_TABS.AUTOMATED || active_tab === (DBOT_TABS as any).MANUAL_TRADING || active_tab === DBOT_TABS.BOT_BUILDER;
     const selectedMarket = MANUAL_MARKETS.find(market => market.symbol === selectedSymbol) ?? MANUAL_MARKETS[0];
     const latestTick = ticks[ticks.length - 1] ?? null;
     const latestDigit = latestTick ? getLastDigitFromQuote(latestTick.quote, selectedSymbol) : null;

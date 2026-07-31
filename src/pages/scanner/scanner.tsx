@@ -371,7 +371,7 @@ const Scanner = observer(({ forceShow = false, isEmbed = false }: { forceShow?: 
     useEffect(() => { confirmedSignalRef.current = confirmedSignal; }, [confirmedSignal]);
 
     const currency = client.currency || 'USD';
-    const showScanner = forceShow || active_tab === DBOT_TABS.SCANNER;
+    const showScanner = forceShow || active_tab === DBOT_TABS.AUTOMATED || active_tab === (DBOT_TABS as any).SCANNER || active_tab === DBOT_TABS.BOT_BUILDER;
     const isCoveredByMobileRunPanel = !isDesktop && run_panel.is_drawer_open;
     const selectedMarket = MARKETS.find(m => m.symbol === selectedSymbol) ?? MARKETS[0];
     const latestTick = ticks[ticks.length - 1];
