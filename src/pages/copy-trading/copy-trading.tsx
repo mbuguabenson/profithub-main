@@ -5,6 +5,7 @@ import { getGlobalCopyTradingManager } from './copy-trading-manager-singleton';
 import Dialog from '@/components/shared_ui/dialog';
 import { useStore } from '@/hooks/useStore';
 import { getTradeLogs } from './replicator';
+import { api_base } from '@/external/bot-skeleton/services/api/api-base';
 import {
     requestFollowProvider,
     getCopyRequestStatus,
@@ -495,15 +496,20 @@ const CopyTrading = observer(() => {
         }
     };
 
-    const handleRemoveToken = (index: number) => {
+    const handleRemoveToken = (target: number | string) => {
         const manager = managerRef.current;
         const tokens = getCopyTokensArray();
-        const tokenToRemove = tokens[index];
-        if (manager) {
+        let indexToRemove = typeof target === 'number' ? target : tokens.indexOf(target);
+        if (indexToRemove === -1 && typeof target === 'string') {
+            indexToRemove = tokens.findIndex(t => t === target);
+        }
+        if (indexToRemove < 0) return;
+        const tokenToRemove = tokens[indexToRemove];
+        if (manager && tokenToRemove) {
             const copier = manager.copiers.find(c => c.token === tokenToRemove);
             if (copier) manager.removeCopier(copier.id);
         }
-        tokens.splice(index, 1);
+        tokens.splice(indexToRemove, 1);
         localStorage.setItem('copyTokensArray', JSON.stringify(tokens));
         refreshClientList();
     };
