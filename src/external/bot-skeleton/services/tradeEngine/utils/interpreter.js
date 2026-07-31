@@ -8,12 +8,19 @@ import Interface from '../Interface';
 import { createScope } from './cliTools';
 
 // Helper function to clone state snapshot while bypassing immutable AST nodes, scope parents, and functions
-const snapshotClone = obj => {
+const snapshotClone = (obj, seen = new WeakMap()) => {
     if (!obj || typeof obj !== 'object') return obj;
+
+    // Prevent circular reference infinite recursion
+    if (seen.has(obj)) {
+        return seen.get(obj);
+    }
+
     // Fast path: AST nodes (objects with type property e.g. Program, BlockStatement) are read-only syntax trees
     if (obj.type && typeof obj.type === 'string') {
         return obj;
     }
+
     // Skip functions, DOM nodes, window, document, and MobX observables
     if (
         typeof obj === 'function' ||
@@ -24,17 +31,26 @@ const snapshotClone = obj => {
     ) {
         return obj;
     }
+
     if (Array.isArray(obj)) {
-        return obj.map(item => snapshotClone(item));
+        const arrCloned = [];
+        seen.set(obj, arrCloned);
+        for (let i = 0; i < obj.length; i++) {
+            arrCloned[i] = snapshotClone(obj[i], seen);
+        }
+        return arrCloned;
     }
+
     const cloned = {};
+    seen.set(obj, cloned);
+
     for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
             // Do not deep-clone AST node references or parent scope chains
-            if (key === 'node' || key === 'parentScope') {
+            if (key === 'node' || key === 'parentScope' || key === 'scope' || key === 'interpreter') {
                 cloned[key] = obj[key];
             } else {
-                cloned[key] = snapshotClone(obj[key]);
+                cloned[key] = snapshotClone(obj[key], seen);
             }
         }
     }
