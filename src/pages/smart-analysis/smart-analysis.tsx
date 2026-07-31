@@ -21,15 +21,27 @@ const SYMBOLS: SymbolOption[] = [
     { value: 'R_100', label: 'Volatility 100 Index' },
 ];
 
+const TOP_TICKER_SYMBOLS = ['R_10', 'R_25', 'R_50', 'R_75', 'R_100'];
+
 export const SmartAnalysisPage: React.FC = () => {
-    // Top Bar State
+    // Top Bar & State
     const [selectedSymbol, setSelectedSymbol] = useState<string>('R_10');
     const [ticksCountLimit, setTicksCountLimit] = useState<number>(120);
     const [currentPrice, setCurrentPrice] = useState<number | null>(4940.53);
+    const [priceFlashClass, setPriceFlashClass] = useState<string>('');
     const [ticksBuffer, setTicksBuffer] = useState<number[]>([]);
     const [lastDigitsBuffer, setLastDigitsBuffer] = useState<number[]>([]);
 
-    // Engines Execution Active States
+    // Multi-Market Top Ticker Live Quotes
+    const [marketQuotes, setMarketQuotes] = useState<Record<string, { price: number; direction: 'up' | 'down' }>>({
+        R_10: { price: 642.12, direction: 'up' },
+        R_25: { price: 189.45, direction: 'down' },
+        R_50: { price: 312.80, direction: 'up' },
+        R_75: { price: 541.20, direction: 'down' },
+        R_100: { price: 1240.65, direction: 'up' },
+    });
+
+    // Engine Active Execution States
     const [activeEngines, setActiveEngines] = useState<Record<string, boolean>>({
         rise_fall: false,
         even_odd_prob: false,
@@ -39,7 +51,7 @@ export const SmartAnalysisPage: React.FC = () => {
         matches_differs: false,
     });
 
-    // Engine Parameter Inputs
+    // Engine Parameters
     const [params, setParams] = useState({
         // Card 1: Rise/Fall
         rise_prob_threshold: 65,
@@ -88,17 +100,8 @@ export const SmartAnalysisPage: React.FC = () => {
         matches_martingale: 1,
     });
 
-    // Live Execution States per engine (Current Stake, Win/Loss Stats)
-    const engineExecRefs = useRef<Record<string, { currentStake: number; isTrading: boolean }>>({
-        rise_fall: { currentStake: 0.5, isTrading: false },
-        even_odd_prob: { currentStake: 0.5, isTrading: false },
-        even_odd_streak: { currentStake: 0.5, isTrading: false },
-        over_under_rec: { currentStake: 0.5, isTrading: false },
-        over_under_freq: { currentStake: 0.5, isTrading: false },
-        matches_differs: { currentStake: 0.5, isTrading: false },
-    });
-
     const wsRef = useRef<WebSocket | null>(null);
+    const prevPriceRef = useRef<number | null>(null);
 
     // Setup Real-Time Deriv Ticks WebSocket Stream
     useEffect(() => {
@@ -118,6 +121,7 @@ export const SmartAnalysisPage: React.FC = () => {
 
             ws.onopen = () => {
                 if (!isComponentMounted) return;
+                // Subscribe to active main symbol
                 ws.send(
                     JSON.stringify({
                         ticks_history: selectedSymbol,
@@ -127,6 +131,13 @@ export const SmartAnalysisPage: React.FC = () => {
                         subscribe: 1,
                     })
                 );
+
+                // Also subscribe to top market ticker symbols
+                TOP_TICKER_SYMBOLS.forEach((sym) => {
+                    if (sym !== selectedSymbol) {
+                        ws.send(JSON.stringify({ ticks: sym }));
+                    }
+                });
             };
 
             ws.onmessage = (event) => {
@@ -134,27 +145,52 @@ export const SmartAnalysisPage: React.FC = () => {
                 try {
                     const data = JSON.parse(event.data);
 
+                    // History for active main symbol
                     if (data.msg_type === 'history' && data.history?.prices) {
                         const rawPrices: number[] = data.history.prices.map((p: string | number) => Number(p));
                         setTicksBuffer(rawPrices);
                         const digits = rawPrices.map((p) => Math.abs(Math.round(p * 100)) % 10);
                         setLastDigitsBuffer(digits);
                         if (rawPrices.length > 0) {
-                            setCurrentPrice(rawPrices[rawPrices.length - 1]);
+                            const latest = rawPrices[rawPrices.length - 1];
+                            setCurrentPrice(latest);
+                            prevPriceRef.current = latest;
                         }
                     } else if (data.msg_type === 'tick' && data.tick) {
+                        const tickSymbol = data.tick.symbol;
                         const quote = Number(data.tick.quote);
-                        setCurrentPrice(quote);
-                        const lastDigit = Math.abs(Math.round(quote * 100)) % 10;
 
-                        setTicksBuffer((prev) => {
-                            const updated = [...prev, quote].slice(-ticksCountLimit);
-                            return updated;
-                        });
-                        setLastDigitsBuffer((prev) => {
-                            const updated = [...prev, lastDigit].slice(-ticksCountLimit);
-                            return updated;
-                        });
+                        // If tick is for main selected symbol
+                        if (tickSymbol === selectedSymbol) {
+                            if (prevPriceRef.current !== null) {
+                                if (quote > prevPriceRef.current) {
+                                    setPriceFlashClass('flash-up');
+                                } else if (quote < prevPriceRef.current) {
+                                    setPriceFlashClass('flash-down');
+                                }
+                                setTimeout(() => setPriceFlashClass(''), 600);
+                            }
+                            prevPriceRef.current = quote;
+                            setCurrentPrice(quote);
+                            const lastDigit = Math.abs(Math.round(quote * 100)) % 10;
+
+                            setTicksBuffer((prev) => [...prev, quote].slice(-ticksCountLimit));
+                            setLastDigitsBuffer((prev) => [...prev, lastDigit].slice(-ticksCountLimit));
+                        }
+
+                        // Update multi-market ticker strip quote
+                        if (TOP_TICKER_SYMBOLS.includes(tickSymbol)) {
+                            setMarketQuotes((prev) => {
+                                const oldPrice = prev[tickSymbol]?.price || quote;
+                                return {
+                                    ...prev,
+                                    [tickSymbol]: {
+                                        price: quote,
+                                        direction: quote >= oldPrice ? 'up' : 'down',
+                                    },
+                                };
+                            });
+                        }
                     }
                 } catch (e) {
                     console.warn('[SmartAnalysis] Message parse error:', e);
@@ -174,7 +210,7 @@ export const SmartAnalysisPage: React.FC = () => {
         };
     }, [selectedSymbol, ticksCountLimit]);
 
-    // Handle Reconnect Button Click
+    // Handle Reconnect Button
     const handleReconnect = () => {
         if (wsRef.current) {
             try {
@@ -273,7 +309,7 @@ export const SmartAnalysisPage: React.FC = () => {
                 amount: stakeAmount,
                 basis: 'stake',
                 contract_type: tradeType,
-                currency: api_base.account_info?.currency || 'USD',
+                currency: (api_base.account_info as any)?.currency || 'USD',
                 duration: durationTicks,
                 duration_unit: 't',
                 symbol: selectedSymbol,
@@ -348,8 +384,36 @@ export const SmartAnalysisPage: React.FC = () => {
 
     return (
         <div className="smart-analysis-container">
-            {/* Top Bar Controls */}
+            {/* Multi-Market Live Ticker Bar */}
+            <div className="market-ticker-strip">
+                {TOP_TICKER_SYMBOLS.map((sym) => {
+                    const q = marketQuotes[sym] || { price: 0, direction: 'up' };
+                    const isActive = selectedSymbol === sym;
+                    return (
+                        <div
+                            key={sym}
+                            className={`ticker-item ${isActive ? 'ticker-item--active' : ''}`}
+                            onClick={() => setSelectedSymbol(sym)}
+                        >
+                            <span className="symbol-name">{sym}</span>
+                            <span className={`symbol-price ${q.direction === 'up' ? 'price-up' : 'price-down'}`}>
+                                {q.direction === 'up' ? '▲' : '▼'} {q.price ? q.price.toFixed(2) : 'Loading...'}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Top Control Panel */}
             <div className="smart-analysis-header">
+                <div className="smart-analysis-header__title-area">
+                    <span className="title-icon">📈</span>
+                    <div>
+                        <h2>Smart Analysis Engine</h2>
+                        <span>Real-Time Market Tick-Stream & Strategy Scanner Suite</span>
+                    </div>
+                </div>
+
                 <div className="smart-analysis-header__controls">
                     <div className="smart-analysis-header__group">
                         <label>Symbol</label>
@@ -373,24 +437,44 @@ export const SmartAnalysisPage: React.FC = () => {
                         />
                     </div>
 
-                    <div className="smart-analysis-header__price-badge">
-                        <span>Price:</span>
-                        <span className="price-val">{currentPrice !== null ? currentPrice.toFixed(2) : 'Loading...'}</span>
+                    <div className={`smart-analysis-header__price-hero ${priceFlashClass}`}>
+                        <span className="label">Live Price</span>
+                        <span className="price">{currentPrice !== null ? currentPrice.toFixed(2) : 'Loading...'}</span>
                     </div>
                 </div>
 
                 <button className="smart-analysis-header__reconnect-btn" onClick={handleReconnect}>
-                    🔄 Reconnect
+                    🔄 Reconnect Stream
                 </button>
             </div>
 
-            {/* Grid of 6 Strategy Engines */}
+            {/* Live Ticks Scrolling Ribbon */}
+            <div className="ticks-ribbon">
+                <span className="ribbon-label">Tick Stream</span>
+                {ticksBuffer.slice(-15).map((price, idx, arr) => {
+                    const prevPrice = idx > 0 ? arr[idx - 1] : price;
+                    const isUp = price >= prevPrice;
+                    return (
+                        <div key={idx} className={`tick-chip ${isUp ? 'tick-chip--up' : 'tick-chip--down'}`}>
+                            {isUp ? '▲' : '▼'} {price.toFixed(2)}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Grid of 6 Strategy Cards */}
             <div className="smart-analysis-grid">
                 {/* 1. Rise / Fall Card */}
                 <div className={`engine-card ${activeEngines.rise_fall ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Rise/Fall</h3>
-                        <span className={`status-dot ${activeEngines.rise_fall ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--risefall">📈</div>
+                            <h3>Rise/Fall</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.rise_fall ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.rise_fall ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
                     <div className="engine-card__stats">
@@ -484,8 +568,14 @@ export const SmartAnalysisPage: React.FC = () => {
                 {/* 2. Even / Odd (Probability) Card */}
                 <div className={`engine-card ${activeEngines.even_odd_prob ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Even/Odd</h3>
-                        <span className={`status-dot ${activeEngines.even_odd_prob ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--evenodd">🔢</div>
+                            <h3>Even/Odd</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.even_odd_prob ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.even_odd_prob ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
                     <div className="engine-card__stats">
@@ -579,11 +669,17 @@ export const SmartAnalysisPage: React.FC = () => {
                 {/* 3. Even / Odd (Streak & Pattern) Card */}
                 <div className={`engine-card ${activeEngines.even_odd_streak ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Even/Odd</h3>
-                        <span className={`status-dot ${activeEngines.even_odd_streak ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--streak">🎯</div>
+                            <h3>Even/Odd</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.even_odd_streak ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.even_odd_streak ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '6px' }}>
                         LAST DIGITS PATTERN
                     </div>
                     <div className="digit-pattern-row">
@@ -593,11 +689,11 @@ export const SmartAnalysisPage: React.FC = () => {
                             </span>
                         ))}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>
                         Recent digit pattern (E=Even, O=Odd)
                     </div>
 
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '12px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#60a5fa', marginBottom: '12px' }}>
                         Current streak: {currentStreakCount} {currentStreakType}
                     </div>
 
@@ -663,26 +759,34 @@ export const SmartAnalysisPage: React.FC = () => {
                 {/* 4. Over / Under (Recommendation & Barrier) Card */}
                 <div className={`engine-card ${activeEngines.over_under_rec ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Over/Under</h3>
-                        <span className={`status-dot ${activeEngines.over_under_rec ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--overunder">📊</div>
+                            <h3>Over/Under</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.over_under_rec ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.over_under_rec ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Barrier</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#94a3b8' }}>Barrier</span>
                         <input
                             type="number"
                             style={{
                                 width: '50px',
                                 padding: '4px 6px',
                                 borderRadius: '6px',
-                                border: '1px solid #cbd5e1',
-                                fontWeight: 700,
+                                border: '1px solid rgba(255, 255, 255, 0.12)',
+                                background: 'rgba(15, 23, 42, 0.8)',
+                                color: '#ffffff',
+                                fontWeight: 800,
                                 textAlign: 'center',
                             }}
                             value={params.rec_barrier}
                             onChange={(e) => setParams({ ...params, rec_barrier: Number(e.target.value) })}
                         />
-                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>Under: 0-4, Equals: 5, Over: 6-9</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Under: 0-4, Equals: 5, Over: 6-9</span>
                     </div>
 
                     <div className="recommendation-box">
@@ -779,11 +883,17 @@ export const SmartAnalysisPage: React.FC = () => {
                 {/* 5. Over / Under (Pattern & Frequency) Card */}
                 <div className={`engine-card ${activeEngines.over_under_freq ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Over/Under</h3>
-                        <span className={`status-dot ${activeEngines.over_under_freq ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--overunder">⚡</div>
+                            <h3>Over/Under</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.over_under_freq ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.over_under_freq ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '6px' }}>
                         LAST DIGITS PATTERN
                     </div>
                     <div className="digit-pattern-row">
@@ -797,7 +907,7 @@ export const SmartAnalysisPage: React.FC = () => {
                             );
                         })}
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '8px' }}>
                         O=Over (&gt;5), E=Equal (=5), U=Under (&lt;5)
                     </div>
 
@@ -805,7 +915,7 @@ export const SmartAnalysisPage: React.FC = () => {
                     <div className="digit-histogram">
                         {digitCounts.map((count, d) => {
                             const pct = totalTicks > 0 ? (count / totalTicks) * 100 : 0;
-                            const barH = Math.min(36, Math.round((count / maxFreqCount) * 36));
+                            const barH = Math.min(40, Math.round((count / maxFreqCount) * 40));
                             return (
                                 <div key={d} className="histo-col">
                                     <span className="pct-val">{pct.toFixed(1)}%</span>
@@ -887,11 +997,17 @@ export const SmartAnalysisPage: React.FC = () => {
                 {/* 6. Matches / Differs Card */}
                 <div className={`engine-card ${activeEngines.matches_differs ? 'engine-card--running' : ''}`}>
                     <div className="engine-card__header">
-                        <h3>Matches/Differs</h3>
-                        <span className={`status-dot ${activeEngines.matches_differs ? 'status-dot--active' : ''}`}></span>
+                        <div className="badge-title">
+                            <div className="badge-icon badge-icon--matches">👑</div>
+                            <h3>Matches/Differs</h3>
+                        </div>
+                        <div className={`status-indicator ${activeEngines.matches_differs ? 'status-indicator--active' : ''}`}>
+                            <span className="dot"></span>
+                            <span>{activeEngines.matches_differs ? 'Running' : 'Idle'}</span>
+                        </div>
                     </div>
 
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 800, color: '#f472b6', marginBottom: '8px' }}>
                         Most frequent: {mostFreqDigit} ({mostFreqPct.toFixed(2)}%)
                     </div>
 
@@ -913,7 +1029,7 @@ export const SmartAnalysisPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '10px' }}>
                         Barrier digit {params.matches_barrier} appears {matchesPct.toFixed(2)}% of the time
                     </div>
 
@@ -921,7 +1037,7 @@ export const SmartAnalysisPage: React.FC = () => {
                     <div className="digit-histogram">
                         {digitCounts.map((count, d) => {
                             const pct = totalTicks > 0 ? (count / totalTicks) * 100 : 0;
-                            const barH = Math.min(36, Math.round((count / maxFreqCount) * 36));
+                            const barH = Math.min(40, Math.round((count / maxFreqCount) * 40));
                             return (
                                 <div key={d} className="histo-col">
                                     <span className="pct-val">{pct.toFixed(1)}%</span>
