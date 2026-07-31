@@ -1,5 +1,4 @@
-import { isMultiplierContract } from '@/components/shared';
-import cloneThorough from '@/utils/clone';
+import { cloneThorough, isMultiplierContract } from '@/components/shared';
 import JSInterpreter from '@deriv/js-interpreter';
 import { unrecoverable_errors } from '../../../constants/messages';
 import { observer as globalObserver } from '../../../utils/observer';
@@ -7,64 +6,27 @@ import { api_base } from '../../api/api-base';
 import Interface from '../Interface';
 import { createScope } from './cliTools';
 
-// Helper function to clone state snapshot while bypassing immutable AST nodes, scope parents, and functions
-const snapshotClone = (obj, seen = new WeakMap()) => {
-    if (!obj || typeof obj !== 'object') return obj;
-
-    // Prevent circular reference infinite recursion
-    if (seen.has(obj)) {
-        return seen.get(obj);
-    }
-
-    // Fast path: AST nodes (objects with type property e.g. Program, BlockStatement) are read-only syntax trees
-    if (obj.type && typeof obj.type === 'string') {
-        return obj;
-    }
-
-    // Skip functions, DOM nodes, window, document, and MobX observables
-    if (
-        typeof obj === 'function' ||
-        obj instanceof HTMLElement ||
-        (typeof window !== 'undefined' && (obj === window || obj === document)) ||
-        obj.isMobXObservable ||
-        obj.$mobx
-    ) {
-        return obj;
-    }
-
-    if (Array.isArray(obj)) {
-        const arrCloned = [];
-        seen.set(obj, arrCloned);
-        for (let i = 0; i < obj.length; i++) {
-            arrCloned[i] = snapshotClone(obj[i], seen);
-        }
-        return arrCloned;
-    }
-
-    const cloned = {};
-    seen.set(obj, cloned);
-
-    for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            // Do not deep-clone AST node references or parent scope chains
-            if (key === 'node' || key === 'parentScope' || key === 'scope' || key === 'interpreter') {
-                cloned[key] = obj[key];
-            } else {
-                cloned[key] = snapshotClone(obj[key], seen);
-            }
-        }
-    }
-    return cloned;
-};
-
 JSInterpreter.prototype.takeStateSnapshot = function () {
-    return snapshotClone(this.stateStack);
+    try {
+        return cloneThorough(this.stateStack, true, 5);
+    } catch {
+        return Array.isArray(this.stateStack) ? [...this.stateStack] : [];
+    }
 };
 
 JSInterpreter.prototype.restoreStateSnapshot = function (snapshot) {
-    this.stateStack = snapshotClone(snapshot);
-    this.global = this.stateStack[0].scope.object || this.stateStack[0].scope;
-    this.initFunc_(this, this.global);
+    if (!snapshot) return;
+    try {
+        this.stateStack = cloneThorough(snapshot, true, 5);
+    } catch {
+        this.stateStack = Array.isArray(snapshot) ? [...snapshot] : [];
+    }
+    if (this.stateStack && this.stateStack[0]) {
+        this.global = this.stateStack[0].scope?.object || this.stateStack[0].scope;
+        if (typeof this.initFunc_ === 'function') {
+            this.initFunc_(this, this.global);
+        }
+    }
 };
 
 const botInitialized = bot => bot && bot.tradeEngine.options;
