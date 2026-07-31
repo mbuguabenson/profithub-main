@@ -80,6 +80,19 @@ const CopyTrading = observer(() => {
     const [termsAccepted1, setTermsAccepted1] = useState(false);
     const [termsAccepted2, setTermsAccepted2] = useState(false);
 
+    // Theme Mode state (light / dark)
+    const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
+        const saved = localStorage.getItem('copy_trading_theme');
+        if (saved === 'light' || saved === 'dark') return saved;
+        return document.body.classList.contains('theme--light') ? 'light' : 'dark';
+    });
+
+    const toggleTheme = () => {
+        const newTheme = themeMode === 'light' ? 'dark' : 'light';
+        setThemeMode(newTheme);
+        localStorage.setItem('copy_trading_theme', newTheme);
+    };
+
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
     const refreshClientList = useCallback(() => {
@@ -620,7 +633,7 @@ const CopyTrading = observer(() => {
     const truncateToken = (t: string) => (t.length > 14 ? `${t.slice(0, 6)}••••${t.slice(-4)}` : t);
 
     return (
-        <div className='ct2-root' ref={htmlContentRef}>
+        <div className={`ct2-root ct2-root--${themeMode}`} ref={htmlContentRef}>
             {/* Error Dialog */}
             <Dialog
                 is_visible={errorModalVisible}
@@ -680,7 +693,6 @@ const CopyTrading = observer(() => {
                 </div>
             </Dialog>
 
-
             {/* Tutorial Overlay */}
             {isTutorialOpen && (
                 <div className='ct2-video-overlay' onClick={closeTutorial}>
@@ -711,105 +723,71 @@ const CopyTrading = observer(() => {
 
             {/* ── Main Content ── */}
             <div className='ct2-content'>
-                <div className='ct2-hero'>
-                    <div className='ct2-hero__left'>
-                        <div className='ct2-hero__badges'>
-                            <div className='ct2-hero__badge'>
-                                <span className='ct2-hero__badge-dot' />
-                                Replicator Node
-                            </div>
-                            {demoToRealActive && (
-                                <div className='ct2-hero__badge ct2-hero__badge--demo-real'>
-                                    <span className='ct2-hero__badge-dot ct2-hero__badge-dot--green' />
-                                    Demo → Real Active
-                                </div>
-                            )}
+                {/* ── Hero Banner (Mockup UI) ── */}
+                <div className='ct2-hero-banner'>
+                    <div className='ct2-hero-banner__left'>
+                        <div className='ct2-hero-banner__badge'>
+                            <span className='ct2-hero-banner__badge-icon'>✨</span>
+                            <span>LIVE COPY TRADING</span>
                         </div>
-                        <h1 className='ct2-hero__title'>
-                            Copy Trading
-                            <span className='ct2-hero__title-accent'> Console</span>
+
+                        <h2 className='ct2-hero-banner__headline'>Your account, your control.</h2>
+                        <h1 className='ct2-hero-banner__title'>
+                            Maximize Gains with <span className='ct2-hero-banner__gradient-text'>CopyTrading</span>
                         </h1>
-                        <p className='ct2-hero__subtitle'>
-                            Replicate trades across linked accounts in real-time
+
+                        <p className='ct2-hero-banner__subtitle'>
+                            Mirror trades from your master account to multiple client accounts in real time — automatically and instantly.
                         </p>
+
+                        {/* Stat Pills */}
+                        <div className='ct2-hero-banner__stats-bar'>
+                            <div className='ct2-stat-pill'>
+                                <span className='ct2-stat-pill__value'>{clientsTotal}</span>
+                                <span className='ct2-stat-pill__label'>LINKED ACCOUNTS</span>
+                            </div>
+                            <div className='ct2-stat-pill'>
+                                <span className='ct2-stat-pill__status'>
+                                    <span className={`ct2-status-dot ${copyTradingActive ? 'ct2-status-dot--active' : ''}`} />
+                                    {copyTradingActive ? 'Active' : 'Idle'}
+                                </span>
+                                <span className='ct2-stat-pill__label'>COPY STATUS</span>
+                            </div>
+                            <div className='ct2-stat-pill'>
+                                <span className='ct2-stat-pill__value'>{tradeLogs.length}</span>
+                                <span className='ct2-stat-pill__label'>TRADES REPLICATED</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className='ct2-hero__right'>
-                        {/* Live Account Card */}
-                        <div className='ct2-account-card'>
-                            <div className='ct2-account-card__glow' />
-                            <div className='ct2-account-card__row'>
-                                <div className='ct2-account-card__field'>
-                                    <span className='ct2-account-card__label'>Master Account</span>
-                                    <span className='ct2-account-card__value'>{loginIdDisplay}</span>
-                                </div>
-                                <div className='ct2-account-card__sep' />
-                                <div className='ct2-account-card__field'>
-                                    <span className='ct2-account-card__label'>Balance</span>
-                                    <span className='ct2-account-card__value ct2-account-card__value--green'>
-                                        {balanceDisplay}
-                                    </span>
-                                </div>
-                                <div className='ct2-account-card__sep' />
-                                <div className='ct2-account-card__field'>
-                                    <span className='ct2-account-card__label'>Clients</span>
-                                    <span className='ct2-account-card__value'>{clientsTotal}</span>
-                                </div>
-                                <div className='ct2-account-card__sep' />
-                                <div className='ct2-account-card__field'>
-                                    <span className='ct2-account-card__label'>Live</span>
-                                    <span
-                                        className={`ct2-account-card__value ${
-                                            clientsConnected > 0 ? 'ct2-account-card__value--green' : ''
-                                        }`}
-                                    >
-                                        {clientsConnected}
-                                    </span>
-                                </div>
+
+                    {/* Right Radar/Target Emblem & Theme Toggle */}
+                    <div className='ct2-hero-banner__right'>
+                        <button
+                            className='ct2-theme-toggle-btn'
+                            onClick={toggleTheme}
+                            title='Toggle Light/Dark Theme'
+                        >
+                            {themeMode === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                        </button>
+
+                        <div className='ct2-hero-emblem'>
+                            <div className='ct2-hero-emblem__ring ct2-hero-emblem__ring--outer' />
+                            <div className='ct2-hero-emblem__ring ct2-hero-emblem__ring--inner' />
+                            <div className='ct2-hero-emblem__center'>
+                                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="6" />
+                                    <circle cx="12" cy="12" r="2" />
+                                    <line x1="12" y1="2" x2="12" y2="4" />
+                                    <line x1="12" y1="20" x2="12" y2="22" />
+                                    <line x1="2" y1="12" x2="4" y2="12" />
+                                    <line x1="20" y1="12" x2="22" y2="12" />
+                                </svg>
                             </div>
-                            {/* Master control buttons */}
-                            <div className='ct2-account-card__actions'>
-                                <button
-                                    className={`ct2-pill-btn ${
-                                        demoToRealActive ? 'ct2-pill-btn--danger' : 'ct2-pill-btn--blue'
-                                    }`}
-                                    onClick={handleDemoToReal}
-                                >
-                                    {demoToRealActive ? '⏹ Stop Demo→Real' : '⚡ Demo → Real'}
-                                </button>
-                                <button className='ct2-pill-btn ct2-pill-btn--ghost' onClick={openTutorial}>
-                                    ▶ Guide
-                                </button>
-                            </div>
-                            {successMessage && <div className='ct2-success-banner'>{successMessage}</div>}
                         </div>
                     </div>
                 </div>
 
-                {/* ── Master Toggle ── */}
-                <div className='ct2-master-toggle'>
-                    <div className='ct2-master-toggle__left'>
-                        <div className={`ct2-status-ring ${copyTradingActive ? 'ct2-status-ring--active' : ''}`}>
-                            <div className='ct2-status-ring__inner' />
-                        </div>
-                        <div>
-                            <div className='ct2-master-toggle__label'>Replication Engine</div>
-                            <div className='ct2-master-toggle__sublabel'>
-                                {copyTradingActive
-                                    ? `Live — copying to ${clientsTotal} account(s)`
-                                    : 'Standby — not copying'}
-                            </div>
-                        </div>
-                    </div>
-                    <button
-                        className={`ct2-master-btn ${
-                            copyTradingActive ? 'ct2-master-btn--stop' : 'ct2-master-btn--start'
-                        }`}
-                        onClick={handleStartCopyTrading}
-                    >
-                        <span className='ct2-master-btn__icon'>{copyTradingActive ? '⏹' : '▶'}</span>
-                        {copyTradingActive ? 'PAUSE REPLICATION' : 'START COPY TRADING'}
-                    </button>
-                </div>
                 {successMessage2 && (
                     <div className='ct2-success-banner ct2-success-banner--centered'>{successMessage2}</div>
                 )}
@@ -838,59 +816,111 @@ const CopyTrading = observer(() => {
                     ))}
                 </div>
 
-                {/* ── Dashboard Tab ── */}
+                {/* ── Dashboard Tab (Matching Mockup Grid) ── */}
                 {activeTab === 'dashboard' && (
                     <div className='ct2-tab-panel'>
-                        <div className='ct2-stats-grid'>
-                            <div className='ct2-stat-card'>
-                                <div className='ct2-stat-card__icon'>👥</div>
-                                <div className='ct2-stat-card__value'>{clientsTotal}</div>
-                                <div className='ct2-stat-card__label'>Total Clients</div>
-                            </div>
-                            <div className='ct2-stat-card ct2-stat-card--green'>
-                                <div className='ct2-stat-card__icon'>🔗</div>
-                                <div className='ct2-stat-card__value'>{clientsConnected}</div>
-                                <div className='ct2-stat-card__label'>Connected</div>
-                            </div>
-                            <div className='ct2-stat-card ct2-stat-card--blue'>
-                                <div className='ct2-stat-card__icon'>📋</div>
-                                <div className='ct2-stat-card__value'>{tradeLogs.length}</div>
-                                <div className='ct2-stat-card__label'>Trade Events</div>
-                            </div>
-                            <div
-                                className={`ct2-stat-card ${
-                                    copyTradingActive ? 'ct2-stat-card--green' : 'ct2-stat-card--dim'
-                                }`}
-                            >
-                                <div className='ct2-stat-card__icon'>{copyTradingActive ? '🟢' : '⚪'}</div>
-                                <div className='ct2-stat-card__value'>{copyTradingActive ? 'LIVE' : 'OFF'}</div>
-                                <div className='ct2-stat-card__label'>Engine Status</div>
-                            </div>
-                        </div>
+                        <div className='ct2-dashboard-grid'>
+                            {/* Left Column Stack */}
+                            <div className='ct2-dashboard-grid__left'>
+                                {/* Card 1: Demo -> Real */}
+                                <div className='ct2-card ct2-card--demo-real'>
+                                    <div className='ct2-card__header'>
+                                        <div className='ct2-card__icon-badge ct2-card__icon-badge--blue'>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                                        </div>
+                                        <h3 className='ct2-card__title'>Demo → Real</h3>
+                                    </div>
+                                    <p className='ct2-card__desc'>
+                                        Mirror trades from your demo account to your real account automatically.
+                                    </p>
+                                    <button
+                                        className={`ct2-action-btn ${demoToRealActive ? 'ct2-action-btn--danger' : 'ct2-action-btn--gradient-blue'}`}
+                                        onClick={handleDemoToReal}
+                                    >
+                                        {demoToRealActive ? '⏹ Stop Demo → Real' : '▶ Start Demo → Real'}
+                                    </button>
+                                </div>
 
-                        {/* Quick Actions */}
-                        <div className='ct2-quick-actions'>
-                            <h3 className='ct2-section-title'>Quick Actions</h3>
-                            <div className='ct2-action-cards'>
-                                <div className='ct2-action-card' onClick={handleAutoImportTokens}>
-                                    <div className='ct2-action-card__icon'>⚡</div>
-                                    <div className='ct2-action-card__title'>Auto-Import Tokens</div>
-                                    <div className='ct2-action-card__desc'>Sync all logged-in session accounts</div>
+                                {/* Card 2: Token Replicator */}
+                                <div className='ct2-card ct2-card--token-replicator'>
+                                    <div className='ct2-card__header'>
+                                        <div className='ct2-card__icon-badge ct2-card__icon-badge--amber'>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.778-7.778zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                                        </div>
+                                        <h3 className='ct2-card__title'>Token Replicator</h3>
+                                    </div>
+                                    <p className='ct2-card__desc'>
+                                        Add client API tokens. When you trade, all linked accounts receive the same trade instantly.
+                                    </p>
+
+                                    <div className='ct2-token-input-row'>
+                                        <input
+                                            type='text'
+                                            className='ct2-input-glass'
+                                            placeholder='Paste client API token...'
+                                            value={tokenInput}
+                                            onChange={e => setTokenInput(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleAddToken()}
+                                        />
+                                        <button className='ct2-btn-blue' onClick={handleAddToken}>
+                                            Add
+                                        </button>
+                                        <button className='ct2-btn-glass' onClick={handleSyncTokens} disabled={isSyncing}>
+                                            {isSyncing ? '↻ Syncing…' : '🔄 Sync'}
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        className={`ct2-action-btn ${copyTradingActive ? 'ct2-action-btn--danger' : 'ct2-action-btn--gradient-purple'}`}
+                                        onClick={handleStartCopyTrading}
+                                    >
+                                        {copyTradingActive ? 'PAUSE REPLICATION' : '▶ Start Copy Trading'}
+                                    </button>
                                 </div>
-                                <div className='ct2-action-card' onClick={() => setActiveTab('clients')}>
-                                    <div className='ct2-action-card__icon'>➕</div>
-                                    <div className='ct2-action-card__title'>Add Client</div>
-                                    <div className='ct2-action-card__desc'>Manually add a client auth token</div>
-                                </div>
-                                <div className='ct2-action-card' onClick={() => setActiveTab('logs')}>
-                                    <div className='ct2-action-card__icon'>📡</div>
-                                    <div className='ct2-action-card__title'>View Live Logs</div>
-                                    <div className='ct2-action-card__desc'>Monitor real-time replication activity</div>
-                                </div>
-                                <div className='ct2-action-card' onClick={openTutorial}>
-                                    <div className='ct2-action-card__icon'>▶</div>
-                                    <div className='ct2-action-card__title'>Watch Tutorial</div>
-                                    <div className='ct2-action-card__desc'>Learn how copy trading works</div>
+                            </div>
+
+                            {/* Right Column: Replicated Accounts */}
+                            <div className='ct2-dashboard-grid__right'>
+                                <div className='ct2-card ct2-card--replicated-accounts'>
+                                    <div className='ct2-card__header'>
+                                        <div className='ct2-card__icon-badge ct2-card__icon-badge--purple'>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                        </div>
+                                        <h3 className='ct2-card__title'>Replicated Accounts</h3>
+                                    </div>
+
+                                    {copierList.length === 0 ? (
+                                        <div className='ct2-empty-state-card'>
+                                            <div className='ct2-empty-state-card__icon'>
+                                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                            </div>
+                                            <p className='ct2-empty-state-card__title'>No accounts linked yet.</p>
+                                            <p className='ct2-empty-state-card__sub'>Add a client API token or create accounts in settings.</p>
+                                        </div>
+                                    ) : (
+                                        <ul className='ct2-replicated-list'>
+                                            {copierList.map((token, i) => {
+                                                const copier = managerRef.current?.copiers?.find(c => c.token === token);
+                                                const isConnected = copier?.status === 'connected';
+                                                return (
+                                                    <li key={i} className='ct2-replicated-item'>
+                                                        <div className='ct2-replicated-item__info'>
+                                                            <span className={`ct2-status-dot ${isConnected ? 'ct2-status-dot--active' : 'ct2-status-dot--orange'}`} />
+                                                            <span className='ct2-replicated-item__loginid'>
+                                                                {copier?.loginId || truncateToken(token)}
+                                                            </span>
+                                                            {copier?.balance !== undefined && (
+                                                                <span className='ct2-replicated-item__balance'>${Number(copier.balance).toFixed(2)}</span>
+                                                            )}
+                                                        </div>
+                                                        <button className='ct2-btn-remove' onClick={() => handleRemoveToken(token)}>
+                                                            Disconnect
+                                                        </button>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    )}
                                 </div>
                             </div>
                         </div>
