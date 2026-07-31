@@ -410,9 +410,9 @@ export const SmartAnalysisPage: React.FC = observer(() => {
                     };
 
                     try {
-                        transactions.pushTransaction({ ...initialContractData, run_id: run_panel.run_id });
-                        run_panel.onBotContractEvent(initialContractData);
-                        summary_card.onBotContractEvent(initialContractData);
+                        transactions.pushTransaction({ ...(initialContractData as any), run_id: run_panel.run_id });
+                        run_panel.onBotContractEvent(initialContractData as any);
+                        summary_card.onBotContractEvent(initialContractData as any);
                     } catch (e) {
                         console.warn('[SmartAnalysis] Run panel push warning:', e);
                     }
@@ -476,9 +476,9 @@ export const SmartAnalysisPage: React.FC = observer(() => {
                                     };
 
                                     try {
-                                        transactions.pushTransaction({ ...finalContractData, run_id: run_panel.run_id });
-                                        run_panel.onBotContractEvent(finalContractData);
-                                        summary_card.onBotContractEvent(finalContractData);
+                                        transactions.pushTransaction({ ...(finalContractData as any), run_id: run_panel.run_id });
+                                        run_panel.onBotContractEvent(finalContractData as any);
+                                        summary_card.onBotContractEvent(finalContractData as any);
                                     } catch (err) {
                                         console.warn('[SmartAnalysis] Final run panel push warning:', err);
                                     }
