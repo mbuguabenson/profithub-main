@@ -61,8 +61,6 @@ const CopyTrading = observer(() => {
     const [successMessage, setSuccessMessage] = useState('');
     const [successMessage2, setSuccessMessage2] = useState('');
     const [tokenInput, setTokenInput] = useState('');
-    const [tick, setTick] = useState(0);
-    void tick;
 
     // Account info state
     const [loginIdDisplay, setLoginIdDisplay] = useState<string>('Loading...');
@@ -224,11 +222,11 @@ const CopyTrading = observer(() => {
 
     // ─── Fetch Supabase Admin Follow Status ────────────────────────────────────
     const checkAdminFollowStatus = useCallback(async () => {
-        const token = getActiveToken();
-        if (!token) return;
+        const loginid = getActiveLoginId();
+        if (!loginid) return;
         setIsLoadingAdminStatus(true);
         try {
-            const req = await getCopyRequestStatus(token);
+            const req = await getCopyRequestStatus(loginid, 'Profithubadmin');
             if (!req) {
                 setAdminFollowStatus('none');
             } else {
@@ -276,13 +274,13 @@ const CopyTrading = observer(() => {
 
         setIsLoadingAdminStatus(true);
         try {
-            const result = await requestFollowProvider(loginid, token, 'Profithubadmin');
-            if (result.success) {
+            const success = await requestFollowProvider(loginid, token, 'Profithubadmin');
+            if (success) {
                 setAdminFollowStatus('pending');
                 setSuccessMessage('✅ Request submitted! Awaiting admin approval.');
                 setTimeout(() => setSuccessMessage(''), 6000);
             } else {
-                setErrorMessage(result.error || 'Failed to submit follow request.');
+                setErrorMessage('Failed to submit follow request.');
                 setErrorModalVisible(true);
             }
         } catch (err: any) {
@@ -294,11 +292,11 @@ const CopyTrading = observer(() => {
     };
 
     const handleStopFollowAdmin = async () => {
-        const token = getActiveToken();
-        if (!token) return;
+        const loginid = getActiveLoginId();
+        if (!loginid) return;
         setIsLoadingAdminStatus(true);
         try {
-            const success = await deleteRequest(token);
+            const success = await deleteRequest(loginid, 'Profithubadmin');
             if (success) {
                 setAdminFollowStatus('none');
                 setSuccessMessage('Stopped following Profithubadmin.');
