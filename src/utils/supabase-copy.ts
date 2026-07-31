@@ -306,10 +306,16 @@ export const getDefaultTabConfig = (): TabConfigItem[] => [
     { key: 'signals', label: 'Signals', enabled: true, order: 6 },
     { key: 'copy_trading', label: 'Copy Trading', enabled: true, order: 7 },
     { key: 'tradingview', label: 'TradingView', enabled: true, order: 8 },
+    { key: 'analysis', label: 'Analysis', enabled: true, order: 9 },
+    { key: 'dtrader', label: 'D-Trader', enabled: true, order: 10 },
+    { key: 'smart_analysis', label: 'Smart Analysis', enabled: true, order: 11 },
+    { key: 'matches', label: 'Matches', enabled: true, order: 12 },
+    { key: 'speedbot', label: 'Speedbot', enabled: true, order: 13 },
+    { key: 'copy_trader', label: 'Copy Trading', enabled: true, order: 14 },
 ];
 
 // Bump this when new tabs are added to force clients to pick up new defaults
-const TAB_CONFIG_VERSION = 12;
+const TAB_CONFIG_VERSION = 13;
 
 export const getSiteConfig = (): SiteConfig => {
     try {

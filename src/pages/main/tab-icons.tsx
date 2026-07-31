@@ -182,6 +182,27 @@ export const TabIcon: React.FC<TTabIconProps> = ({ iconKey, label }) => {
                         <line x1='1' y1='15' x2='4' y2='15' />
                     </svg>
                 );
+            case 'matches':
+                return (
+                    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#f59e0b' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                        <path d='M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z' />
+                        <circle cx='12' cy='19' r='1' fill='currentColor' />
+                    </svg>
+                );
+            case 'speedbot':
+                return (
+                    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#ec4899' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                        <polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2' />
+                    </svg>
+                );
+            case 'smart_analysis':
+                return (
+                    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='#8b5cf6' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
+                        <path d='M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z' />
+                        <path d='M19 10v2a7 7 0 0 1-14 0v-2' />
+                        <line x1='12' y1='19' x2='12' y2='22' />
+                    </svg>
+                );
             default:
                 return (
                     <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
